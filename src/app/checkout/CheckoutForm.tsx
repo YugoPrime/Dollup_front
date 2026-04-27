@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCart } from "@/components/cart/CartProvider";
+import { OrderSummary } from "./OrderSummary";
 
 export function CheckoutForm() {
   const { cart } = useCart();
@@ -27,10 +28,15 @@ export function CheckoutForm() {
 
   return (
     <div className="grid gap-10 lg:grid-cols-[1fr_380px]">
-      <div className="font-sans text-sm text-ink-muted">Form coming up…</div>
       <div className="font-sans text-sm text-ink-muted">
-        Order summary coming up…
+        Form coming up in the next task…
       </div>
+      <OrderSummary
+        cart={cart}
+        submitting={false}
+        submitDisabled
+        onSubmit={() => {}}
+      />
     </div>
   );
 }
