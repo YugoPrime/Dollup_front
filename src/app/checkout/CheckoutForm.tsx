@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import type { HttpTypes } from "@medusajs/types";
 import { useCart } from "@/components/cart/CartProvider";
+import { clientSdk } from "@/lib/cart-client";
 import { OrderSummary } from "./OrderSummary";
 import {
   EMPTY_CHECKOUT_STATE,
@@ -64,6 +66,9 @@ export function CheckoutForm() {
   const [state, setState] = useState<CheckoutFormState>(EMPTY_CHECKOUT_STATE);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [touched, setTouched] = useState<Set<string>>(new Set());
+  const [shippingOptions, setShippingOptions] = useState<
+    HttpTypes.StoreCartShippingOptionWithServiceZone[]
+  >([]);
 
   const set = <K extends keyof CheckoutFormState>(
     key: K,
@@ -80,6 +85,31 @@ export function CheckoutForm() {
 
   const showError = (name: string) =>
     touched.has(name) ? errors[name] : undefined;
+
+  useEffect(() => {
+    if (!cart?.id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { shipping_options } =
+          await clientSdk.store.fulfillment.listCartOptions({
+            cart_id: cart.id,
+          });
+        if (!cancelled) {
+          setShippingOptions(shipping_options ?? []);
+          setState((s) => ({
+            ...s,
+            shippingOptionId: s.shippingOptionId ?? shipping_options?.[0]?.id ?? null,
+          }));
+        }
+      } catch {
+        if (!cancelled) setShippingOptions([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [cart?.id]);
 
   if (!cart || (cart.items?.length ?? 0) === 0) {
     return (
@@ -323,6 +353,52 @@ export function CheckoutForm() {
                 value={state.billing.postalCode}
                 onChange={(v) => setBilling("postalCode", v)}
               />
+            </div>
+          )}
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="font-display text-lg font-semibold text-ink">
+            Shipping method
+          </h2>
+          {shippingOptions.length === 0 ? (
+            <p className="font-sans text-sm text-ink-muted">
+              Loading shipping options…
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {shippingOptions.map((opt) => (
+                <label
+                  key={opt.id}
+                  className={`flex cursor-pointer items-center justify-between rounded-md border-[1.5px] px-4 py-3 transition-colors ${
+                    state.shippingOptionId === opt.id
+                      ? "border-coral-500 bg-blush-100"
+                      : "border-blush-400 bg-white hover:border-coral-500"
+                  }`}
+                >
+                  <span className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      name="shippingOption"
+                      checked={state.shippingOptionId === opt.id}
+                      onChange={() => set("shippingOptionId", opt.id)}
+                      className="h-4 w-4 accent-coral-500"
+                    />
+                    <span className="font-sans text-sm font-medium text-ink">
+                      {opt.name}
+                    </span>
+                  </span>
+                  <span className="font-sans text-sm font-semibold text-ink">
+                    {opt.amount === 0
+                      ? "Free"
+                      : new Intl.NumberFormat("en-MU", {
+                          style: "currency",
+                          currency: cart.currency_code ?? "MUR",
+                          minimumFractionDigits: 0,
+                        }).format(opt.amount ?? 0)}
+                  </span>
+                </label>
+              ))}
             </div>
           )}
         </section>
