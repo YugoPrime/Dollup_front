@@ -51,7 +51,7 @@ export function ProductCard({ product }: { product: Product }) {
       className="group relative block overflow-hidden rounded-xl bg-white shadow-[0_2px_8px_rgba(229,96,74,0.06),0_1px_3px_rgba(0,0,0,0.04)] transition-all duration-200 ease-out hover:-translate-y-[3px] hover:shadow-[0_6px_20px_rgba(229,96,74,0.13),0_2px_8px_rgba(0,0,0,0.06)]"
     >
       <div
-        className="relative flex h-[260px] items-center justify-center overflow-hidden"
+        className="relative flex h-[340px] items-center justify-center overflow-hidden md:h-[380px]"
         style={{ background: bg }}
       >
         {soldOut && (
