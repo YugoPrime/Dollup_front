@@ -28,6 +28,7 @@ type CartContextValue = {
   addItem: (variantId: string, quantity?: number) => Promise<void>;
   updateItem: (lineId: string, quantity: number) => Promise<void>;
   removeItem: (lineId: string) => Promise<void>;
+  clearCart: () => void;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -142,6 +143,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     [cart, refresh],
   );
 
+  const clearCart = useCallback(() => {
+    clearStoredCartId();
+    setCart(null);
+    setOpen(false);
+  }, []);
+
   const itemCount = useMemo(
     () => cart?.items?.reduce((s, i) => s + (i.quantity ?? 0), 0) ?? 0,
     [cart],
@@ -156,6 +163,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     addItem,
     updateItem,
     removeItem,
+    clearCart,
   };
 
   return (
