@@ -9,11 +9,13 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@medusajs/js-sdk": "^2.14.1",
     "next": "16.2.4",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
   "devDependencies": {
+    "@medusajs/types": "^2.14.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

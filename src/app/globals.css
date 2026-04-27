@@ -1,26 +1,64 @@
 @import "tailwindcss";
 
+@theme {
+  --color-cream: #FDF8F7;
+  --color-cream-50: #FFFCFB;
+  --color-cream-100: #FAF1EE;
+  --color-blush-100: #F5EDEB;
+  --color-blush-200: #F2DDD8;
+  --color-blush-300: #FAE8E4;
+  --color-blush-400: #EAD9D6;
+  --color-coral-300: #F1A899;
+  --color-coral-400: #ED8773;
+  --color-coral-500: #E5604A;
+  --color-coral-600: #D4857A;
+  --color-coral-700: #B84A38;
+  --color-coral-900: #8B2E2E;
+  --color-ink: #1A1212;
+  --color-ink-soft: #4A3A3A;
+  --color-ink-muted: #8B7373;
+  --color-gold: #D4A853;
+
+  --font-display: var(--font-playfair), ui-serif, Georgia, serif;
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-pill: 9999px;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --coral: var(--color-coral-500);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+a { color: inherit; text-decoration: none; }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--color-cream); }
+::-webkit-scrollbar-thumb { background: var(--color-blush-400); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-coral-600); }
+
+button:focus-visible, a:focus-visible {
+  outline: 2px solid var(--coral);
+  outline-offset: 2px;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--coral) !important;
+  box-shadow: 0 0 0 3px rgba(229, 96, 74, 0.12);
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up { animation: fadeUp 300ms ease-out; }
