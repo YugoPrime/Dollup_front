@@ -151,10 +151,19 @@ export function CheckoutForm() {
       clearCart();
       router.push(`/checkout/success?order=${result.order.id}`);
     } catch (err) {
-      const msg =
-        err instanceof Error
-          ? err.message
-          : "Couldn't place your order. Please try again.";
+      let msg = "Couldn't place your order. Please try again.";
+      if (err instanceof Error) {
+        const text = err.message.toLowerCase();
+        if (
+          text.includes("out of stock") ||
+          text.includes("inventory") ||
+          text.includes("not enough")
+        ) {
+          msg = "Some items are no longer available. Please review your bag.";
+        } else if (text.length > 0) {
+          msg = err.message;
+        }
+      }
       setErrorBanner(msg);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
