@@ -148,6 +148,23 @@ export function CheckoutForm() {
         throw new Error("Order could not be completed");
       }
 
+      if (state.createAccount && state.password) {
+        try {
+          await clientSdk.auth.register("customer", "emailpass", {
+            email: state.email,
+            password: state.password,
+          });
+          await clientSdk.store.customer.create({
+            email: state.email,
+            first_name: state.firstName,
+            last_name: state.lastName,
+            phone: state.phone,
+          });
+        } catch (e) {
+          console.warn("Account creation skipped:", e);
+        }
+      }
+
       clearCart();
       router.push(`/checkout/success?order=${result.order.id}`);
     } catch (err) {
@@ -475,6 +492,34 @@ export function CheckoutForm() {
             rows={3}
             className="w-full rounded-md border-[1.5px] border-blush-400 bg-white px-3 py-2.5 font-sans text-sm text-ink outline-none focus:border-coral-500"
           />
+        </section>
+
+        <section className="space-y-3">
+          <label className="flex items-start gap-2 font-sans text-sm text-ink">
+            <input
+              type="checkbox"
+              checked={state.createAccount}
+              onChange={(e) => set("createAccount", e.target.checked)}
+              className="mt-0.5 h-4 w-4 accent-coral-500"
+            />
+            <span>
+              Create an account so I can track this order and check out faster
+              next time.
+            </span>
+          </label>
+          {state.createAccount && (
+            <Field
+              label="Choose a password"
+              name="password"
+              type="password"
+              required
+              autoComplete="new-password"
+              value={state.password}
+              onChange={(v) => set("password", v)}
+              onBlur={() => markTouched("password")}
+              error={showError("password")}
+            />
+          )}
         </section>
 
         <button
