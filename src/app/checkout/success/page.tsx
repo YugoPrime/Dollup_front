@@ -36,9 +36,28 @@ function CheckoutSuccessInner() {
     })();
   }, [orderId, router]);
 
-  useEffect(() => {
-    if (error) router.replace("/");
-  }, [error, router]);
+  if (error) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-20 text-center">
+        <p className="font-display text-xl font-semibold text-ink">
+          Your order was placed.
+        </p>
+        <p className="mt-2 font-sans text-sm text-ink-muted">
+          We couldn&apos;t load the confirmation details right now. Please save
+          your order ID:
+        </p>
+        <p className="mt-3 font-sans text-base font-semibold text-ink">
+          {orderId}
+        </p>
+        <Link
+          href="/"
+          className="mt-6 inline-block rounded-md bg-coral-500 px-7 py-3 font-sans text-sm font-semibold text-white hover:bg-coral-700"
+        >
+          Back to Home
+        </Link>
+      </div>
+    );
+  }
 
   if (!order) {
     return (

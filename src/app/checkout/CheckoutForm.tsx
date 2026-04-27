@@ -133,6 +133,9 @@ export function CheckoutForm() {
         email: state.email,
         shipping_address: toMedusaAddress(state, "shipping"),
         billing_address: toMedusaAddress(state, "billing"),
+        ...(state.notes.trim()
+          ? { metadata: { notes: state.notes.trim() } }
+          : {}),
       });
 
       await clientSdk.store.cart.addShippingMethod(cart.id, {
@@ -145,7 +148,9 @@ export function CheckoutForm() {
 
       const result = await clientSdk.store.cart.complete(cart.id);
       if (result.type !== "order") {
-        throw new Error("Order could not be completed");
+        throw new Error(
+          result.error?.message ?? "Order could not be completed",
+        );
       }
 
       if (state.createAccount && state.password) {
@@ -422,6 +427,11 @@ export function CheckoutForm() {
                       </option>
                     ))}
                   </select>
+                  {showError("billing.province") && (
+                    <span className="mt-1 block font-sans text-[11px] text-coral-700">
+                      {showError("billing.province")}
+                    </span>
+                  )}
                 </label>
               </div>
               <Field
@@ -535,7 +545,6 @@ export function CheckoutForm() {
       <OrderSummary
         cart={cart}
         submitting={submitting}
-        submitDisabled={false}
         onSubmit={handleSubmit}
         errorBanner={errorBanner}
       />

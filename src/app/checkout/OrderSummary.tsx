@@ -11,7 +11,6 @@ type Props = {
   cart: Cart;
   submitting: boolean;
   onSubmit: () => void;
-  submitDisabled: boolean;
   errorBanner?: string | null;
 };
 
@@ -19,7 +18,6 @@ export function OrderSummary({
   cart,
   submitting,
   onSubmit,
-  submitDisabled,
   errorBanner,
 }: Props) {
   const items = cart.items ?? [];
@@ -98,7 +96,7 @@ export function OrderSummary({
         <button
           type="button"
           onClick={onSubmit}
-          disabled={submitDisabled || submitting}
+          disabled={submitting}
           className="mt-5 hidden w-full items-center justify-center rounded-md bg-coral-500 px-4 py-3 font-sans text-sm font-semibold tracking-wide text-white transition-colors hover:bg-coral-700 disabled:opacity-60 lg:flex"
         >
           {submitting ? "Placing order…" : "Place Order"}
