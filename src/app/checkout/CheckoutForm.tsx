@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { HttpTypes } from "@medusajs/types";
 import { useCart } from "@/components/cart/CartProvider";
 import { clientSdk } from "@/lib/cart-client";
@@ -10,6 +11,7 @@ import {
   EMPTY_CHECKOUT_STATE,
   MU_DISTRICTS,
   validateCheckout,
+  toMedusaAddress,
   type CheckoutFormState,
   type FieldErrors,
 } from "@/lib/checkout";
@@ -62,13 +64,16 @@ function Field({
 }
 
 export function CheckoutForm() {
-  const { cart } = useCart();
+  const router = useRouter();
+  const { cart, clearCart } = useCart();
   const [state, setState] = useState<CheckoutFormState>(EMPTY_CHECKOUT_STATE);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [touched, setTouched] = useState<Set<string>>(new Set());
   const [shippingOptions, setShippingOptions] = useState<
     HttpTypes.StoreCartShippingOptionWithServiceZone[]
   >([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorBanner, setErrorBanner] = useState<string | null>(null);
 
   const set = <K extends keyof CheckoutFormState>(
     key: K,
@@ -110,6 +115,52 @@ export function CheckoutForm() {
       cancelled = true;
     };
   }, [cart?.id]);
+
+  async function handleSubmit() {
+    const validation = validateCheckout(state);
+    setErrors(validation);
+    setTouched(new Set(Object.keys(validation)));
+    if (Object.keys(validation).length > 0) {
+      setErrorBanner("Please fix the highlighted fields.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    if (!cart) return;
+    setErrorBanner(null);
+    setSubmitting(true);
+    try {
+      await clientSdk.store.cart.update(cart.id, {
+        email: state.email,
+        shipping_address: toMedusaAddress(state, "shipping"),
+        billing_address: toMedusaAddress(state, "billing"),
+      });
+
+      await clientSdk.store.cart.addShippingMethod(cart.id, {
+        option_id: state.shippingOptionId!,
+      });
+
+      await clientSdk.store.payment.initiatePaymentSession(cart, {
+        provider_id: "pp_system_default",
+      });
+
+      const result = await clientSdk.store.cart.complete(cart.id);
+      if (result.type !== "order") {
+        throw new Error("Order could not be completed");
+      }
+
+      clearCart();
+      router.push(`/checkout/success?order=${result.order.id}`);
+    } catch (err) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Couldn't place your order. Please try again.";
+      setErrorBanner(msg);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   if (!cart || (cart.items?.length ?? 0) === 0) {
     return (
@@ -416,13 +467,23 @@ export function CheckoutForm() {
             className="w-full rounded-md border-[1.5px] border-blush-400 bg-white px-3 py-2.5 font-sans text-sm text-ink outline-none focus:border-coral-500"
           />
         </section>
+
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={submitting}
+          className="sticky bottom-4 flex w-full items-center justify-center rounded-md bg-coral-500 px-4 py-3 font-sans text-sm font-semibold text-white shadow-lg disabled:opacity-60 lg:hidden"
+        >
+          {submitting ? "Placing order…" : "Place Order"}
+        </button>
       </form>
 
       <OrderSummary
         cart={cart}
-        submitting={false}
-        submitDisabled
-        onSubmit={() => {}}
+        submitting={submitting}
+        submitDisabled={false}
+        onSubmit={handleSubmit}
+        errorBanner={errorBanner}
       />
     </div>
   );
