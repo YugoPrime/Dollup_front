@@ -17,6 +17,12 @@ const NOT_FOUND = NextResponse.json(
   { status: 404 },
 );
 
+function toIso(v: string | Date | null | undefined): string {
+  if (v instanceof Date) return v.toISOString();
+  if (typeof v === "string" && v) return v;
+  return "";
+}
+
 const ORDER_FIELDS = [
   "*items",
   "*items.variant",
@@ -92,7 +98,7 @@ export async function POST(request: Request) {
   const response: TrackOrderResponse = {
     displayId: `DUB${order.display_id}`,
     status: deriveStatus(order),
-    placedAt: String(order.created_at),
+    placedAt: toIso(order.created_at),
     shippingAddress: {
       firstName: ship?.first_name ?? "",
       lastName: ship?.last_name ?? "",
@@ -117,13 +123,15 @@ export async function POST(request: Request) {
     },
     trackingCode,
     trackingUrl: buildTrackingUrl(trackingCode),
-    canceledAt: order.status === "canceled" ? String(order.updated_at) : null,
+    // Medusa Store API does not expose order.canceled_at; updated_at is the
+    // closest available proxy and may drift if the order is mutated after cancel.
+    canceledAt: order.status === "canceled" ? toIso(order.updated_at) : null,
     steps: {
-      placedAt: String(order.created_at),
+      placedAt: toIso(order.created_at),
       confirmedAt: readConfirmedAt(order),
-      packedAt: ful?.packed_at ? String(ful.packed_at) : null,
-      shippedAt: ful?.shipped_at ? String(ful.shipped_at) : null,
-      deliveredAt: ful?.delivered_at ? String(ful.delivered_at) : null,
+      packedAt: ful?.packed_at ? toIso(ful.packed_at) : null,
+      shippedAt: ful?.shipped_at ? toIso(ful.shipped_at) : null,
+      deliveredAt: ful?.delivered_at ? toIso(ful.delivered_at) : null,
     },
   };
 
