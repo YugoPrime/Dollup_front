@@ -12,10 +12,9 @@ import {
   type TrackOrderResponse,
 } from "@/lib/track-order";
 
-const NOT_FOUND = NextResponse.json(
-  { error: "not_found" as const },
-  { status: 404 },
-);
+function notFound() {
+  return NextResponse.json({ error: "not_found" as const }, { status: 404 });
+}
 
 function toIso(v: string | Date | null | undefined): string {
   if (v instanceof Date) return v.toISOString();
@@ -62,7 +61,7 @@ export async function POST(request: Request) {
   const ref = parseOrderRef(orderRefRaw);
   const normalizedPhone = normalizePhone(phoneRaw);
   if (ref.kind === "invalid" || !normalizedPhone) {
-    return NOT_FOUND;
+    return notFound();
   }
 
   let order: HttpTypes.StoreOrder | null = null;
@@ -81,14 +80,14 @@ export async function POST(request: Request) {
       order = res.orders?.[0] ?? null;
     }
   } catch {
-    return NOT_FOUND;
+    return notFound();
   }
 
-  if (!order) return NOT_FOUND;
+  if (!order) return notFound();
 
   const storedPhone = normalizePhone(order.shipping_address?.phone ?? "");
   if (!storedPhone || storedPhone !== normalizedPhone) {
-    return NOT_FOUND;
+    return notFound();
   }
 
   const trackingCode = readTrackingCode(order);
