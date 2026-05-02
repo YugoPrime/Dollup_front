@@ -103,8 +103,8 @@ export function readConfirmedAt(
 export function deriveStatus(
   order: HttpTypes.StoreOrder,
 ): TrackOrderStatus {
+  if (order.status === "canceled") return "canceled";
   const fs = order.fulfillment_status;
-  if (fs === "canceled") return "canceled";
   if (fs === "delivered") return "delivered";
   if (fs === "shipped" || fs === "partially_shipped") return "shipped";
   if (fs === "fulfilled" || fs === "partially_fulfilled") return "packed";
