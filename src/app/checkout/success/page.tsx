@@ -173,16 +173,16 @@ function CheckoutSuccessInner() {
 
         <div className="flex flex-col gap-3 sm:flex-row">
           <Link
-            href="/shop"
+            href={`/track-order?order=DUB${order.display_id}`}
             className="flex-1 rounded-md bg-coral-500 px-4 py-3 text-center font-sans text-sm font-semibold text-white hover:bg-coral-700"
           >
-            Continue Shopping
+            Track this order
           </Link>
           <Link
-            href="/"
+            href="/shop"
             className="flex-1 rounded-md border-[1.5px] border-coral-500 px-4 py-3 text-center font-sans text-sm font-semibold text-coral-500 hover:bg-blush-100"
           >
-            Back to Home
+            Continue Shopping
           </Link>
         </div>
       </div>
