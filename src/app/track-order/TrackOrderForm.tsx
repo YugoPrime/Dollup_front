@@ -1,7 +1,7 @@
 // src/app/track-order/TrackOrderForm.tsx
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef } from "react";
 
 export type TrackSubmitState =
   | { kind: "idle" }
@@ -10,34 +10,42 @@ export type TrackSubmitState =
   | { kind: "network_error" };
 
 type Props = {
-  initialOrderRef?: string;
-  initialPhone?: string;
+  orderRef: string;
+  phone: string;
   state: TrackSubmitState;
-  onSubmit: (orderRef: string, phone: string) => void;
+  onChangeOrderRef: (v: string) => void;
+  onChangePhone: (v: string) => void;
+  onSubmit: () => void;
 };
 
 export function TrackOrderForm({
-  initialOrderRef = "",
-  initialPhone = "",
+  orderRef,
+  phone,
   state,
+  onChangeOrderRef,
+  onChangePhone,
   onSubmit,
 }: Props) {
-  const [orderRef, setOrderRef] = useState(initialOrderRef);
-  const [phone, setPhone] = useState(initialPhone);
-  const [touched, setTouched] = useState(false);
+  const phoneRef = useRef<HTMLInputElement>(null);
 
-  const orderRefError =
-    touched && !orderRef.trim() ? "Order number is required" : null;
-  const phoneError =
-    touched && phone.replace(/\D/g, "").length < 7
+  useEffect(() => {
+    if (orderRef && !phone) phoneRef.current?.focus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const showOrderRefError =
+    state.kind === "not_found" && !orderRef.trim()
+      ? "Order number is required"
+      : null;
+  const showPhoneError =
+    state.kind === "not_found" && phone.replace(/\D/g, "").length < 7
       ? "Enter the phone you used at checkout"
       : null;
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    setTouched(true);
     if (!orderRef.trim() || phone.replace(/\D/g, "").length < 7) return;
-    onSubmit(orderRef.trim(), phone.trim());
+    onSubmit();
   };
 
   const isLoading = state.kind === "loading";
@@ -81,14 +89,14 @@ export function TrackOrderForm({
           <input
             type="text"
             value={orderRef}
-            onChange={(e) => setOrderRef(e.target.value)}
+            onChange={(e) => onChangeOrderRef(e.target.value)}
             placeholder="DUB1042"
             autoComplete="off"
             className="mt-1 w-full rounded-md border border-blush-400 px-3 py-2 font-sans text-sm text-ink focus:border-coral-500 focus:outline-none"
           />
-          {orderRefError && (
+          {showOrderRefError && (
             <span className="mt-1 block font-sans text-[12px] text-red-600">
-              {orderRefError}
+              {showOrderRefError}
             </span>
           )}
         </label>
@@ -98,16 +106,17 @@ export function TrackOrderForm({
             Phone number
           </span>
           <input
+            ref={phoneRef}
             type="tel"
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            onChange={(e) => onChangePhone(e.target.value)}
             placeholder="5712 3456"
             autoComplete="tel"
             className="mt-1 w-full rounded-md border border-blush-400 px-3 py-2 font-sans text-sm text-ink focus:border-coral-500 focus:outline-none"
           />
-          {phoneError && (
+          {showPhoneError && (
             <span className="mt-1 block font-sans text-[12px] text-red-600">
-              {phoneError}
+              {showPhoneError}
             </span>
           )}
         </label>
