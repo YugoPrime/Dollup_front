@@ -96,7 +96,7 @@ export function readConfirmedAt(
   order: HttpTypes.StoreOrder,
 ): string | null {
   const v = order.metadata?.["confirmed_at"];
-  if (typeof v === "string" && v.trim()) return v;
+  if (typeof v === "string" && v.trim()) return v.trim();
   return null;
 }
 
@@ -106,7 +106,12 @@ export function deriveStatus(
   if (order.status === "canceled") return "canceled";
   const fs = order.fulfillment_status;
   if (fs === "delivered") return "delivered";
-  if (fs === "shipped" || fs === "partially_shipped") return "shipped";
+  if (
+    fs === "shipped" ||
+    fs === "partially_shipped" ||
+    fs === "partially_delivered"
+  )
+    return "shipped";
   if (fs === "fulfilled" || fs === "partially_fulfilled") return "packed";
   if (readConfirmedAt(order)) return "confirmed";
   return "placed";
