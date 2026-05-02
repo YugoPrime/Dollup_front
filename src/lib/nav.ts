@@ -22,6 +22,7 @@ export const FOOTER_SHOP = [
 ];
 
 export const FOOTER_HELP = [
+  { label: "Track Order", href: "/track-order" },
   { label: "Contact Us", href: "/contact" },
   { label: "Size Guide", href: "/size-guide" },
   { label: "FAQ", href: "/faq" },
