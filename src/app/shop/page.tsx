@@ -2,7 +2,9 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { listProducts, listCategories } from "@/lib/products";
 import { ProductCard } from "@/components/ProductCard";
-import { ShopFilters, SortSelect } from "@/components/shop/ShopFilters";
+import { ShopFilterSidebar } from "@/components/shop/ShopFilterSidebar";
+import { ShopSortDropdown } from "@/components/shop/ShopSortDropdown";
+import { ShopMobileClient } from "@/components/shop/ShopMobileClient";
 
 export const metadata: Metadata = {
   title: "Shop",
@@ -13,15 +15,18 @@ type SearchParams = Promise<{
   category?: string;
   q?: string;
   sort?: string;
+  size?: string;
+  color?: string;
   page?: string;
 }>;
 
 const PER_PAGE = 24;
 
-const SORT_MAP: Record<string, string> = {
+const SORT_MAP: Record<string, string | undefined> = {
   new: "-created_at",
-  low: "variants.calculated_price",
-  high: "-variants.calculated_price",
+  popular: undefined, // no popular metric in Medusa today; falls back to default order
+  "price-asc": "variants.calculated_price",
+  "price-desc": "-variants.calculated_price",
 };
 
 export default async function ShopPage({
@@ -32,7 +37,7 @@ export default async function ShopPage({
   const sp = await searchParams;
   const categoryHandle = sp.category ?? null;
   const q = sp.q ?? undefined;
-  const sortKey = sp.sort ?? "featured";
+  const sortKey = sp.sort ?? "new";
   const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
 
   const allCategories = await listCategories();
@@ -61,64 +66,70 @@ export default async function ShopPage({
 
   const title = q
     ? `Search: ${q}`
-    : matchedCategory?.name ?? "All Products";
+    : matchedCategory?.name ?? "All products";
 
   return (
-    <div className="mx-auto max-w-[1280px] px-6 pb-20 md:px-10">
-      <div className="mb-8 border-b border-blush-400 py-10">
-        <div className="mb-2.5 flex items-center gap-2 font-sans text-xs text-ink-muted">
-          <Link href="/" className="hover:text-coral-500">
-            Home
-          </Link>
-          <span className="text-blush-400">/</span>
-          <span className="font-medium text-ink">{title}</span>
+    <main>
+      <div className="border-b border-blush-100 bg-white px-4 py-4 md:flex md:items-end md:justify-between md:px-8 md:py-6">
+        <div>
+          <p className="font-sans text-[10px] font-bold uppercase tracking-[0.14em] text-ink-muted">
+            <Link href="/" className="hover:text-coral-500">Home</Link>
+            <span className="mx-1.5 text-blush-400">/</span>
+            <span>Shop</span>
+          </p>
+          <h1 className="mt-1 font-display text-[28px] capitalize leading-none text-ink md:text-[44px]">
+            {title} <em className="not-italic text-coral-500" style={{ fontStyle: "italic" }}>collection</em>
+          </h1>
+          <p className="mt-1.5 font-sans text-[11px] text-ink-muted md:text-[12px]">{total} {total === 1 ? "style" : "styles"}</p>
         </div>
-        <h1 className="mb-1 font-display text-4xl font-bold text-ink">
-          {title}
-        </h1>
-        <p className="font-sans text-[13px] text-ink-muted">
-          {total} {total === 1 ? "item" : "items"}
-        </p>
+        <div className="mt-3 md:mt-0">
+          <ShopSortDropdown />
+        </div>
       </div>
 
-      <div className="flex flex-col gap-10 md:flex-row md:items-start">
-        <ShopFilters
-          categories={allCategories.map((c) => ({
-            id: c.id,
-            name: c.name,
-            handle: c.handle,
-          }))}
-          activeHandle={categoryHandle}
-        />
-
-        <div className="flex-1">
-          <div className="mb-6 flex flex-wrap items-center justify-end gap-3">
-            <SortSelect />
-          </div>
-
-          {products.length === 0 ? (
-            <div className="flex flex-col items-center px-10 py-20 text-center">
-              <p className="mb-2 font-display text-lg text-ink">
-                No products found
-              </p>
-              <p className="font-sans text-[13px] text-ink-muted">
-                Try adjusting your filters or check back soon.
-              </p>
+      {/* Mobile shell: chips, grid, sticky bar, sheet */}
+      <ShopMobileClient>
+        {products.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-2.5 px-4 py-3">
+              {products.map((p) => (
+                <ProductCard key={p.id} product={p} />
+              ))}
             </div>
+            <Pagination page={page} total={total} sp={sp} />
+          </>
+        )}
+      </ShopMobileClient>
+
+      {/* Desktop body */}
+      <div className="mx-auto hidden max-w-[1280px] gap-6 px-8 pb-12 pt-6 md:grid md:grid-cols-[230px_1fr]">
+        <ShopFilterSidebar />
+        <div>
+          {products.length === 0 ? (
+            <EmptyState />
           ) : (
             <>
-              <div className="grid gap-5 [grid-template-columns:repeat(auto-fill,minmax(220px,1fr))]">
+              <div className="grid grid-cols-4 gap-4">
                 {products.map((p) => (
                   <ProductCard key={p.id} product={p} />
                 ))}
               </div>
-              {total > PER_PAGE && (
-                <Pagination page={page} total={total} sp={sp} />
-              )}
+              <Pagination page={page} total={total} sp={sp} />
             </>
           )}
         </div>
       </div>
+    </main>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="flex flex-col items-center px-10 py-20 text-center">
+      <p className="mb-2 font-display text-lg text-ink">No products found</p>
+      <p className="font-sans text-[13px] text-ink-muted">Try adjusting your filters or check back soon.</p>
     </div>
   );
 }
@@ -140,13 +151,15 @@ function Pagination({
     if (sp.category) params.set("category", sp.category);
     if (sp.q) params.set("q", sp.q);
     if (sp.sort) params.set("sort", sp.sort);
+    if (sp.size) params.set("size", sp.size);
+    if (sp.color) params.set("color", sp.color);
     if (p > 1) params.set("page", String(p));
     const qs = params.toString();
     return qs ? `/shop?${qs}` : "/shop";
   };
 
   return (
-    <nav className="mt-10 flex items-center justify-center gap-2">
+    <nav className="mt-10 flex items-center justify-center gap-2 pb-6">
       {page > 1 && (
         <Link
           href={buildHref(page - 1)}
