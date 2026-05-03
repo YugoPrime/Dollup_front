@@ -45,6 +45,7 @@ export function Footer() {
           </div>
           <Link
             href="/loyalty"
+            prefetch={false}
             className="flex items-center gap-1.5 rounded-md border border-coral-500/25 bg-coral-500/10 px-3 py-2"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="#E5604A">
@@ -94,6 +95,7 @@ function FooterCol({
         <Link
           key={l.label}
           href={l.href}
+          prefetch={false}
           className="font-sans text-[13px] text-coral-600/80 transition-colors hover:text-coral-500"
         >
           {l.label}
