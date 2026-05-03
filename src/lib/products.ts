@@ -97,3 +97,19 @@ export async function listFeatured(): Promise<HttpTypes.StoreProduct[]> {
   const recent = await listProducts({ order: "-created_at", limit: 5 });
   return recent.products.slice(0, 5);
 }
+
+/**
+ * Returns up to 4 products from the "essentials" collection or tag.
+ * Used by the Babe Essentials bento on the home page.
+ */
+export async function listEssentials(): Promise<HttpTypes.StoreProduct[]> {
+  try {
+    const tagged = await listProducts({ tag: "essentials", limit: 4 });
+    if (tagged.products.length) return tagged.products.slice(0, 4);
+  } catch {}
+  try {
+    const collected = await listProducts({ collection: "essentials", limit: 4 });
+    if (collected.products.length) return collected.products.slice(0, 4);
+  } catch {}
+  return [];
+}
