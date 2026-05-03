@@ -4,6 +4,7 @@ import "./globals.css";
 import { CartProvider } from "@/components/cart/CartProvider";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -42,8 +43,11 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <CartProvider>
           <Header />
-          <main className="flex-1 animate-fade-up">{children}</main>
+          <main className="flex-1 animate-fade-up">
+            <div className="pb-[64px] md:pb-0">{children}</div>
+          </main>
           <Footer />
+          <MobileBottomNav />
         </CartProvider>
       </body>
     </html>
