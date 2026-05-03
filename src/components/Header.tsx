@@ -10,14 +10,12 @@ import { NAV_LINKS } from "@/lib/nav";
 export function Header() {
   const router = useRouter();
   const { itemCount, setOpen } = useCart();
-  const [searchOpen, setSearchOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [q, setQ] = useState("");
 
   const onSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!q.trim()) return;
-    setSearchOpen(false);
     router.push(`/shop?q=${encodeURIComponent(q.trim())}`);
   };
 
@@ -31,7 +29,7 @@ export function Header() {
         <span>Easy 7-day returns</span>
       </div>
 
-      <div className="flex h-[72px] items-center justify-between px-6 md:px-8">
+      <div className="flex h-[64px] items-center gap-3 px-4 md:gap-6 md:px-8">
         <button
           onClick={() => setMenuOpen((v) => !v)}
           className="p-2 md:hidden"
@@ -48,14 +46,14 @@ export function Header() {
           <Image
             src="/logo.png"
             alt="Doll Up Boutique"
-            width={156}
-            height={52}
+            width={140}
+            height={48}
             priority
-            className="h-[52px] w-auto"
+            className="h-12 w-auto"
           />
         </Link>
 
-        <nav className="hidden items-center gap-7 md:flex">
+        <nav className="hidden flex-1 items-center justify-center gap-7 md:flex">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.label}
@@ -67,17 +65,24 @@ export function Header() {
           ))}
         </nav>
 
+        <form
+          onSubmit={onSearch}
+          className="hidden max-w-[320px] flex-1 items-center gap-2 rounded-full border border-blush-300 bg-blush-100 px-4 py-2 md:flex"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8a7773" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" />
+          </svg>
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            type="text"
+            placeholder="Search dresses, lingerie, accessories…"
+            className="flex-1 bg-transparent font-sans text-sm text-ink outline-none placeholder:text-ink-muted"
+          />
+        </form>
+
         <div className="flex items-center gap-1">
-          <button
-            onClick={() => setSearchOpen((v) => !v)}
-            className="rounded-md p-2 hover:bg-blush-100"
-            aria-label="Search"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.35-4.35" />
-            </svg>
-          </button>
           <Link
             href="/wishlist"
             className="rounded-md p-2 hover:bg-blush-100"
@@ -116,36 +121,23 @@ export function Header() {
         </div>
       </div>
 
-      {searchOpen && (
-        <form
-          onSubmit={onSearch}
-          className="flex items-center gap-2.5 border-t border-blush-300 bg-cream px-6 py-3 md:px-8"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B89390" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.35-4.35" />
-          </svg>
-          <input
-            autoFocus
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            type="text"
-            placeholder="Search for dresses, lingerie, accessories…"
-            className="flex-1 bg-transparent font-sans text-sm text-ink outline-none placeholder:text-ink-muted"
-          />
-          <button
-            type="button"
-            onClick={() => setSearchOpen(false)}
-            className="shrink-0 p-1 text-coral-300 hover:text-coral-500"
-            aria-label="Close search"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </form>
-      )}
+      {/* Mobile-only persistent search row */}
+      <form
+        onSubmit={onSearch}
+        className="flex items-center gap-2 border-t border-blush-100 bg-cream px-4 py-2 md:hidden"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8a7773" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+          <circle cx="11" cy="11" r="8" />
+          <path d="m21 21-4.35-4.35" />
+        </svg>
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          type="text"
+          placeholder="Search dresses, bikinis, sets…"
+          className="flex-1 bg-transparent font-sans text-[13px] text-ink outline-none placeholder:text-ink-muted"
+        />
+      </form>
 
       {menuOpen && (
         <nav className="flex flex-col border-t border-blush-400 bg-white md:hidden">
