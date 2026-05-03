@@ -3,9 +3,10 @@
 import { useMemo, useState } from "react";
 import type { HttpTypes } from "@medusajs/types";
 import { useCart } from "@/components/cart/CartProvider";
-import { formatPrice, getDisplayPrice } from "@/lib/format";
+import { formatPrice, getDisplayPrice, formatDiscountPercent } from "@/lib/format";
 
 type Product = HttpTypes.StoreProduct;
+const LOW_STOCK_THRESHOLD = 5;
 
 export function ProductBuy({ product }: { product: Product }) {
   const { addItem, loading } = useCart();
@@ -23,27 +24,32 @@ export function ProductBuy({ product }: { product: Product }) {
 
   const [selected, setSelected] = useState<Record<string, string>>(initialOptions);
   const [error, setError] = useState<string | null>(null);
-  const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
 
   const matchedVariant = useMemo(() => {
     if (!options.length) return variants[0] ?? null;
     return (
       variants.find((v) =>
-        v.options?.every((o) =>
-          o.option_id ? selected[o.option_id] === o.value : true,
-        ),
+        v.options?.every((o) => (o.option_id ? selected[o.option_id] === o.value : true)),
       ) ?? null
     );
   }, [variants, options, selected]);
 
-  const price = matchedVariant
-    ? getDisplayPrice({ variants: [matchedVariant] })
-    : getDisplayPrice(product);
+  const price = matchedVariant ? getDisplayPrice({ variants: [matchedVariant] }) : getDisplayPrice(product);
   const inStock =
-    matchedVariant &&
-    (!matchedVariant.manage_inventory ||
-      (matchedVariant.inventory_quantity ?? 0) > 0);
+    matchedVariant && (!matchedVariant.manage_inventory || (matchedVariant.inventory_quantity ?? 0) > 0);
+  const lowStockQty =
+    matchedVariant?.manage_inventory &&
+    matchedVariant.inventory_quantity != null &&
+    matchedVariant.inventory_quantity > 0 &&
+    matchedVariant.inventory_quantity < LOW_STOCK_THRESHOLD
+      ? matchedVariant.inventory_quantity
+      : null;
+  const discountPct = formatDiscountPercent(price.amount, price.original);
+
+  const colorOption = options.find((o) => (o.title ?? "").toLowerCase() === "color");
+  const sizeOption = options.find((o) => (o.title ?? "").toLowerCase() === "size");
+  const otherOptions = options.filter((o) => o !== colorOption && o !== sizeOption);
 
   const handleAdd = async () => {
     if (options.some((o) => !selected[o.id])) {
@@ -56,7 +62,7 @@ export function ProductBuy({ product }: { product: Product }) {
     }
     setError(null);
     try {
-      await addItem(matchedVariant.id, qty);
+      await addItem(matchedVariant.id, 1);
       setAdded(true);
       setTimeout(() => setAdded(false), 2000);
     } catch (e) {
@@ -65,127 +71,168 @@ export function ProductBuy({ product }: { product: Product }) {
   };
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-baseline gap-2.5">
-        <span className="font-display text-[26px] font-semibold text-ink">
+    <div className="flex flex-col gap-5">
+      <header>
+        <h1 className="font-display text-[28px] leading-tight text-ink md:text-[36px]">{product.title}</h1>
+        <a href="#reviews" className="mt-2 flex items-center gap-2 font-sans text-[12px] font-semibold text-ink-muted">
+          <span className="tracking-widest text-coral-500">★★★★★</span>
+          <span className="border-b border-blush-300 pb-px text-ink">4.8 · 48 reviews</span>
+        </a>
+      </header>
+
+      <div className="flex items-baseline gap-3">
+        <span className="font-display text-[28px] leading-none text-coral-500 md:text-[36px]">
           {formatPrice(price.amount, price.currency)}
         </span>
         {price.onSale && (
-          <span className="font-sans text-base text-coral-300 line-through">
+          <span className="font-sans text-[14px] text-ink-muted line-through md:text-[16px]">
             {formatPrice(price.original, price.currency)}
           </span>
         )}
-        {price.onSale && price.original != null && price.amount != null && (
-          <span className="rounded bg-emerald-50 px-2 py-0.5 font-sans text-xs font-bold text-emerald-700">
-            Save {formatPrice(price.original - price.amount, price.currency)}
+        {discountPct && (
+          <span className="rounded bg-blush-100 px-2 py-1 font-sans text-[10px] font-bold uppercase tracking-wider text-coral-500">
+            Save {discountPct.replace("-", "")}
           </span>
         )}
       </div>
 
-      {options.map((opt) => (
-        <div key={opt.id}>
-          <div className="mb-2 font-sans text-xs font-semibold text-ink">
-            {opt.title}
-            {selected[opt.id] && (
-              <span className="ml-1 font-semibold text-coral-500">
-                — {selected[opt.id]}
-              </span>
-            )}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {opt.values?.map((val) => {
-              const value = val.value;
-              if (!value) return null;
-              const isActive = selected[opt.id] === value;
-              return (
-                <button
-                  key={value}
-                  onClick={() =>
-                    setSelected((s) => ({ ...s, [opt.id]: value }))
-                  }
-                  className={`rounded-md border-[1.5px] px-4 py-2 font-sans text-[13px] font-medium transition-colors ${
-                    isActive
-                      ? "border-coral-500 bg-coral-500 text-white"
-                      : "border-blush-400 bg-white text-ink-soft hover:border-coral-500"
-                  }`}
-                >
-                  {value}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ))}
+      <p className="-mt-3 font-sans text-[11px] font-bold uppercase tracking-wider text-emerald-700">
+        {inStock ? (lowStockQty ? `⚠ Only ${lowStockQty} left` : "● In stock — Ships in 1-2 days") : "Sold out"}
+      </p>
 
-      {error && (
-        <p className="font-sans text-xs text-coral-700">{error}</p>
+      {colorOption && (
+        <OptionGroup
+          title={`Color${selected[colorOption.id] ? `: ${selected[colorOption.id]}` : ""}`}
+          values={(colorOption.values ?? []).map((v) => v.value).filter(Boolean) as string[]}
+          selected={selected[colorOption.id]}
+          onSelect={(v) => setSelected((s) => ({ ...s, [colorOption.id]: v }))}
+          variant="color"
+        />
       )}
 
-      <div className="flex gap-3">
-        <div className="flex items-center overflow-hidden rounded-md border-[1.5px] border-blush-400">
-          <button
-            onClick={() => setQty((q) => Math.max(1, q - 1))}
-            className="flex h-12 w-9 items-center justify-center text-lg text-ink-soft hover:bg-blush-100"
-          >
-            −
-          </button>
-          <span className="w-9 text-center font-sans text-sm font-semibold">
-            {qty}
-          </span>
-          <button
-            onClick={() => setQty((q) => q + 1)}
-            className="flex h-12 w-9 items-center justify-center text-lg text-ink-soft hover:bg-blush-100"
-          >
-            +
-          </button>
-        </div>
+      {sizeOption && (
+        <OptionGroup
+          title="Size"
+          values={(sizeOption.values ?? []).map((v) => v.value).filter(Boolean) as string[]}
+          selected={selected[sizeOption.id]}
+          onSelect={(v) => setSelected((s) => ({ ...s, [sizeOption.id]: v }))}
+          variant="size"
+          rightLink={{ href: "/size-guide", label: "Size guide →" }}
+        />
+      )}
+
+      {otherOptions.map((opt) => (
+        <OptionGroup
+          key={opt.id}
+          title={opt.title ?? ""}
+          values={(opt.values ?? []).map((v) => v.value).filter(Boolean) as string[]}
+          selected={selected[opt.id]}
+          onSelect={(v) => setSelected((s) => ({ ...s, [opt.id]: v }))}
+          variant="size"
+        />
+      ))}
+
+      {error && <p className="font-sans text-xs text-coral-700">{error}</p>}
+
+      <div className="flex gap-2">
         <button
           onClick={handleAdd}
           disabled={loading || !inStock}
-          className={`flex-1 rounded-md font-sans text-sm font-semibold tracking-wide text-white transition-colors disabled:opacity-60 ${
-            added ? "bg-emerald-600" : "bg-coral-500 hover:bg-coral-700"
+          className={`flex-1 rounded-full py-4 font-sans text-[12px] font-bold uppercase tracking-[0.14em] text-white transition-colors disabled:opacity-60 ${
+            added ? "bg-emerald-600" : "bg-ink hover:bg-ink-soft"
           }`}
         >
-          {!inStock
-            ? "Sold Out"
-            : added
-              ? "✓ Added to Bag"
-              : loading
-                ? "Adding…"
-                : "Add to Bag"}
+          {!inStock ? "Sold Out" : added ? "✓ Added to Bag" : loading ? "Adding…" : "Add to Bag"}
+        </button>
+        <button
+          aria-label="Add to wishlist"
+          className="flex h-12 w-14 items-center justify-center rounded-full border border-ink bg-white text-ink"
+        >
+          ♡
         </button>
       </div>
 
-      <button className="w-full rounded-md border-[1.5px] border-blush-400 px-4 py-2.5 font-sans text-[13px] font-medium text-coral-500 hover:bg-blush-100">
-        ♡ Add to Wishlist
-      </button>
-
-      <div className="flex flex-wrap gap-4 border-b border-blush-100 pb-6">
+      <div className="grid grid-cols-3 gap-2 border-y border-blush-100 py-4 font-sans text-[10px] font-semibold uppercase tracking-wider text-ink">
         {[
-          "Free shipping on Rs.999+",
-          "7-day easy returns",
-          "Secure checkout",
+          { ico: "⌖", line1: "Free shipping", line2: "Rs 999+" },
+          { ico: "↺", line1: "7-day", line2: "returns" },
+          { ico: "✦", line1: "COD", line2: "available" },
         ].map((t) => (
-          <span
-            key={t}
-            className="flex items-center gap-1.5 font-sans text-xs text-ink-soft"
-          >
-            <svg
-              width="11"
-              height="11"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#E5604A"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-            {t}
-          </span>
+          <div key={t.line1} className="flex flex-col items-center gap-1.5 text-center">
+            <span className="text-[18px] text-coral-500">{t.ico}</span>
+            <span>{t.line1}</span>
+            <span>{t.line2}</span>
+          </div>
         ))}
       </div>
     </div>
   );
+}
+
+function OptionGroup({
+  title,
+  values,
+  selected,
+  onSelect,
+  variant,
+  rightLink,
+}: {
+  title: string;
+  values: string[];
+  selected: string | undefined;
+  onSelect: (v: string) => void;
+  variant: "color" | "size";
+  rightLink?: { href: string; label: string };
+}) {
+  return (
+    <div>
+      <div className="mb-2.5 flex items-baseline justify-between">
+        <span className="font-sans text-[10px] font-bold uppercase tracking-[0.1em] text-ink">{title}</span>
+        {rightLink && (
+          <a href={rightLink.href} className="font-sans text-[11px] font-semibold text-coral-500">
+            {rightLink.label}
+          </a>
+        )}
+      </div>
+      {variant === "color" ? (
+        <div className="flex flex-wrap gap-2.5">
+          {values.map((v) => (
+            <button
+              key={v}
+              onClick={() => onSelect(v)}
+              aria-label={v}
+              className={`h-8 w-8 rounded-full border-2 border-white ${
+                selected === v ? "ring-2 ring-coral-500" : "ring-1 ring-blush-400"
+              }`}
+              style={{ background: colorNameToHex(v) }}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-6 gap-1.5">
+          {values.map((v) => (
+            <button
+              key={v}
+              onClick={() => onSelect(v)}
+              className={`rounded-md border py-2.5 font-sans text-[12px] font-semibold ${
+                selected === v ? "border-ink bg-ink text-white" : "border-blush-400 bg-white text-ink"
+              }`}
+            >
+              {v}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function colorNameToHex(name: string): string {
+  const map: Record<string, string> = {
+    black: "#1c1010", white: "#ffffff", coral: "#E5604A", blush: "#F2DDD8",
+    cream: "#FAF6F4", nude: "#F2DDD8", pink: "#F8D5CD", red: "#B8412C",
+    green: "#3a5a40", blue: "#85C1E9", yellow: "#F4D03F", grey: "#8a7773",
+    gray: "#8a7773", brown: "#5e4030",
+  };
+  return map[name.toLowerCase()] ?? "#8a7773";
 }
