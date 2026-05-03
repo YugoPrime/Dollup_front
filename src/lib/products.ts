@@ -102,16 +102,23 @@ export async function getLatestCollectionTagId(): Promise<string | null> {
 }
 
 /**
- * Returns up to 5 "featured" products for the hero bento.
- * Strategy: products tagged `featured` first, then fall back to most recent.
+ * Returns up to 5 products from the latest collection for the hero bento.
+ * "Latest collection" = the highest-numbered `collectionN` tag in Medusa.
+ * Falls back to the most recent products globally if no collection tag exists.
  */
 export async function listFeatured(): Promise<HttpTypes.StoreProduct[]> {
-  // Try the explicit "featured" tag first
-  try {
-    const tagged = await listProducts({ tag: "featured", limit: 5 });
-    if (tagged.products.length >= 3) return tagged.products.slice(0, 5);
-  } catch {
-    // fall through
+  const latestTagId = await getLatestCollectionTagId().catch(() => null);
+  if (latestTagId) {
+    try {
+      const tagged = await listProducts({
+        tag: latestTagId,
+        order: "-created_at",
+        limit: 5,
+      });
+      if (tagged.products.length) return tagged.products.slice(0, 5);
+    } catch {
+      // fall through to recent
+    }
   }
   const recent = await listProducts({ order: "-created_at", limit: 5 });
   return recent.products.slice(0, 5);
