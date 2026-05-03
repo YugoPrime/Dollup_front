@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { salesOfMonthConfig } from "@/lib/sales-of-month";
 
 type Remaining = { d: number; h: number; m: number; s: number; expired: boolean };
@@ -16,6 +16,27 @@ function diff(endsAt: string): Remaining {
   return { d, h, m, s, expired: false };
 }
 
+const ZERO: Remaining = { d: 0, h: 0, m: 0, s: 0, expired: false };
+
+// Cache the snapshot keyed by total seconds left so React's reference equality
+// check sees the same object until the next 1s tick — required for useSyncExternalStore.
+let cachedKey = -1;
+let cachedSnapshot: Remaining = ZERO;
+function getSnapshot(endsAt: string): Remaining {
+  const r = diff(endsAt);
+  const key = r.expired ? -2 : r.d * 86_400 + r.h * 3_600 + r.m * 60 + r.s;
+  if (key !== cachedKey) {
+    cachedKey = key;
+    cachedSnapshot = r;
+  }
+  return cachedSnapshot;
+}
+
+function subscribe(callback: () => void) {
+  const t = setInterval(callback, 1000);
+  return () => clearInterval(t);
+}
+
 function Unit({ n, label }: { n: number; label: string }) {
   return (
     <div className="min-w-[52px] rounded-lg bg-white px-2.5 py-1.5">
@@ -27,13 +48,13 @@ function Unit({ n, label }: { n: number; label: string }) {
 
 export function SalesOfTheMonth() {
   const cfg = salesOfMonthConfig;
-  const [r, setR] = useState<Remaining>(() => diff(cfg.endsAt));
-
-  useEffect(() => {
-    if (!cfg.enabled) return;
-    const t = setInterval(() => setR(diff(cfg.endsAt)), 1000);
-    return () => clearInterval(t);
-  }, [cfg.enabled, cfg.endsAt]);
+  // useSyncExternalStore returns ZERO during SSR + first client render (avoiding
+  // the time-based hydration mismatch), then updates every 1s once subscribed.
+  const r = useSyncExternalStore(
+    subscribe,
+    () => getSnapshot(cfg.endsAt),
+    () => ZERO,
+  );
 
   if (!cfg.enabled || r.expired) return null;
 

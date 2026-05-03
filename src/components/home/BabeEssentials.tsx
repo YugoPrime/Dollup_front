@@ -69,7 +69,7 @@ export function BabeEssentials({ products }: { products: Product[] }) {
 
         {/* Desktop: 1 tall left + 2 top right + 1 wide bottom = 4 tiles */}
         <div className="hidden md:grid md:gap-3" style={{ gridTemplateColumns: "1.4fr 1fr 1fr", gridTemplateRows: "220px 220px" }}>
-          <div className="row-span-2"><Tile product={hero} big /></div>
+          <Tile product={hero} className="row-span-2" big />
           {rest[0] && <Tile product={rest[0]} />}
           {rest[1] && <Tile product={rest[1]} />}
           {rest[2] && <Tile product={rest[2]} className="col-span-2" />}
