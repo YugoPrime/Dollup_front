@@ -18,6 +18,8 @@ export function MobileBottomNav() {
   const pathname = usePathname();
   const { itemCount, setOpen } = useCart();
 
+  if (pathname.startsWith("/admin")) return null;
+
   const items: NavItem[] = [
     { href: "/", label: "Home", icon: Icon.Home },
     { href: "/shop", label: "Shop", icon: Icon.Shop },

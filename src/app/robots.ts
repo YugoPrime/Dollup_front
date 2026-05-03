@@ -5,6 +5,6 @@ import type { MetadataRoute } from "next";
 // and remove the `disallow` from the layout metadata.
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: [{ userAgent: "*", disallow: "/" }],
+    rules: [{ userAgent: "*", disallow: ["/", "/admin/"] }],
   };
 }

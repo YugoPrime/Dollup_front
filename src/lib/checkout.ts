@@ -1,6 +1,35 @@
 // src/lib/checkout.ts
 import type { HttpTypes } from "@medusajs/types";
 
+export const DM_DELIVERY_METHODS = [
+  "Pick Up",
+  "Home Delivery",
+  "Postage",
+  "Express Postage",
+  "Rodrigues Postage",
+] as const;
+export type DmDeliveryMethod = (typeof DM_DELIVERY_METHODS)[number];
+
+export const HOME_DELIVERY_FREE_THRESHOLD_MUR = 1500;
+
+export function computeDeliveryCost(
+  method: DmDeliveryMethod,
+  subtotalMur: number,
+): number {
+  switch (method) {
+    case "Pick Up":
+      return 0;
+    case "Home Delivery":
+      return subtotalMur >= HOME_DELIVERY_FREE_THRESHOLD_MUR ? 0 : 150;
+    case "Postage":
+      return 70;
+    case "Express Postage":
+      return 110;
+    case "Rodrigues Postage":
+      return 120;
+  }
+}
+
 export const MU_DISTRICTS = [
   "Port Louis",
   "Pamplemousses",
