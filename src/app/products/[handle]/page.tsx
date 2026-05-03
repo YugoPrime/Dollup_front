@@ -4,7 +4,6 @@ import type { Metadata } from "next";
 import { getProductByHandle, listProducts } from "@/lib/products";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { ProductBuy } from "@/components/product/ProductBuy";
-import { ProductTabs } from "@/components/product/ProductTabs";
 import { ProductCard } from "@/components/ProductCard";
 
 type Params = Promise<{ handle: string }>;
@@ -76,9 +75,6 @@ export default async function ProductPage({ params }: { params: Params }) {
             <span className="ml-1 text-xs text-ink-muted">(42 reviews)</span>
           </div>
           <ProductBuy product={product} />
-          <div className="mt-6">
-            <ProductTabs description={product.description} />
-          </div>
         </div>
       </div>
 
