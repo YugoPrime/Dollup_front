@@ -4,7 +4,7 @@ import { getRegion } from "./region";
 import type { HttpTypes } from "@medusajs/types";
 
 const PRODUCT_FIELDS =
-  "*variants,*variants.calculated_price,*variants.options,*options,*options.values,*images,*tags,*collection,*categories";
+  "*variants,*variants.calculated_price,*variants.options,+variants.inventory_quantity,+variants.manage_inventory,*options,*options.values,*images,*tags,*collection,*categories";
 
 export type ListProductsArgs = {
   limit?: number;
