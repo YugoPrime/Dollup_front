@@ -37,3 +37,12 @@ export function getDisplayPrice(product: WithPrice) {
       cp.calculated_amount < cp.original_amount,
   };
 }
+
+export function formatDiscountPercent(
+  amount: number | null | undefined,
+  original: number | null | undefined,
+): string | null {
+  if (amount == null || original == null || original <= amount) return null;
+  const pct = Math.round(((original - amount) / original) * 100);
+  return `-${pct}%`;
+}
