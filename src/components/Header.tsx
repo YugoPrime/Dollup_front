@@ -83,6 +83,7 @@ export function Header() {
         <div className="flex items-center gap-1">
           <Link
             href="/wishlist"
+            prefetch={false}
             className="rounded-md p-2 hover:bg-blush-100"
             aria-label="Wishlist"
           >
@@ -92,6 +93,7 @@ export function Header() {
           </Link>
           <Link
             href="/account"
+            prefetch={false}
             className="rounded-md p-2 hover:bg-blush-100"
             aria-label="Account"
           >

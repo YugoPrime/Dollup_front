@@ -56,8 +56,11 @@ export function MobileBottomNav() {
           );
         }
 
+        // /wishlist and /account aren't built yet; disable prefetch so the
+        // initial-viewport prefetch doesn't generate 404 console errors.
+        const prefetch = item.href === "/wishlist" || item.href === "/account" ? false : undefined;
         return (
-          <Link key={item.href} href={item.href} className={className}>
+          <Link key={item.href} href={item.href} prefetch={prefetch} className={className}>
             {item.icon}
             {item.label}
           </Link>

@@ -81,10 +81,10 @@ export function HeroBento({ products }: { products: Product[] }) {
               Shop new arrivals →
             </Link>
             <Link
-              href="/lookbook"
+              href="/shop?sort=sale"
               className="self-end border-b border-ink pb-1 font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-ink"
             >
-              Lookbook
+              Browse sale
             </Link>
           </div>
         </div>
