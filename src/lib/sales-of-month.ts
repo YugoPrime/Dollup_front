@@ -12,14 +12,15 @@ export type SalesOfMonthConfig = {
  * Hand-edited config for the home page "Sales of the Month" banner.
  * Edit and redeploy to update the sale. Set `enabled: false` to hide the section.
  *
- * Future: move to Medusa metadata or env vars.
+ * NOTE: This component only renders the banner. The actual price reduction
+ * must be configured in Medusa admin (price list applied to winter-tagged products).
  */
 export const salesOfMonthConfig: SalesOfMonthConfig = {
-  enabled: false,
-  headline: "Sale of the month",
-  percentOff: 50,
-  endsAt: "2026-05-10T23:59:59+04:00", // Mauritius timezone
-  ctaUrl: "/shop?sort=sale",
-  ctaLabel: "Shop the sale",
-  description: "Selected dresses, bikinis &amp; lingerie. Once it's gone, it's gone.",
+  enabled: true,
+  headline: "Winter outfit sale",
+  percentOff: 10,
+  endsAt: "2026-06-03T23:59:59+04:00", // Mauritius timezone — 1 month from launch
+  ctaUrl: "/shop?tag=winter",
+  ctaLabel: "Shop winter outfits",
+  description: "Stay cozy &amp; cute. 10% off every winter piece — sweaters, hoodies, knitwear &amp; more.",
 };

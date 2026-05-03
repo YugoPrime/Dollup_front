@@ -22,11 +22,9 @@ export function Header() {
   return (
     <header className="sticky top-0 z-[100] border-b border-blush-400 bg-white">
       <div className="flex flex-wrap items-center justify-center gap-3 bg-coral-500 px-6 py-1.5 text-[11px] font-medium tracking-wider text-white">
-        <span>Free shipping on orders Rs.999+</span>
+        <span>Free delivery on orders Rs.1500+</span>
         <span className="opacity-50">✦</span>
-        <span>New arrivals every Friday</span>
-        <span className="opacity-50">✦</span>
-        <span>Easy 7-day returns</span>
+        <span>Cash on delivery available</span>
       </div>
 
       <div className="flex h-[64px] items-center gap-3 px-4 md:gap-6 md:px-8">

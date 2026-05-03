@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useCart } from "./CartProvider";
 import { formatPrice } from "@/lib/format";
 
-const FREE_SHIPPING_THRESHOLD = 999;
+const FREE_SHIPPING_THRESHOLD = 1500;
 
 export function CartDrawer() {
   const { cart, open, setOpen, updateItem, removeItem, loading } = useCart();
@@ -137,7 +137,7 @@ export function CartDrawer() {
               {remaining > 0 ? (
                 <>
                   <p className="mb-2 text-center font-sans text-xs text-ink-soft">
-                    Add <strong>{formatPrice(remaining, currency)}</strong> more for free shipping
+                    Add <strong>{formatPrice(remaining, currency)}</strong> more for free delivery
                   </p>
                   <div className="h-1 overflow-hidden rounded-full bg-blush-400">
                     <div
@@ -148,7 +148,7 @@ export function CartDrawer() {
                 </>
               ) : (
                 <p className="text-center font-sans text-xs font-medium text-emerald-700">
-                  🎉 You&apos;ve unlocked free shipping!
+                  🎉 You&apos;ve unlocked free delivery!
                 </p>
               )}
             </div>

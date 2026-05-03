@@ -23,8 +23,8 @@ export function ProductAccordion({ description }: { description?: string | null 
     },
     {
       key: "shipping",
-      title: "Shipping & returns",
-      body: <p className="font-sans text-[13px] leading-[1.6] text-ink-soft">Free shipping on Rs 999+. 7-day easy returns. COD available across Mauritius.</p>,
+      title: "Shipping",
+      body: <p className="font-sans text-[13px] leading-[1.6] text-ink-soft">Free delivery on orders Rs 1500+. Cash on delivery available across Mauritius.</p>,
     },
   ];
 

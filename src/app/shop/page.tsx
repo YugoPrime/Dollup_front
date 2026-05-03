@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { listProducts, listCategories } from "@/lib/products";
+import { listProducts, listCategories, getTagIdByValue } from "@/lib/products";
 import { ProductCard } from "@/components/ProductCard";
 import { ShopFilterSidebar } from "@/components/shop/ShopFilterSidebar";
 import { ShopSortDropdown } from "@/components/shop/ShopSortDropdown";
@@ -17,6 +17,7 @@ type SearchParams = Promise<{
   sort?: string;
   size?: string;
   color?: string;
+  tag?: string;
   page?: string;
 }>;
 
@@ -37,6 +38,7 @@ export default async function ShopPage({
   const sp = await searchParams;
   const categoryHandle = sp.category ?? null;
   const q = sp.q ?? undefined;
+  const tagValue = sp.tag ?? null;
   const sortKey = sp.sort ?? "new";
   const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
 
@@ -44,6 +46,8 @@ export default async function ShopPage({
   const matchedCategory = categoryHandle
     ? allCategories.find((c) => c.handle === categoryHandle)
     : null;
+
+  const tagId = tagValue ? await getTagIdByValue(tagValue).catch(() => null) : null;
 
   const order = SORT_MAP[sortKey];
   const offset = (page - 1) * PER_PAGE;
@@ -56,6 +60,7 @@ export default async function ShopPage({
       offset,
       q,
       category: matchedCategory?.id,
+      tag: tagId ?? undefined,
       order,
     });
     products = res.products;
@@ -66,7 +71,7 @@ export default async function ShopPage({
 
   const title = q
     ? `Search: ${q}`
-    : matchedCategory?.name ?? "All products";
+    : matchedCategory?.name ?? (tagValue ? `${tagValue} edit` : "All products");
 
   return (
     <main>
@@ -153,6 +158,7 @@ function Pagination({
     if (sp.sort) params.set("sort", sp.sort);
     if (sp.size) params.set("size", sp.size);
     if (sp.color) params.set("color", sp.color);
+    if (sp.tag) params.set("tag", sp.tag);
     if (p > 1) params.set("page", String(p));
     const qs = params.toString();
     return qs ? `/shop?${qs}` : "/shop";

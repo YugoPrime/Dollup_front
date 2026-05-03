@@ -5,7 +5,6 @@ import { getProductByHandle, listProducts } from "@/lib/products";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { ProductBuy } from "@/components/product/ProductBuy";
 import { ProductAccordion } from "@/components/product/ProductAccordion";
-import { ProductReviews } from "@/components/product/ProductReviews";
 import { YouMayAlsoLike } from "@/components/product/YouMayAlsoLike";
 import { StickyATC } from "@/components/product/StickyATC";
 
@@ -69,7 +68,6 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
       </div>
 
       <YouMayAlsoLike products={related} />
-      <ProductReviews handle={handle} />
 
       <StickyATC product={product} watchElementId="pdp-buy-anchor" />
     </main>

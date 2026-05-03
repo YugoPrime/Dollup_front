@@ -26,7 +26,7 @@ export const FOOTER_HELP = [
   { label: "Contact Us", href: "/contact" },
   { label: "Size Guide", href: "/size-guide" },
   { label: "FAQ", href: "/faq" },
-  { label: "Shipping & Returns", href: "/faq#shipping" },
+  { label: "Shipping", href: "/faq#shipping" },
 ];
 
 export const FOOTER_ABOUT = [

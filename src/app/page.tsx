@@ -5,7 +5,7 @@ import { CategoryIcons } from "@/components/home/CategoryIcons";
 import { SalesOfTheMonth } from "@/components/home/SalesOfTheMonth";
 import { NewArrivalsRail } from "@/components/home/NewArrivalsRail";
 import { LoyaltyTeaser } from "@/components/home/LoyaltyTeaser";
-import { Testimonials } from "@/components/home/Testimonials";
+import { InstagramMosaic } from "@/components/home/InstagramMosaic";
 import { BabeEssentials } from "@/components/home/BabeEssentials";
 
 export const revalidate = 60;
@@ -35,7 +35,7 @@ export default async function HomePage() {
       <SalesOfTheMonth />
       <NewArrivalsRail products={newArrivalsRes.products.slice(0, 4)} totalCount={newArrivalsRes.count ?? 0} />
       <LoyaltyTeaser />
-      <Testimonials />
+      <InstagramMosaic />
       <BabeEssentials products={essentials} />
     </>
   );

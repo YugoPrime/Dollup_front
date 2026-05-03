@@ -71,7 +71,7 @@ export function HeroBento({ products }: { products: Product[] }) {
             <em className="text-coral-500">babe.</em>
           </h1>
           <p className="mt-4 max-w-[380px] font-sans text-[14px] leading-[1.5] text-ink-soft">
-            Mauritius-curated dresses, lingerie &amp; beachwear. Fresh drops every Friday.
+            Mauritius-curated dresses, lingerie &amp; beachwear. Cash on delivery available island-wide.
           </p>
           <div className="mt-6 flex gap-3">
             <Link

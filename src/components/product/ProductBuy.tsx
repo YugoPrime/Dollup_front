@@ -74,10 +74,6 @@ export function ProductBuy({ product }: { product: Product }) {
     <div className="flex flex-col gap-5">
       <header>
         <h1 className="font-display text-[28px] leading-tight text-ink md:text-[36px]">{product.title}</h1>
-        <a href="#reviews" className="mt-2 flex items-center gap-2 font-sans text-[12px] font-semibold text-ink-muted">
-          <span className="tracking-widest text-coral-500">★★★★★</span>
-          <span className="border-b border-blush-300 pb-px text-ink">4.8 · 48 reviews</span>
-        </a>
       </header>
 
       <div className="flex items-baseline gap-3">
@@ -152,11 +148,10 @@ export function ProductBuy({ product }: { product: Product }) {
         </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 border-y border-blush-100 py-4 font-sans text-[10px] font-semibold uppercase tracking-wider text-ink">
+      <div className="grid grid-cols-2 gap-2 border-y border-blush-100 py-4 font-sans text-[10px] font-semibold uppercase tracking-wider text-ink">
         {[
-          { ico: "⌖", line1: "Free shipping", line2: "Rs 999+" },
-          { ico: "↺", line1: "7-day", line2: "returns" },
-          { ico: "✦", line1: "COD", line2: "available" },
+          { ico: "⌖", line1: "Free delivery", line2: "Rs 1500+" },
+          { ico: "✦", line1: "Cash on", line2: "delivery" },
         ].map((t) => (
           <div key={t.line1} className="flex flex-col items-center gap-1.5 text-center">
             <span className="text-[18px] text-coral-500">{t.ico}</span>

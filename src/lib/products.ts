@@ -61,6 +61,25 @@ export async function listCollections() {
   return collections ?? [];
 }
 
+/**
+ * Resolves a product-tag value (e.g. "winter") to its Medusa tag id, used by
+ * shop filtering. Returns null if no tag matches.
+ */
+export async function getTagIdByValue(value: string): Promise<string | null> {
+  const target = value.trim().toLowerCase();
+  if (!target) return null;
+  const res = await sdk.client.fetch<{
+    product_tags: Array<{ id: string; value: string }>;
+  }>("/store/product-tags", {
+    method: "GET",
+    query: { fields: "id,value", limit: 200 },
+  });
+  for (const t of res.product_tags ?? []) {
+    if ((t.value ?? "").toLowerCase() === target) return t.id;
+  }
+  return null;
+}
+
 // Returns the product-tag id for the highest-numbered `collectionN` tag —
 // used to surface the latest drop on the home page. Each new collection import
 // (e.g. collection29) automatically becomes the new "latest" with no code change.
@@ -98,18 +117,21 @@ export async function listFeatured(): Promise<HttpTypes.StoreProduct[]> {
   return recent.products.slice(0, 5);
 }
 
+// Babe Essentials products — hand-curated by handle.
+// Edit this list to swap which products appear in the home page mosaic.
+const ESSENTIALS_HANDLES = ["is1361", "is1362", "is520"];
+
 /**
- * Returns up to 4 products from the "essentials" collection or tag.
- * Used by the Babe Essentials bento on the home page.
+ * Returns the curated "Babe essentials" products for the home page mosaic.
+ * Looks them up by handle, preserving the order in ESSENTIALS_HANDLES.
  */
 export async function listEssentials(): Promise<HttpTypes.StoreProduct[]> {
-  try {
-    const tagged = await listProducts({ tag: "essentials", limit: 4 });
-    if (tagged.products.length) return tagged.products.slice(0, 4);
-  } catch {}
-  try {
-    const collected = await listProducts({ collection: "essentials", limit: 4 });
-    if (collected.products.length) return collected.products.slice(0, 4);
-  } catch {}
-  return [];
+  const results = await Promise.all(
+    ESSENTIALS_HANDLES.map((h) =>
+      getProductByHandle(h)
+        .then((r) => r.product)
+        .catch(() => null),
+    ),
+  );
+  return results.filter((p): p is HttpTypes.StoreProduct => p != null);
 }
