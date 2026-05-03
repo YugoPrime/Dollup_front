@@ -27,6 +27,8 @@ export const metadata: Metadata = {
   },
   description:
     "Doll Up Boutique — dresses, lingerie, beachwear and accessories curated to make you feel doll'd up.",
+  // Pre-launch: prevent indexing until the catalog is finalised. Remove when ready.
+  robots: { index: false, follow: false, nocache: true },
 };
 
 export default function RootLayout({

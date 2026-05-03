@@ -1,4 +1,4 @@
-import { listProducts } from "@/lib/products";
+import { listProducts, getLatestCollectionTagId } from "@/lib/products";
 import { HeroA } from "@/components/home/HeroA";
 import { CategoryStrip } from "@/components/home/CategoryStrip";
 import { NewArrivals } from "@/components/home/NewArrivals";
@@ -11,7 +11,12 @@ export const revalidate = 60;
 export default async function HomePage() {
   let products: Awaited<ReturnType<typeof listProducts>>["products"] = [];
   try {
-    const res = await listProducts({ limit: 8 });
+    const latestTagId = await getLatestCollectionTagId();
+    const res = await listProducts({
+      limit: 8,
+      order: "-created_at",
+      ...(latestTagId ? { tag: latestTagId } : {}),
+    });
     products = res.products;
   } catch (err) {
     console.error("Failed to load products:", err);
