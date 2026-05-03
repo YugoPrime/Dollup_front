@@ -1,35 +1,42 @@
-import { listProducts, getLatestCollectionTagId } from "@/lib/products";
-import { HeroA } from "@/components/home/HeroA";
-import { CategoryStrip } from "@/components/home/CategoryStrip";
-import { NewArrivals } from "@/components/home/NewArrivals";
-import { EditorialBanner } from "@/components/home/EditorialBanner";
+import { listFeatured, listProducts, listEssentials } from "@/lib/products";
+import { HeroBento } from "@/components/home/HeroBento";
+import { TrendingRail } from "@/components/home/TrendingRail";
+import { CategoryIcons } from "@/components/home/CategoryIcons";
+import { SalesOfTheMonth } from "@/components/home/SalesOfTheMonth";
+import { NewArrivalsRail } from "@/components/home/NewArrivalsRail";
 import { LoyaltyTeaser } from "@/components/home/LoyaltyTeaser";
 import { Testimonials } from "@/components/home/Testimonials";
+import { BabeEssentials } from "@/components/home/BabeEssentials";
 
 export const revalidate = 60;
 
 export default async function HomePage() {
-  let products: Awaited<ReturnType<typeof listProducts>>["products"] = [];
-  try {
-    const latestTagId = await getLatestCollectionTagId();
-    const res = await listProducts({
-      limit: 8,
-      order: "-created_at",
-      ...(latestTagId ? { tag: latestTagId } : {}),
-    });
-    products = res.products;
-  } catch (err) {
-    console.error("Failed to load products:", err);
-  }
+  // Fan-out fetch the four data sources we need on home in parallel
+  const [featured, trendingRes, newArrivalsRes, essentials] = await Promise.all([
+    listFeatured().catch((err) => {
+      console.error("listFeatured failed:", err);
+      return [];
+    }),
+    listProducts({ tag: "trending", limit: 10 }).catch(() =>
+      listProducts({ order: "-created_at", limit: 10 }).catch(() => ({ products: [], count: 0, region: null! })),
+    ),
+    listProducts({ order: "-created_at", limit: 10 }).catch(() => ({ products: [], count: 0, region: null! })),
+    listEssentials().catch((err) => {
+      console.error("listEssentials failed:", err);
+      return [];
+    }),
+  ]);
 
   return (
     <>
-      <HeroA />
-      <CategoryStrip />
-      <NewArrivals products={products} />
-      <EditorialBanner />
+      <HeroBento products={featured} />
+      <TrendingRail products={trendingRes.products} />
+      <CategoryIcons />
+      <SalesOfTheMonth />
+      <NewArrivalsRail products={newArrivalsRes.products.slice(0, 4)} totalCount={newArrivalsRes.count ?? 0} />
       <LoyaltyTeaser />
       <Testimonials />
+      <BabeEssentials products={essentials} />
     </>
   );
 }
