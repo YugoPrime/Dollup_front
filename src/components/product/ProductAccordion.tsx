@@ -19,7 +19,7 @@ export function ProductAccordion({ description }: { description?: string | null 
     {
       key: "size",
       title: "Size & fit",
-      body: <p className="font-sans text-[13px] leading-[1.6] text-ink-soft">True to size. Model is 5'7" wearing size S.</p>,
+      body: <p className="font-sans text-[13px] leading-[1.6] text-ink-soft">True to size. Model is 5&apos;7&quot; wearing size S.</p>,
     },
     {
       key: "shipping",

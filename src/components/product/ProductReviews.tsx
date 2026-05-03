@@ -26,7 +26,7 @@ export function ProductReviews({ handle }: { handle: string }) {
                 </div>
                 <div className="ml-auto font-sans text-[11px] tracking-wider text-coral-500">{"★".repeat(r.stars)}</div>
               </header>
-              <p className="mb-2 font-sans text-[13px] leading-[1.5] text-ink-soft">"{r.quote}"</p>
+              <p className="mb-2 font-sans text-[13px] leading-[1.5] text-ink-soft">&ldquo;{r.quote}&rdquo;</p>
               {(r.size || r.color || r.fitNote) && (
                 <p className="font-sans text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
                   {[r.size && `Size ${r.size}`, r.color, r.fitNote].filter(Boolean).join(" · ")}

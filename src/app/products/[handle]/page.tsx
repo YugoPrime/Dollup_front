@@ -1,17 +1,22 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import type { Metadata } from "next";
 import { getProductByHandle, listProducts } from "@/lib/products";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { ProductBuy } from "@/components/product/ProductBuy";
-import { ProductCard } from "@/components/ProductCard";
+import { ProductAccordion } from "@/components/product/ProductAccordion";
+import { ProductReviews } from "@/components/product/ProductReviews";
+import { YouMayAlsoLike } from "@/components/product/YouMayAlsoLike";
+import { StickyATC } from "@/components/product/StickyATC";
 
-type Params = Promise<{ handle: string }>;
+export const revalidate = 60;
+
+type RouteParams = Promise<{ handle: string }>;
 
 export async function generateMetadata({
   params,
 }: {
-  params: Params;
+  params: RouteParams;
 }): Promise<Metadata> {
   const { handle } = await params;
   const { product } = await getProductByHandle(handle);
@@ -22,74 +27,51 @@ export async function generateMetadata({
   };
 }
 
-export default async function ProductPage({ params }: { params: Params }) {
+export default async function ProductPage({ params }: { params: RouteParams }) {
   const { handle } = await params;
   const { product } = await getProductByHandle(handle);
   if (!product) notFound();
 
+  // Pull a few related products from the same category if available, else recent
   const category = product.categories?.[0] ?? null;
-
   let related: Awaited<ReturnType<typeof listProducts>>["products"] = [];
-  if (category) {
-    try {
-      const res = await listProducts({ limit: 5, category: category.id });
-      related = res.products.filter((p) => p.id !== product.id).slice(0, 4);
-    } catch {}
+  try {
+    if (category) {
+      const res = await listProducts({ limit: 6, category: category.id });
+      related = res.products.filter((p) => p.id !== product.id).slice(0, 5);
+    }
+    if (!related.length) {
+      const res = await listProducts({ limit: 6, order: "-created_at" });
+      related = res.products.filter((p) => p.id !== product.id).slice(0, 5);
+    }
+  } catch {
+    // empty related is fine — section hides itself
   }
 
   return (
-    <div className="mx-auto max-w-[1200px] px-6 pb-20 md:px-10">
-      <nav className="flex items-center gap-2 py-7 font-sans text-xs text-ink-muted">
-        <Link href="/" className="hover:text-coral-500">
-          Home
-        </Link>
-        <span className="text-blush-400">/</span>
-        {category && (
-          <>
-            <Link
-              href={`/shop?category=${category.handle}`}
-              className="hover:text-coral-500"
-            >
-              {category.name}
-            </Link>
-            <span className="text-blush-400">/</span>
-          </>
-        )}
-        <span className="font-medium text-ink">{product.title}</span>
+    <main>
+      <nav aria-label="Breadcrumb" className="px-4 py-3 font-sans text-[10px] font-bold uppercase tracking-wider text-ink-muted md:px-8 md:py-4">
+        <Link href="/" className="hover:text-ink">Home</Link>
+        <span className="mx-1.5 text-blush-400">/</span>
+        <Link href="/shop" className="hover:text-ink">Shop</Link>
+        <span className="mx-1.5 text-blush-400">/</span>
+        <span className="text-ink">{product.title}</span>
       </nav>
 
-      <div className="mb-16 grid gap-12 md:grid-cols-2">
+      <div className="mx-auto grid max-w-[1280px] gap-6 px-0 pb-8 md:grid-cols-[1fr_480px] md:gap-8 md:px-8 md:pb-12">
         <ProductGallery product={product} />
-
-        <div className="pt-2">
-          {category && (
-            <p className="mb-2 font-sans text-[11px] font-bold uppercase tracking-[0.14em] text-coral-500">
-              {category.name}
-            </p>
-          )}
-          <h1 className="mb-3 font-display text-4xl font-bold leading-tight text-ink">
-            {product.title}
-          </h1>
-          <div className="mb-5 font-sans text-sm text-coral-500">
-            ★★★★★{" "}
-            <span className="ml-1 text-xs text-ink-muted">(42 reviews)</span>
-          </div>
+        <div className="px-4 md:sticky md:top-6 md:px-0" id="pdp-buy-anchor">
           <ProductBuy product={product} />
+          <div className="mt-6">
+            <ProductAccordion description={product.description ?? null} />
+          </div>
         </div>
       </div>
 
-      {related.length > 0 && (
-        <section className="border-t border-blush-400 pt-12">
-          <h2 className="mb-6 font-display text-2xl font-bold text-ink">
-            You may also like
-          </h2>
-          <div className="grid gap-5 [grid-template-columns:repeat(auto-fill,minmax(220px,1fr))]">
-            {related.map((p) => (
-              <ProductCard key={p.id} product={p} />
-            ))}
-          </div>
-        </section>
-      )}
-    </div>
+      <YouMayAlsoLike products={related} />
+      <ProductReviews handle={handle} />
+
+      <StickyATC product={product} watchElementId="pdp-buy-anchor" />
+    </main>
   );
 }
