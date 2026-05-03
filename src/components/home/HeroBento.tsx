@@ -63,7 +63,7 @@ export function HeroBento({ products }: { products: Product[] }) {
         {/* Text column */}
         <div>
           <p className="font-sans text-[11px] font-bold uppercase tracking-[0.22em] text-ink-soft mb-3.5">
-            ★ This week's drop
+            ★ This week&apos;s drop
           </p>
           <h1 className="font-display text-[44px] leading-[0.92] tracking-[-1.5px] text-ink md:text-[72px]">
             Doll up,

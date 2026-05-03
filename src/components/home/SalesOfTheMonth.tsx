@@ -16,6 +16,15 @@ function diff(endsAt: string): Remaining {
   return { d, h, m, s, expired: false };
 }
 
+function Unit({ n, label }: { n: number; label: string }) {
+  return (
+    <div className="min-w-[52px] rounded-lg bg-white px-2.5 py-1.5">
+      <div className="font-display text-[24px] leading-none text-coral-500">{n.toString().padStart(2, "0")}</div>
+      <div className="mt-0.5 font-sans text-[8px] font-bold uppercase tracking-wider text-ink-muted">{label}</div>
+    </div>
+  );
+}
+
 export function SalesOfTheMonth() {
   const cfg = salesOfMonthConfig;
   const [r, setR] = useState<Remaining>(() => diff(cfg.endsAt));
@@ -27,13 +36,6 @@ export function SalesOfTheMonth() {
   }, [cfg.enabled, cfg.endsAt]);
 
   if (!cfg.enabled || r.expired) return null;
-
-  const Unit = ({ n, label }: { n: number; label: string }) => (
-    <div className="min-w-[52px] rounded-lg bg-white px-2.5 py-1.5">
-      <div className="font-display text-[24px] leading-none text-coral-500">{n.toString().padStart(2, "0")}</div>
-      <div className="mt-0.5 font-sans text-[8px] font-bold uppercase tracking-wider text-ink-muted">{label}</div>
-    </div>
-  );
 
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-ink via-[#3a1a16] to-[#5e2418] py-10 text-white md:py-20">

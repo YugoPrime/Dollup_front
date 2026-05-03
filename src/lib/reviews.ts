@@ -18,8 +18,9 @@ const SAMPLE: Review[] = [
 
 /**
  * For v1, every product gets the same sample reviews.
- * Replace with a real Medusa-backed review system later.
+ * The handle param is reserved for the real Medusa-backed review system later.
  */
-export function getReviewsForProduct(_handle: string) {
+export function getReviewsForProduct(handle: string) {
+  void handle;
   return { average: 4.8, count: 48, reviews: SAMPLE };
 }

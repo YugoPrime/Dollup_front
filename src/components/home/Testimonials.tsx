@@ -68,7 +68,7 @@ export function Testimonials() {
                 </div>
                 <div className="font-sans text-[12px] tracking-wider text-coral-500">★★★★★</div>
               </header>
-              <p className="mb-2 font-sans text-[13px] leading-[1.5] text-ink-soft">"{r.quote}"</p>
+              <p className="mb-2 font-sans text-[13px] leading-[1.5] text-ink-soft">&ldquo;{r.quote}&rdquo;</p>
               <a href={r.productHref} className="flex items-center gap-2.5 rounded-lg bg-white p-2">
                 <div className="relative h-12 w-9 shrink-0 overflow-hidden rounded">
                   <Image src={r.productImage} alt={r.productName} fill sizes="36px" className="object-cover" />
