@@ -81,3 +81,19 @@ export async function getLatestCollectionTagId(): Promise<string | null> {
   }
   return best?.id ?? null;
 }
+
+/**
+ * Returns up to 5 "featured" products for the hero bento.
+ * Strategy: products tagged `featured` first, then fall back to most recent.
+ */
+export async function listFeatured(): Promise<HttpTypes.StoreProduct[]> {
+  // Try the explicit "featured" tag first
+  try {
+    const tagged = await listProducts({ tag: "featured", limit: 5 });
+    if (tagged.products.length >= 3) return tagged.products.slice(0, 5);
+  } catch {
+    // fall through
+  }
+  const recent = await listProducts({ order: "-created_at", limit: 5 });
+  return recent.products.slice(0, 5);
+}
