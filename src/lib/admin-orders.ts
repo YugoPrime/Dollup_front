@@ -443,3 +443,252 @@ export async function cancelOrder(orderId: string): Promise<void> {
   const sdk = await getAdminSdk();
   await sdk.admin.order.cancel(orderId);
 }
+
+// ---------------------------------------------------------------------------
+// Light edit support — Slice 3
+// ---------------------------------------------------------------------------
+
+export type OrderLightPatch = {
+  // shipping_address fields
+  buyerName?: string;
+  phone?: string;
+  city?: string;
+  addressDetails?: string; // -> address_1
+  // top-level / metadata fields
+  email?: string;
+  deliveryMethod?: DmDeliveryMethod;
+  deliveryDate?: string | null;
+  pseudo?: string | null;
+  customNotes?: string | null;
+  trackingNumber?: string | null;
+  paymentMethod?: string;
+  pointOfSale?: string;
+  saleType?: "paid" | "unpaid" | "deposit";
+  // status changes
+  status?: "delivered" | "cancelled" | "pending";
+};
+
+export type OrderEditDiff =
+  | { kind: "light"; patch: OrderLightPatch }
+  | { kind: "heavy"; reason: string }
+  | { kind: "noop" };
+
+const AUTO_LINE_RE = /^Delivery\s—|^Discount$|^Adjustment$/;
+
+function isAutoLine(title: string): boolean {
+  return AUTO_LINE_RE.test(title);
+}
+
+export async function updateOrderLight(
+  orderId: string,
+  patch: OrderLightPatch,
+): Promise<void> {
+  const sdk = await getAdminSdk();
+
+  // 1. Address patch
+  const hasAddressChange =
+    patch.buyerName !== undefined ||
+    patch.phone !== undefined ||
+    patch.city !== undefined ||
+    patch.addressDetails !== undefined;
+  if (hasAddressChange) {
+    const { order } = await sdk.admin.order.retrieve(orderId, {
+      fields: "id,*shipping_address,*billing_address",
+    });
+    const ship = order.shipping_address;
+    const newAddress: HttpTypes.OrderAddress = {
+      first_name: patch.buyerName ?? ship?.first_name ?? "",
+      last_name: ship?.last_name ?? "",
+      phone: patch.phone ?? ship?.phone ?? "",
+      address_1: patch.addressDetails ?? ship?.address_1 ?? "",
+      address_2: ship?.address_2 ?? null,
+      city: patch.city ?? ship?.city ?? "",
+      province: null,
+      country_code: ship?.country_code ?? "mu",
+    };
+    await sdk.admin.order.update(orderId, {
+      shipping_address: newAddress,
+      billing_address: newAddress,
+    });
+  }
+
+  // 2. Top-level email change
+  if (patch.email !== undefined) {
+    await sdk.admin.order.update(orderId, { email: patch.email });
+  }
+
+  // 3. Metadata patch (merge — Medusa replaces metadata object on update)
+  const metaKeys: (keyof OrderLightPatch)[] = [
+    "deliveryMethod",
+    "deliveryDate",
+    "pseudo",
+    "customNotes",
+    "trackingNumber",
+    "paymentMethod",
+    "pointOfSale",
+    "saleType",
+  ];
+  const hasMetaChange = metaKeys.some((k) => patch[k] !== undefined);
+  if (hasMetaChange) {
+    const { order } = await sdk.admin.order.retrieve(orderId, {
+      fields: "id,metadata",
+    });
+    const oldMeta = (order.metadata ?? {}) as Record<string, unknown>;
+    const newMeta: Record<string, unknown> = { ...oldMeta };
+    if (patch.deliveryMethod !== undefined) {
+      newMeta.delivery_method = patch.deliveryMethod;
+    }
+    if (patch.deliveryDate !== undefined) {
+      if (!patch.deliveryDate) delete newMeta.delivery_date;
+      else newMeta.delivery_date = patch.deliveryDate;
+    }
+    if (patch.pseudo !== undefined) {
+      if (!patch.pseudo) delete newMeta.pseudo;
+      else newMeta.pseudo = patch.pseudo;
+    }
+    if (patch.customNotes !== undefined) {
+      if (!patch.customNotes) delete newMeta.custom_notes;
+      else newMeta.custom_notes = patch.customNotes;
+    }
+    if (patch.trackingNumber !== undefined) {
+      if (!patch.trackingNumber) delete newMeta.tracking_number;
+      else newMeta.tracking_number = patch.trackingNumber;
+    }
+    if (patch.paymentMethod !== undefined) {
+      newMeta.payment_method = patch.paymentMethod;
+    }
+    if (patch.pointOfSale !== undefined) {
+      newMeta.point_of_sale = patch.pointOfSale;
+    }
+    if (patch.saleType !== undefined) newMeta.sale_type = patch.saleType;
+    await sdk.admin.order.update(orderId, { metadata: newMeta });
+  }
+
+  // 4. Status change
+  if (patch.status === "cancelled") {
+    await sdk.admin.order.cancel(orderId);
+  } else if (patch.status === "delivered") {
+    await markOrderFulfilled(orderId);
+  }
+  // "pending" is a no-op — we cannot un-cancel or un-fulfill from the admin UI.
+}
+
+export function classifyOrderEdit(
+  before: OrderRow,
+  next: CreateDmOrderInput,
+): OrderEditDiff {
+  // ----- Heavy detection -----
+
+  // Filter the original line items down to the real product/manual lines (drop
+  // auto-appended Delivery / Discount / Adjustment lines that createDmOrder adds).
+  const realBeforeItems = before.items.filter((it) => !isAutoLine(it.title));
+  const nextItems = next.items;
+
+  if (realBeforeItems.length !== nextItems.length) {
+    return { kind: "heavy", reason: "Item count changed" };
+  }
+  for (let i = 0; i < nextItems.length; i++) {
+    const b = realBeforeItems[i];
+    const n = nextItems[i];
+    if (b.unitPriceMur !== n.unitPriceMur || b.quantity !== n.quantity) {
+      return { kind: "heavy", reason: "Item qty or price changed" };
+    }
+  }
+
+  // Detect delivery fee / discount / total override changes by reverse-engineering
+  // the auto-appended lines in the original order.
+  const deliveryLine = before.items.find((it) => /^Delivery\s—/.test(it.title));
+  const discountLine = before.items.find((it) => it.title === "Discount");
+  const adjustmentLine = before.items.find(
+    (it) => it.title === "Adjustment",
+  );
+  const oldDeliveryFee = deliveryLine ? deliveryLine.unitPriceMur : 0;
+  const oldDiscount = discountLine ? -discountLine.unitPriceMur : 0;
+  const realLinesSubtotal = realBeforeItems.reduce(
+    (s, it) => s + it.quantity * it.unitPriceMur,
+    0,
+  );
+  const oldComputedTotal =
+    realLinesSubtotal - oldDiscount + oldDeliveryFee;
+  const oldAdjustment = adjustmentLine ? adjustmentLine.unitPriceMur : 0;
+  const oldTotalOverride =
+    oldAdjustment !== 0 ? oldComputedTotal + oldAdjustment : null;
+
+  const nextDeliveryFee =
+    typeof next.deliveryFeeMur === "number" ? next.deliveryFeeMur : 0;
+  const nextDiscount =
+    typeof next.discountMur === "number" ? next.discountMur : 0;
+  const nextTotalOverride =
+    next.totalOverrideMur != null && Number.isFinite(next.totalOverrideMur)
+      ? next.totalOverrideMur
+      : null;
+
+  if (
+    nextDeliveryFee !== oldDeliveryFee ||
+    nextDiscount !== oldDiscount ||
+    nextTotalOverride !== oldTotalOverride
+  ) {
+    return { kind: "heavy", reason: "Delivery/discount/total changed" };
+  }
+
+  // ----- Light patch building -----
+  const patch: OrderLightPatch = {};
+
+  const beforeFirstName = before.buyerName.split(" ")[0] ?? "";
+  if (next.buyerFirstName !== beforeFirstName) {
+    patch.buyerName = next.buyerFirstName;
+  }
+  if (next.phone !== (before.phone ?? "")) patch.phone = next.phone;
+  if ((next.city ?? "") !== (before.city ?? "")) {
+    patch.city = next.city ?? "";
+  }
+  // useOrderForm.toCreateInput() falls back address1 -> city when no address
+  // details are present. Compare against before.addressDetails directly.
+  if ((next.address1 ?? "") !== (before.addressDetails ?? "")) {
+    patch.addressDetails = next.address1;
+  }
+  if ((next.email ?? "") !== (before.email ?? "")) {
+    patch.email = next.email ?? "";
+  }
+  if (next.deliveryMethod !== before.deliveryMethod) {
+    patch.deliveryMethod = next.deliveryMethod;
+  }
+  if ((next.deliveryDate ?? "") !== (before.deliveryDate ?? "")) {
+    patch.deliveryDate = next.deliveryDate ?? null;
+  }
+  if ((next.pseudo ?? "") !== (before.pseudo ?? "")) {
+    patch.pseudo = next.pseudo ?? null;
+  }
+  if ((next.customNotes ?? "") !== (before.customNotes ?? "")) {
+    patch.customNotes = next.customNotes ?? null;
+  }
+  if ((next.trackingNumber ?? "") !== (before.trackingNumber ?? "")) {
+    patch.trackingNumber = next.trackingNumber ?? null;
+  }
+  if (next.paymentMethod !== (before.paymentMethod ?? "")) {
+    patch.paymentMethod = next.paymentMethod;
+  }
+  if (next.pointOfSale !== (before.pointOfSale ?? "")) {
+    patch.pointOfSale = next.pointOfSale;
+  }
+  if (next.saleType !== (before.saleType ?? "")) {
+    patch.saleType = next.saleType;
+  }
+
+  // Status: form emits "delivered" | "cancelled" | undefined. Map back vs the
+  // current row state. We can move forward (-> cancelled / delivered) but
+  // never un-cancel or un-fulfill (those become no-ops).
+  if (next.status === "cancelled" && before.status !== "canceled") {
+    patch.status = "cancelled";
+  } else if (
+    next.status === "delivered" &&
+    before.fulfillmentStatus !== "fulfilled"
+  ) {
+    patch.status = "delivered";
+  }
+  // If next.status is empty and the order is currently cancelled/fulfilled,
+  // do not flag a patch — there is no reverse path in light edits.
+
+  if (Object.keys(patch).length === 0) return { kind: "noop" };
+  return { kind: "light", patch };
+}

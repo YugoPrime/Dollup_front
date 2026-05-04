@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { logoutAction } from "../login/actions";
 import { AdminOrdersClient } from "./components/AdminOrdersClient";
-import { RecentOrders } from "./components/RecentOrders";
+import { getRecentOrders } from "@/lib/admin-orders";
 
 export const metadata: Metadata = {
   title: "DM orders",
@@ -10,7 +10,15 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default function AdminOrdersPage() {
+export default async function AdminOrdersPage() {
+  let initialOrders: Awaited<ReturnType<typeof getRecentOrders>> = [];
+  let loadError: string | null = null;
+  try {
+    initialOrders = await getRecentOrders(50);
+  } catch (err) {
+    loadError = err instanceof Error ? err.message : "Could not load orders";
+  }
+
   return (
     <div className="mx-auto w-full max-w-[1400px] px-4 py-4 sm:py-6">
       <header className="mb-3 flex items-center justify-between gap-3">
@@ -29,12 +37,15 @@ export default function AdminOrdersPage() {
           </button>
         </form>
       </header>
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
-        <AdminOrdersClient />
-        <aside className="lg:sticky lg:top-3 lg:max-h-[calc(100vh-1.5rem)] lg:overflow-y-auto">
-          <RecentOrders />
-        </aside>
-      </div>
+      {loadError && (
+        <p
+          role="alert"
+          className="mb-3 rounded-lg border border-coral-500 bg-coral-300/30 px-3 py-1.5 text-sm text-coral-700"
+        >
+          Could not load orders: {loadError}
+        </p>
+      )}
+      <AdminOrdersClient initialOrders={initialOrders} />
     </div>
   );
 }

@@ -5,7 +5,7 @@ import {
   computeDeliveryCost,
   type DmDeliveryMethod,
 } from "@/lib/checkout";
-import type { CreateDmOrderInput } from "@/lib/admin-orders";
+import type { CreateDmOrderInput, OrderRow } from "@/lib/admin-orders";
 import type { SelectedVariant } from "./StockChecker";
 
 export const PAYMENT_METHODS = [
@@ -93,6 +93,47 @@ export const EMPTY: FormState = {
 
 export function rid() {
   return Math.random().toString(36).slice(2, 9);
+}
+
+/**
+ * Translate an OrderRow into a partial FormState suitable for `useOrderForm`.
+ * Used by EditableRow + the mobile drawer when hydrating an existing order
+ * for inline editing. Items are NOT included here — callers seed `setItems`
+ * separately so they can filter out auto-appended Delivery/Discount/Adjustment
+ * lines.
+ *
+ * Money fields (deliveryFee / discountMur / totalOverride) intentionally
+ * stay empty: heavy edits aren't supported in light-only flow, so we don't
+ * surface those here either.
+ */
+export function hydrateOrderToForm(order: OrderRow): Partial<FormState> {
+  const status: FormState["status"] =
+    order.status === "canceled"
+      ? "cancelled"
+      : order.fulfillmentStatus === "fulfilled"
+        ? "delivered"
+        : "";
+  return {
+    deliveryDate: order.deliveryDate ?? "",
+    deliveryMethod: (order.deliveryMethod ?? "Pick Up") as DmDeliveryMethod,
+    buyerName: order.buyerName,
+    pseudo: order.pseudo ?? "",
+    city: order.city ?? "",
+    address2: order.addressDetails ?? "",
+    phone: order.phone ?? "",
+    email: order.email ?? "",
+    customNotes: order.customNotes ?? "",
+    paymentMethod: (order.paymentMethod ??
+      "Cash") as FormState["paymentMethod"],
+    pointOfSale: (order.pointOfSale ??
+      "Instagram") as FormState["pointOfSale"],
+    saleType: (order.saleType ?? "paid") as SaleType,
+    status,
+    trackingNumber: order.trackingNumber ?? "",
+    deliveryFee: "",
+    discountMur: "",
+    totalOverride: "",
+  };
 }
 
 export function isPhoneValid(phone: string): boolean {
