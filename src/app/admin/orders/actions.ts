@@ -15,10 +15,12 @@ import {
   markOrderFulfilled,
   markOrderPaid,
   searchCustomers,
+  searchOrders,
   searchVariants,
   updateOrderLight,
   type CreateDmOrderInput,
   type CustomerHit,
+  type OrderQueryFilter,
   type OrderRow,
   type VariantHit,
 } from "@/lib/admin-orders";
@@ -144,4 +146,11 @@ export async function getRecentOrdersAction(
 ): Promise<OrderRow[]> {
   await requireAdmin();
   return getRecentOrders(limit);
+}
+
+export async function searchOrdersAction(
+  filter: OrderQueryFilter = {},
+): Promise<OrderRow[]> {
+  await requireAdmin();
+  return searchOrders(filter);
 }

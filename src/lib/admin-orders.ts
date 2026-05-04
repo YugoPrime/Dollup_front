@@ -273,6 +273,47 @@ export async function getRecentOrders(limit = 20): Promise<OrderRow[]> {
   return visible.slice(0, limit);
 }
 
+export type OrderQueryFilter = {
+  query?: string;
+  // yyyy-mm-dd. Interpreted as UTC date boundaries — for a Mauritius
+  // operator (UTC+4) this means "today" filter may be slightly off in the
+  // last 4 hours of local day. Acceptable for solo-founder UX.
+  dateFrom?: string;
+  dateTo?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export async function searchOrders(
+  filter: OrderQueryFilter = {},
+): Promise<OrderRow[]> {
+  const sdk = await getAdminSdk();
+  const limit = filter.limit ?? 50;
+  const offset = filter.offset ?? 0;
+  // Over-fetch so we can drop replaced predecessors without thinning the
+  // visible count.
+  const fetchLimit = Math.max(limit * 2, 50);
+  const params: Record<string, unknown> = {
+    limit: fetchLimit,
+    offset,
+    order: "-created_at",
+    fields:
+      "id,display_id,created_at,email,total,payment_status,fulfillment_status,status,metadata,*items,*shipping_address",
+  };
+  const createdAt: Record<string, string> = {};
+  if (filter.dateFrom) createdAt.$gte = `${filter.dateFrom}T00:00:00.000Z`;
+  if (filter.dateTo) createdAt.$lte = `${filter.dateTo}T23:59:59.999Z`;
+  if (Object.keys(createdAt).length > 0) {
+    params.created_at = createdAt;
+  }
+  const res = await sdk.admin.order.list(
+    params as Parameters<typeof sdk.admin.order.list>[0],
+  );
+  const all = (res.orders as HttpTypes.AdminOrder[]).map(mapOrder);
+  const visible = all.filter((o) => o.replacedByOrderId == null);
+  return visible.slice(0, limit);
+}
+
 export type CreateOrderItemInput =
   | { kind: "variant"; variantId: string; quantity: number; unitPriceMur: number; title?: string }
   | { kind: "manual"; title: string; quantity: number; unitPriceMur: number };

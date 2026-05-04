@@ -1,11 +1,16 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { NewOrderRow, type NewOrderRowRef } from "./NewOrderRow";
 import { StockChecker, type SelectedVariant } from "./StockChecker";
 import { RecentOrdersSheet } from "./RecentOrdersSheet";
 import { CustomerSearch } from "./CustomerSearch";
-import { getRecentOrdersAction } from "../actions";
+import {
+  DateFilter,
+  dateFilterToQuery,
+  type DateFilterValue,
+} from "./DateFilter";
+import { searchOrdersAction } from "../actions";
 import type { CustomerHit, OrderRow } from "@/lib/admin-orders";
 
 export function AdminOrdersClient({
@@ -18,7 +23,12 @@ export function AdminOrdersClient({
   const [customerFilter, setCustomerFilter] = useState<CustomerHit | null>(
     null,
   );
+  const [dateFilter, setDateFilter] = useState<DateFilterValue>({
+    kind: "all",
+  });
+  const [offset, setOffset] = useState(initialOrders.length);
   const [, startRefresh] = useTransition();
+  const isFirstMount = useRef(true);
 
   function handlePick(v: SelectedVariant) {
     formRef.current?.addVariant(v);
@@ -28,16 +38,40 @@ export function AdminOrdersClient({
     }
   }
 
-  function refreshOrders() {
+  function reloadOrders(opts: { reset?: boolean } = {}) {
     startRefresh(async () => {
       try {
-        const next = await getRecentOrdersAction(50);
-        setOrders(next);
+        const queryParams = dateFilterToQuery(dateFilter);
+        const nextOffset = opts.reset ? 0 : offset;
+        const res = await searchOrdersAction({
+          ...queryParams,
+          limit: 50,
+          offset: nextOffset,
+        });
+        if (opts.reset) {
+          setOrders(res);
+          setOffset(res.length);
+        } else {
+          setOrders((prev) => [...prev, ...res]);
+          setOffset(nextOffset + res.length);
+        }
       } catch {
         // swallow — caller's UI already reflects success/failure
       }
     });
   }
+
+  // Refetch when the date filter changes. Skip the very first mount so we
+  // don't immediately overwrite the SSR-rendered initialOrders with an
+  // identical "all time" fetch.
+  useEffect(() => {
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      return;
+    }
+    reloadOrders({ reset: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateFilter]);
 
   const visibleOrders = customerFilter
     ? orders.filter(
@@ -54,7 +88,7 @@ export function AdminOrdersClient({
         <div className="flex-1">
           <CustomerSearch onSelect={setCustomerFilter} />
         </div>
-        {/* DateFilter slot reserved for Slice 6 */}
+        <DateFilter value={dateFilter} onChange={setDateFilter} />
       </div>
       {customerFilter && (
         <div className="flex flex-wrap items-center gap-2 rounded-md border border-blush-300 bg-blush-100/40 px-3 py-2 text-xs">
@@ -84,9 +118,24 @@ export function AdminOrdersClient({
         </div>
       )}
       <div id="dm-order-form">
-        <NewOrderRow ref={formRef} onSaved={refreshOrders} />
+        <NewOrderRow
+          ref={formRef}
+          onSaved={() => reloadOrders({ reset: true })}
+        />
       </div>
-      <RecentOrdersSheet orders={visibleOrders} onChanged={refreshOrders} />
+      <RecentOrdersSheet
+        orders={visibleOrders}
+        onChanged={() => reloadOrders({ reset: true })}
+      />
+      {!customerFilter && visibleOrders.length > 0 && (
+        <button
+          type="button"
+          onClick={() => reloadOrders()}
+          className="mx-auto mt-3 block rounded-md border border-blush-400 px-3 py-1.5 text-xs hover:bg-blush-100"
+        >
+          Load older
+        </button>
+      )}
     </div>
   );
 }
