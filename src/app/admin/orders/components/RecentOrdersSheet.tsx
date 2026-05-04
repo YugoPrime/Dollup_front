@@ -24,10 +24,13 @@ export function RecentOrdersSheet({
   );
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
 
-  // If the user resizes from desktop → mobile while a row is being edited
-  // inline, the desktop table unmounts and `editingId` becomes stale. Clear it.
+  // Clear stale edit state on layout swap. Both directions matter:
+  // desktop→mobile: `editingId` points at a row in a now-unmounted table.
+  // mobile→desktop: `mobileEditingOrder` is still set, leaving the drawer
+  // open over the desktop layout AND keeping body scroll locked.
   useEffect(() => {
     if (!isDesktop) setEditingId(null);
+    else setMobileEditingOrder(null);
   }, [isDesktop]);
 
   function handleEdit(o: OrderRow) {
