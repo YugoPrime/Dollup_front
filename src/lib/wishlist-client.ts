@@ -67,6 +67,20 @@ export function clearWishlist() {
   write([]);
 }
 
+// Bulk-replace the wishlist (used by auth sync to merge server + local on login).
+export function replaceWishlist(ids: string[]) {
+  // Dedupe while preserving first-seen order.
+  const seen = new Set<string>();
+  const deduped: string[] = [];
+  for (const id of ids) {
+    if (typeof id === "string" && !seen.has(id)) {
+      seen.add(id);
+      deduped.push(id);
+    }
+  }
+  write(deduped);
+}
+
 // Subscribe to wishlist changes — fires both on cross-tab `storage` events and
 // our same-tab CustomEvent. Returns the current id list reactively.
 function subscribe(callback: () => void) {

@@ -5,7 +5,15 @@ import Medusa from "@medusajs/js-sdk";
 const baseUrl = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL!;
 const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY!;
 
-export const clientSdk = new Medusa({ baseUrl, publishableKey });
+// JWT in localStorage so login persists across tabs/reloads. The SDK reads/writes
+// the token automatically; auth-client.ts wraps the customer login/register/logout flow.
+export const clientSdk = new Medusa({
+  baseUrl,
+  publishableKey,
+  auth: { type: "jwt", jwtTokenStorageMethod: "local" },
+});
+
+export const MEDUSA_JWT_KEY = "medusa_auth_token";
 
 export const CART_ID_KEY = "dub_cart_id";
 

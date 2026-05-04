@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import type { HttpTypes } from "@medusajs/types";
 import { useCart } from "@/components/cart/CartProvider";
 import { clientSdk } from "@/lib/cart-client";
+import { refreshCustomer } from "@/lib/auth-client";
 import { OrderSummary } from "./OrderSummary";
 import {
   EMPTY_CHECKOUT_STATE,
@@ -165,6 +166,9 @@ export function CheckoutForm() {
             last_name: state.lastName,
             phone: state.phone,
           });
+          // SDK now holds the JWT in localStorage — refresh the in-memory auth
+          // state so the header avatar appears immediately on /checkout/success.
+          await refreshCustomer();
         } catch (e) {
           console.warn("Account creation skipped:", e);
         }
