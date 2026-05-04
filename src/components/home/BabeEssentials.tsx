@@ -39,7 +39,7 @@ function Tile({
           alt={product.title}
           fill
           sizes={big ? "(max-width: 768px) 100vw, 40vw" : "(max-width: 768px) 50vw, 20vw"}
-          className="object-cover object-top"
+          className="object-cover object-center"
         />
       )}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-transparent" />
