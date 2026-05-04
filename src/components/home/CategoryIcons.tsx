@@ -55,12 +55,12 @@ export async function CategoryIcons() {
   return (
     <section className="bg-white py-5 md:py-8">
       <div className="mx-auto max-w-[1200px]">
-        {/* Mobile: horizontal scroll */}
-        <div className="flex gap-3.5 overflow-x-auto px-4 md:hidden">
+        {/* Mobile: horizontal scroll, scrollbar hidden, sized to nearly fit one screen */}
+        <div className="no-scrollbar flex gap-2.5 overflow-x-auto px-3 md:hidden">
           {items.map((c) => (
-            <Link key={c.label} href={c.href} className="flex w-16 shrink-0 flex-col items-center text-center">
-              <CategoryCircle category={c} size={60} />
-              <span className="mt-1.5 font-sans text-[10px] font-bold leading-tight text-ink">{c.label}</span>
+            <Link key={c.label} href={c.href} className="flex w-[54px] shrink-0 flex-col items-center text-center">
+              <CategoryCircle category={c} size={54} />
+              <span className="mt-1.5 line-clamp-1 font-sans text-[10px] font-bold leading-tight text-ink">{c.label}</span>
             </Link>
           ))}
         </div>

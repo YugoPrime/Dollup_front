@@ -241,25 +241,18 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-[100] border-b border-blush-400 bg-white">
-      <div className="flex flex-wrap items-center justify-center gap-3 bg-coral-500 px-6 py-1.5 text-[11px] font-medium tracking-wider text-white">
+      {/* Mobile: single line, no wrap */}
+      <div className="flex items-center justify-center bg-coral-500 px-4 py-1.5 text-[11px] font-medium tracking-wider text-white md:hidden">
+        <span className="truncate whitespace-nowrap">Free delivery on orders above Rs.1500</span>
+      </div>
+      {/* Desktop: full multi-message bar */}
+      <div className="hidden flex-wrap items-center justify-center gap-3 bg-coral-500 px-6 py-1.5 text-[11px] font-medium tracking-wider text-white md:flex">
         <span>Free delivery on orders Rs.1500+</span>
         <span className="opacity-50">✦</span>
         <span>Cash on delivery available</span>
       </div>
 
-      <div className="flex min-h-[88px] items-center gap-3 px-4 md:min-h-[104px] md:gap-6 md:px-8">
-        <button
-          onClick={() => setMenuOpen((v) => !v)}
-          className="p-2 md:hidden"
-          aria-label="Menu"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-            <line x1="3" y1="6" x2="21" y2="6" />
-            <line x1="3" y1="12" x2="21" y2="12" />
-            <line x1="3" y1="18" x2="21" y2="18" />
-          </svg>
-        </button>
-
+      <div className="flex min-h-[72px] items-center gap-3 px-4 md:min-h-[104px] md:gap-6 md:px-8">
         <Link href="/" aria-label="Doll Up Boutique" className="flex shrink-0 items-center">
           <Image
             src="/logo.png"
@@ -267,7 +260,7 @@ export function Header() {
             width={260}
             height={224}
             priority
-            className="h-[72px] w-auto md:h-[88px]"
+            className="h-[60px] w-auto md:h-[88px]"
           />
         </Link>
 
@@ -296,7 +289,8 @@ export function Header() {
           />
         </form>
 
-        <div className="flex items-center gap-1">
+        {/* Desktop-only icon cluster — wishlist/account/cart live in the mobile bottom bar */}
+        <div className="hidden items-center gap-1 md:flex">
           <Link
             href="/wishlist"
             prefetch={false}
@@ -325,6 +319,29 @@ export function Header() {
             )}
           </button>
         </div>
+
+        {/* Mobile-only hamburger pinned right */}
+        <button
+          onClick={() => setMenuOpen((v) => !v)}
+          className="ml-auto rounded-md p-2 text-ink hover:bg-blush-100 md:hidden"
+          aria-label="Menu"
+          aria-expanded={menuOpen}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+            {menuOpen ? (
+              <>
+                <line x1="6" y1="6" x2="18" y2="18" />
+                <line x1="18" y1="6" x2="6" y2="18" />
+              </>
+            ) : (
+              <>
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </>
+            )}
+          </svg>
+        </button>
       </div>
 
       {/* Mobile-only persistent search row */}

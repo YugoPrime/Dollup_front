@@ -48,7 +48,7 @@ export function StickyATC({
   };
 
   return (
-    <div className="sticky bottom-[64px] z-[10] flex items-center gap-3 border-t border-blush-100 bg-white px-4 py-2.5 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] md:hidden">
+    <div className="fixed inset-x-0 bottom-[64px] z-[40] flex animate-slide-up items-center gap-3 border-t border-blush-100 bg-white px-4 py-2.5 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] md:hidden">
       <div className="flex flex-col">
         <span className="font-sans text-[15px] font-bold leading-none text-coral-500">
           {formatPrice(price.amount, price.currency)}
@@ -62,7 +62,7 @@ export function StickyATC({
       <button
         onClick={onAdd}
         disabled={loading}
-        className="flex-1 rounded-full bg-ink py-3 font-sans text-[11px] font-bold uppercase tracking-[0.14em] text-white disabled:opacity-60"
+        className="flex-1 rounded-full bg-ink py-3 font-sans text-[11px] font-bold uppercase tracking-[0.14em] text-white transition active:scale-[0.98] disabled:opacity-60"
       >
         {loading ? "Adding…" : "Add to Bag"}
       </button>
