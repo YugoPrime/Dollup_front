@@ -12,6 +12,12 @@ export type DmDeliveryMethod = (typeof DM_DELIVERY_METHODS)[number];
 
 export const HOME_DELIVERY_FREE_THRESHOLD_MUR = 1500;
 
+export const VAT_RATE_PERCENT = 15;
+
+export function computeVatAmount(totalMur: number): number {
+  return Math.round((totalMur * VAT_RATE_PERCENT) / (100 + VAT_RATE_PERCENT));
+}
+
 export function computeDeliveryCost(
   method: DmDeliveryMethod,
   subtotalMur: number,

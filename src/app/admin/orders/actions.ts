@@ -33,18 +33,18 @@ export async function searchVariantsAction(
   return searchVariants(query, { availableOnly: !!opts.availableOnly, limit: 25 });
 }
 
-export type CreateDmOrderResult =
-  | { ok: true; id: string; displayId: number }
+export type CreateDmOrderActionResult =
+  | { ok: true; id: string; displayId: number; warnings: string[] }
   | { ok: false; error: string };
 
 export async function createDmOrderAction(
   input: CreateDmOrderInput,
-): Promise<CreateDmOrderResult> {
+): Promise<CreateDmOrderActionResult> {
   await requireAdmin();
   try {
-    const { id, displayId } = await createDmOrder(input);
+    const { id, displayId, warnings } = await createDmOrder(input);
     revalidatePath("/admin/orders");
-    return { ok: true, id, displayId };
+    return { ok: true, id, displayId, warnings };
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "Failed to create order";

@@ -1,4 +1,5 @@
 "use client";
+import { computeVatAmount, VAT_RATE_PERCENT } from "@/lib/checkout";
 import { formatPrice } from "@/lib/format";
 
 export function VatBreakdown({
@@ -9,10 +10,9 @@ export function VatBreakdown({
   paymentMethod: string;
 }) {
   if (paymentMethod !== "MCB Juice") return null;
-  const vat = Math.round((total * 15) / 115);
   return (
     <p className="text-[11px] italic text-ink-muted">
-      Of which VAT (15%): {formatPrice(vat, "mur")}
+      Of which VAT ({VAT_RATE_PERCENT}%): {formatPrice(computeVatAmount(total), "mur")}
     </p>
   );
 }

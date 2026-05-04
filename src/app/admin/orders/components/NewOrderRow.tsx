@@ -89,7 +89,12 @@ export const NewOrderRow = forwardRef<NewOrderRowRef>(function NewOrderRow(_, re
     startTransition(async () => {
       const res = await createDmOrderAction(payload);
       if (res.ok) {
-        setSuccessBanner(`Order #${res.displayId} saved.`);
+        const banner =
+          res.warnings.length > 0
+            ? `Order #${res.displayId} saved. ${res.warnings.join(" ")}`
+            : `Order #${res.displayId} saved.`;
+        setSuccessBanner(banner);
+        if (res.warnings.length > 0) setErrorBanner(res.warnings.join(" "));
         reset();
         setShowPseudo(false);
         setShowEmail(false);

@@ -4,6 +4,7 @@ import { getAdminSdk } from "./medusa-admin";
 import {
   type DmDeliveryMethod,
   computeDeliveryCost,
+  computeVatAmount,
 } from "./checkout";
 
 export const REGION_ID = "reg_01KN0AAX4FA592Q3HAY93W1AHV";
@@ -218,9 +219,15 @@ function synthesizeEmail(input: CreateDmOrderInput): string {
   return `dm-${cleanedPhone}@dollupboutique.local`;
 }
 
+export type CreateDmOrderResult = {
+  id: string;
+  displayId: number;
+  warnings: string[];
+};
+
 export async function createDmOrder(
   input: CreateDmOrderInput,
-): Promise<{ id: string; displayId: number }> {
+): Promise<CreateDmOrderResult> {
   const sdk = await getAdminSdk();
 
   const subtotal = input.items.reduce(
@@ -315,11 +322,11 @@ export async function createDmOrder(
   if (input.pseudo) metadata.pseudo = input.pseudo;
   if (input.trackingNumber) metadata.tracking_number = input.trackingNumber;
   if (overrideTotal != null) metadata.total_override_mur = overrideTotal;
-  // VAT extraction when payment is MCB Juice (15% included in total)
+  // VAT extraction when payment is MCB Juice (rate included in total)
   const finalTotalForVat =
     overrideTotal != null ? overrideTotal : computedTotal;
   if (input.paymentMethod === "MCB Juice") {
-    metadata.vat_amount = Math.round((finalTotalForVat * 15) / 115);
+    metadata.vat_amount = computeVatAmount(finalTotalForVat);
   }
 
   const draftPayload: HttpTypes.AdminCreateDraftOrder = {
@@ -351,11 +358,15 @@ export async function createDmOrder(
     throw err;
   }
 
+  const warnings: string[] = [];
+
   if (input.saleType === "paid") {
     try {
       await markOrderPaid(convertedOrder.id);
     } catch (err) {
+      const msg = err instanceof Error ? err.message : "unknown error";
       console.warn("[createDmOrder] markOrderPaid failed:", err);
+      warnings.push(`Could not mark paid: ${msg}`);
     }
   }
 
@@ -363,17 +374,25 @@ export async function createDmOrder(
     try {
       await sdk.admin.order.cancel(convertedOrder.id);
     } catch (err) {
+      const msg = err instanceof Error ? err.message : "unknown error";
       console.warn("[createDmOrder] cancel failed:", err);
+      warnings.push(`Could not cancel: ${msg}`);
     }
   } else if (input.status === "delivered") {
     try {
       await markOrderFulfilled(convertedOrder.id);
     } catch (err) {
+      const msg = err instanceof Error ? err.message : "unknown error";
       console.warn("[createDmOrder] markOrderFulfilled failed:", err);
+      warnings.push(`Could not mark delivered: ${msg}`);
     }
   }
 
-  return { id: convertedOrder.id, displayId: convertedOrder.display_id ?? 0 };
+  return {
+    id: convertedOrder.id,
+    displayId: convertedOrder.display_id ?? 0,
+    warnings,
+  };
 }
 
 async function getOrderWithPayments(orderId: string): Promise<HttpTypes.AdminOrder> {
