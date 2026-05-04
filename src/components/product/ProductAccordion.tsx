@@ -22,13 +22,22 @@ function splitDescription(description: string | null | undefined): {
   };
 }
 
-// Strip leading/trailing whitespace AND collapse the long runs of \n that the
-// importer leaves in front of the size chart table (visible as a big empty gap).
+// Aggressively strip the empty wrapping markup the importer leaves around
+// the size chart (visible as a tall blank gap above the table). Repeatedly
+// peel off leading whitespace, &nbsp;, <br>, and empty <p>/<div> until we
+// hit real content. Same for trailing.
 function cleanHtml(s: string): string {
-  return s
-    .replace(/^[\s​-‍﻿]+/, "")
-    .replace(/[\s​-‍﻿]+$/, "")
-    .replace(/(?:\s*\n\s*){3,}/g, "\n");
+  let out = s;
+  const leading = /^(?:\s|&nbsp;|<br\s*\/?>|<p[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>|<div[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/div>)+/i;
+  const trailing = /(?:\s|&nbsp;|<br\s*\/?>|<p[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>|<div[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/div>)+$/i;
+  let prev: string;
+  do {
+    prev = out;
+    out = out.replace(leading, "").replace(trailing, "");
+  } while (out !== prev);
+  // Collapse runs of 3+ <br>s anywhere inside.
+  out = out.replace(/(<br\s*\/?>\s*){3,}/gi, "<br><br>");
+  return out.trim();
 }
 
 export function ProductAccordion({ description }: { description?: string | null }) {

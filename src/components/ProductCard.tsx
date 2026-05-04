@@ -208,19 +208,26 @@ export function ProductCard({
             </span>
           )}
         </div>
+        {/* Color dots — only when there's more than one color, else the dot
+            is just visual noise (only one option to pick anyway). The
+            container stays mounted so card heights line up across the grid. */}
         <div className="mt-auto flex h-4 items-center gap-1 pt-1.5">
-          {colors.slice(0, MAX_COLOR_DOTS).map((c) => (
-            <span
-              key={c}
-              title={c}
-              className="h-3 w-3 rounded-full border border-black/10"
-              style={{ background: colorNameToHex(c) }}
-            />
-          ))}
-          {colors.length > MAX_COLOR_DOTS && (
-            <span className="flex h-3 min-w-[18px] items-center justify-center rounded-full border border-ink-muted bg-white px-1 font-sans text-[7px] font-bold text-ink-muted">
-              +{colors.length - MAX_COLOR_DOTS}
-            </span>
+          {colors.length > 1 && (
+            <>
+              {colors.slice(0, MAX_COLOR_DOTS).map((c) => (
+                <span
+                  key={c}
+                  title={c}
+                  className="h-3 w-3 rounded-full border border-black/10"
+                  style={{ background: colorNameToHex(c) }}
+                />
+              ))}
+              {colors.length > MAX_COLOR_DOTS && (
+                <span className="flex h-3 min-w-[18px] items-center justify-center rounded-full border border-ink-muted bg-white px-1 font-sans text-[7px] font-bold text-ink-muted">
+                  +{colors.length - MAX_COLOR_DOTS}
+                </span>
+              )}
+            </>
           )}
         </div>
       </div>
