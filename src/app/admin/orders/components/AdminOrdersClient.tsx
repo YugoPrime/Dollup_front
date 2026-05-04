@@ -1,11 +1,11 @@
 "use client";
 
 import { useRef } from "react";
-import { OrderForm, type OrderFormRef } from "./OrderForm";
+import { NewOrderRow, type NewOrderRowRef } from "./NewOrderRow";
 import { StockChecker, type SelectedVariant } from "./StockChecker";
 
 export function AdminOrdersClient() {
-  const formRef = useRef<OrderFormRef | null>(null);
+  const formRef = useRef<NewOrderRowRef | null>(null);
 
   function handlePick(v: SelectedVariant) {
     formRef.current?.addVariant(v);
@@ -21,7 +21,7 @@ export function AdminOrdersClient() {
         <StockChecker onPickVariant={handlePick} />
       </div>
       <div id="dm-order-form">
-        <OrderForm ref={formRef} />
+        <NewOrderRow ref={formRef} />
       </div>
     </div>
   );
