@@ -132,7 +132,14 @@ function ReadOnlyRow({
           ✏️
         </button>
       </td>
-      <td className="px-2 py-2 font-mono text-[11px]">#{order.displayId}</td>
+      <td className="px-2 py-2 font-mono text-[11px] whitespace-nowrap">
+        #{order.displayId}
+        {order.replacesDisplayId != null && (
+          <span className="block text-[9px] italic text-ink-muted">
+            ↻ replaces #{order.replacesDisplayId}
+          </span>
+        )}
+      </td>
       <td className="px-2 py-2 whitespace-nowrap">
         {new Date(order.createdAt).toLocaleDateString("en-GB", {
           day: "2-digit",

@@ -10,6 +10,7 @@ import {
   cancelOrder,
   classifyOrderEdit,
   createDmOrder,
+  editOrderHeavy,
   getRecentOrders,
   markOrderFulfilled,
   markOrderPaid,
@@ -109,15 +110,16 @@ export async function updateOrderAction(
     if (!before) return { ok: false, error: "Order not found" };
     const diff = classifyOrderEdit(before, input);
     if (diff.kind === "noop") return { ok: true, id: orderId };
-    if (diff.kind === "heavy") {
-      return {
-        ok: false,
-        error: `Heavy edit not yet supported: ${diff.reason}`,
-      };
+    if (diff.kind === "light") {
+      await updateOrderLight(orderId, diff.patch);
+      revalidatePath("/admin/orders");
+      return { ok: true, id: orderId };
     }
-    await updateOrderLight(orderId, diff.patch);
+    // Heavy: cancel + recreate. Returns the NEW order id.
+    const res = await editOrderHeavy(orderId, input);
+    if (!res.ok) return { ok: false, error: res.error };
     revalidatePath("/admin/orders");
-    return { ok: true, id: orderId };
+    return { ok: true, id: res.newOrderId };
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "Failed to update order";

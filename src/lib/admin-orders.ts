@@ -174,13 +174,19 @@ function mapOrder(o: HttpTypes.AdminOrder): OrderRow {
 
 export async function getRecentOrders(limit = 20): Promise<OrderRow[]> {
   const sdk = await getAdminSdk();
+  // Over-fetch so we can drop replaced predecessors without thinning the
+  // visible count.
+  const fetchLimit = Math.max(limit * 2, 50);
   const res = await sdk.admin.order.list({
-    limit,
+    limit: fetchLimit,
     order: "-created_at",
     fields:
       "id,display_id,created_at,email,total,payment_status,fulfillment_status,status,metadata,*items,*shipping_address",
   });
-  return (res.orders as HttpTypes.AdminOrder[]).map(mapOrder);
+  const all = (res.orders as HttpTypes.AdminOrder[]).map(mapOrder);
+  // Drop orders that have been superseded by a heavy edit.
+  const visible = all.filter((o) => o.replacedByOrderId == null);
+  return visible.slice(0, limit);
 }
 
 export type CreateOrderItemInput =
@@ -595,12 +601,43 @@ export function classifyOrderEdit(
     }
   }
 
-  // Slice 3 deliberately does NOT compare deliveryFee / discount / totalOverride.
-  // Why: hydrateOrderToForm leaves those three inputs blank for inline edit, so
-  // every order with a non-zero discount or override would be flagged heavy on
-  // any edit (even fixing a phone typo). Slice 4 introduces editable money
-  // fields and a real before/after diff. Until then we only treat line item
-  // changes as heavy.
+  // Money diff (Slice 4): hydrateOrderToForm now populates deliveryFee /
+  // discountMur / totalOverride from the order's auto-appended lines, so a
+  // before/after comparison is meaningful. Any change here means we need to
+  // cancel + recreate so the order's invoice math is consistent.
+  const deliveryLine = before.items.find((it) =>
+    /^Delivery\s—/.test(it.title),
+  );
+  const discountLine = before.items.find((it) => it.title === "Discount");
+  const adjustmentLine = before.items.find((it) => it.title === "Adjustment");
+  const oldDeliveryFee = deliveryLine?.unitPriceMur ?? 0;
+  const oldDiscount = discountLine ? -discountLine.unitPriceMur : 0;
+  const realLines = before.items.filter((it) => !isAutoLine(it.title));
+  const realSubtotal = realLines.reduce(
+    (s, it) => s + it.quantity * it.unitPriceMur,
+    0,
+  );
+  const oldComputedTotal = realSubtotal - oldDiscount + oldDeliveryFee;
+  const oldAdjustment = adjustmentLine?.unitPriceMur ?? 0;
+  const oldTotalOverride =
+    oldAdjustment !== 0 ? oldComputedTotal + oldAdjustment : null;
+
+  const nextDeliveryFee =
+    typeof next.deliveryFeeMur === "number" ? next.deliveryFeeMur : 0;
+  const nextDiscount =
+    typeof next.discountMur === "number" ? next.discountMur : 0;
+  const nextTotalOverride =
+    next.totalOverrideMur != null && Number.isFinite(next.totalOverrideMur)
+      ? next.totalOverrideMur
+      : null;
+
+  if (
+    nextDeliveryFee !== oldDeliveryFee ||
+    nextDiscount !== oldDiscount ||
+    nextTotalOverride !== oldTotalOverride
+  ) {
+    return { kind: "heavy", reason: "Delivery/discount/total changed" };
+  }
 
   // ----- Light patch building -----
   const patch: OrderLightPatch = {};
@@ -662,4 +699,154 @@ export function classifyOrderEdit(
 
   if (Object.keys(patch).length === 0) return { kind: "noop" };
   return { kind: "light", patch };
+}
+
+// ---------------------------------------------------------------------------
+// Heavy edit support — Slice 4
+// ---------------------------------------------------------------------------
+
+export type HeavyEditResult =
+  | { ok: true; newOrderId: string; newDisplayId: number }
+  | { ok: false; error: string };
+
+type VariantStockShape = {
+  id: string;
+  sku?: string | null;
+  title?: string | null;
+  inventory_quantity?: number | null;
+  manage_inventory?: boolean | null;
+  product?: { title?: string | null } | null;
+};
+
+/**
+ * Cancel + recreate path for "heavy" edits — line item / qty / price / money
+ * changes. Pre-flights stock so we never cancel an order if the recreate
+ * would fail at decrement; stamps bidirectional `replaces_*` /
+ * `replaced_by_*` metadata so the UI can hide predecessors and surface a
+ * "↻ replaces #N" caption.
+ */
+export async function editOrderHeavy(
+  oldOrderId: string,
+  input: CreateDmOrderInput,
+): Promise<HeavyEditResult> {
+  const sdk = await getAdminSdk();
+
+  // 1. Fetch old order's line items to compute net delta.
+  const { order: oldOrder } = await sdk.admin.order.retrieve(oldOrderId, {
+    fields: "id,*items,metadata,display_id",
+  });
+  const oldDisplayId = oldOrder.display_id ?? null;
+
+  const oldByVariant = new Map<string, number>();
+  for (const it of oldOrder.items ?? []) {
+    if (!it.variant_id) continue;
+    oldByVariant.set(
+      it.variant_id,
+      (oldByVariant.get(it.variant_id) ?? 0) + Number(it.quantity ?? 0),
+    );
+  }
+  const newByVariant = new Map<string, number>();
+  for (const it of input.items) {
+    if (it.kind === "variant") {
+      newByVariant.set(
+        it.variantId,
+        (newByVariant.get(it.variantId) ?? 0) + it.quantity,
+      );
+    }
+  }
+
+  // 2. Pre-flight stock check — only variants where we need MORE units than
+  // the old order already held (positive delta).
+  const allVariantIds = new Set([
+    ...oldByVariant.keys(),
+    ...newByVariant.keys(),
+  ]);
+  for (const variantId of allVariantIds) {
+    const oldQty = oldByVariant.get(variantId) ?? 0;
+    const newQty = newByVariant.get(variantId) ?? 0;
+    const delta = newQty - oldQty;
+    if (delta <= 0) continue;
+    // The admin SDK's productVariant module exposes `list` but not a direct
+    // `retrieve`. Filter by id to fetch the single record we need.
+    const resp = (await sdk.admin.productVariant.list({
+      id: variantId,
+      limit: 1,
+      fields:
+        "id,sku,title,inventory_quantity,manage_inventory,product.title",
+    })) as unknown as { variants: VariantStockShape[] };
+    const variant = resp.variants?.[0];
+    if (!variant) {
+      return {
+        ok: false,
+        error: `Variant ${variantId} not found — cannot verify stock.`,
+      };
+    }
+    const manage = variant.manage_inventory ?? true;
+    if (!manage) continue;
+    const available = variant.inventory_quantity ?? 0;
+    if (available < delta) {
+      return {
+        ok: false,
+        error: `Not enough stock for ${variant.product?.title ?? "?"} / ${
+          variant.title ?? "?"
+        } — only ${available} available (need ${delta} more).`,
+      };
+    }
+  }
+
+  // 3. Cancel old order — Medusa returns inventory automatically.
+  await sdk.admin.order.cancel(oldOrderId);
+
+  // 4. Create new order via the existing draft-order pipeline.
+  let created: { id: string; displayId: number };
+  try {
+    created = await createDmOrder(input);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "unknown";
+    return {
+      ok: false,
+      error: `Recreate failed after cancel: ${msg}. Old order #${
+        oldDisplayId ?? "?"
+      } is canceled.`,
+    };
+  }
+
+  // 5. Stamp bidirectional `replaces_*` / `replaced_by_*` metadata. Stamping
+  // the canceled order is best-effort — some Medusa versions reject metadata
+  // updates on canceled orders. The link is nice-to-have for traceability,
+  // not load-bearing for the swap UX.
+  try {
+    const newRetrieve = await sdk.admin.order.retrieve(created.id, {
+      fields: "id,metadata",
+    });
+    const newMeta = (newRetrieve.order.metadata ?? {}) as Record<
+      string,
+      unknown
+    >;
+    newMeta.replaces_order_id = oldOrderId;
+    newMeta.replaces_display_id = oldDisplayId;
+    await sdk.admin.order.update(created.id, { metadata: newMeta });
+  } catch (err) {
+    console.warn(
+      "[editOrderHeavy] failed to stamp replaces metadata on new order:",
+      err,
+    );
+  }
+  try {
+    const oldMeta = (oldOrder.metadata ?? {}) as Record<string, unknown>;
+    oldMeta.replaced_by_order_id = created.id;
+    oldMeta.replaced_by_display_id = created.displayId;
+    await sdk.admin.order.update(oldOrderId, { metadata: oldMeta });
+  } catch (err) {
+    console.warn(
+      "[editOrderHeavy] failed to stamp replaced_by metadata on old order:",
+      err,
+    );
+  }
+
+  return {
+    ok: true,
+    newOrderId: created.id,
+    newDisplayId: created.displayId,
+  };
 }

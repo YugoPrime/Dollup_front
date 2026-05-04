@@ -102,9 +102,11 @@ export function rid() {
  * separately so they can filter out auto-appended Delivery/Discount/Adjustment
  * lines.
  *
- * Money fields (deliveryFee / discountMur / totalOverride) intentionally
- * stay empty: heavy edits aren't supported in light-only flow, so we don't
- * surface those here either.
+ * Money fields (deliveryFee / discountMur / totalOverride) are derived from
+ * the order's auto-appended lines so heavy edits can re-populate them. This
+ * lets the operator see and edit the current values; the classify/diff in
+ * `classifyOrderEdit` uses these populated inputs to detect "no change"
+ * correctly.
  */
 export function hydrateOrderToForm(order: OrderRow): Partial<FormState> {
   const status: FormState["status"] =
@@ -113,6 +115,23 @@ export function hydrateOrderToForm(order: OrderRow): Partial<FormState> {
       : order.fulfillmentStatus === "fulfilled"
         ? "delivered"
         : "";
+  const deliveryLine = order.items.find((it) => /^Delivery\s—/.test(it.title));
+  const discountLine = order.items.find((it) => it.title === "Discount");
+  const adjustmentLine = order.items.find((it) => it.title === "Adjustment");
+  const realLines = order.items.filter(
+    (it) => !/^Delivery\s—|^Discount$|^Adjustment$/.test(it.title),
+  );
+  const realSubtotal = realLines.reduce(
+    (s, it) => s + it.quantity * it.unitPriceMur,
+    0,
+  );
+  const deliveryFeeMur = deliveryLine?.unitPriceMur ?? 0;
+  const discountMur = discountLine ? -discountLine.unitPriceMur : 0;
+  const adjustment = adjustmentLine?.unitPriceMur ?? 0;
+  const totalOverrideMur =
+    adjustment !== 0
+      ? realSubtotal - discountMur + deliveryFeeMur + adjustment
+      : null;
   return {
     deliveryDate: order.deliveryDate ?? "",
     deliveryMethod: (order.deliveryMethod ?? "Pick Up") as DmDeliveryMethod,
@@ -130,9 +149,9 @@ export function hydrateOrderToForm(order: OrderRow): Partial<FormState> {
     saleType: (order.saleType ?? "paid") as SaleType,
     status,
     trackingNumber: order.trackingNumber ?? "",
-    deliveryFee: "",
-    discountMur: "",
-    totalOverride: "",
+    deliveryFee: String(deliveryFeeMur),
+    discountMur: discountMur > 0 ? String(discountMur) : "",
+    totalOverride: totalOverrideMur != null ? String(totalOverrideMur) : "",
   };
 }
 
