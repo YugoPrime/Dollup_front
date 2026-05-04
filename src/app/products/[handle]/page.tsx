@@ -52,9 +52,20 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
   return (
     <main>
       <nav aria-label="Breadcrumb" className="px-4 py-3 font-sans text-[10px] font-bold uppercase tracking-wider text-ink-muted md:px-8 md:py-4">
-        <Link href="/" className="hover:text-ink">Home</Link>
+        <Link href="/" className="hover:text-coral-500">Home</Link>
         <span className="mx-1.5 text-blush-400">/</span>
-        <Link href="/shop" className="hover:text-ink">Shop</Link>
+        <Link href="/shop" className="hover:text-coral-500">Shop</Link>
+        {product.categories?.[0] && (
+          <>
+            <span className="mx-1.5 text-blush-400">/</span>
+            <Link
+              href={`/shop?category=${encodeURIComponent(product.categories[0].handle)}`}
+              className="hover:text-coral-500"
+            >
+              {product.categories[0].name}
+            </Link>
+          </>
+        )}
         <span className="mx-1.5 text-blush-400">/</span>
         <span className="text-ink">{product.title}</span>
       </nav>

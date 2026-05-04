@@ -8,11 +8,12 @@ export type SheetFacets = { sizes: string[]; colors: string[]; priceMin: number;
 
 const HIDDEN_HANDLES = new Set(["toys", "uncategorized", "women"]);
 const COLOR_HEX: Record<string, string> = {
-  black: "#1c1010", white: "#ffffff", coral: "#E5604A", blush: "#F2DDD8",
-  cream: "#FAF6F4", nude: "#F2DDD8", pink: "#F8D5CD", red: "#B8412C",
-  green: "#3a5a40", blue: "#85C1E9", yellow: "#F4D03F", grey: "#8a7773",
-  gray: "#8a7773", brown: "#5e4030", purple: "#7E5A9B", orange: "#F39C5B",
-  burgandy: "#5C1F2A", burgundy: "#5C1F2A", navy: "#1F2A44",
+  black: "#1c1010", white: "#ffffff", cream: "#FAF6F4", red: "#B8412C",
+  burgundy: "#5C1F2A", pink: "#F8C4D4", blush: "#F2DDD8", nude: "#E8C9B0",
+  brown: "#5e4030", grey: "#8a7773", blue: "#6FA8DC", navy: "#1F2A44",
+  green: "#3a5a40", yellow: "#F4D03F", orange: "#F39C5B", coral: "#E5604A",
+  purple: "#7E5A9B",
+  multi: "conic-gradient(from 0deg,#E5604A,#F4D03F,#3a5a40,#6FA8DC,#7E5A9B,#E5604A)",
 };
 
 export function ShopFilterSheet({
@@ -187,32 +188,29 @@ export function ShopFilterSheet({
 
         {facets.priceMax > facets.priceMin && (
           <FilterGroup label="Price (Rs)">
-            <div className="flex items-center justify-between font-sans text-[12px] font-semibold text-ink">
-              <span>Rs {pMin}</span>
-              <span>Rs {pMax}</span>
-            </div>
-            <div className="mt-2 space-y-2">
+            <div className="flex items-center gap-2">
               <input
-                type="range"
+                type="number"
                 min={facets.priceMin}
                 max={facets.priceMax}
-                step={50}
                 value={pMin}
-                onChange={(e) => setPMin(Math.min(Number(e.target.value), pMax))}
-                onMouseUp={commitPrice}
-                onTouchEnd={commitPrice}
-                className="w-full accent-coral-500"
+                onChange={(e) => setPMin(Math.min(Number(e.target.value) || 0, pMax))}
+                onBlur={commitPrice}
+                onKeyDown={(e) => e.key === "Enter" && commitPrice()}
+                aria-label="Minimum price"
+                className="w-full rounded-md border border-blush-300 bg-white px-2.5 py-2 font-sans text-[13px] text-ink outline-none focus:border-coral-500"
               />
+              <span className="font-sans text-[12px] text-ink-muted">—</span>
               <input
-                type="range"
+                type="number"
                 min={facets.priceMin}
                 max={facets.priceMax}
-                step={50}
                 value={pMax}
-                onChange={(e) => setPMax(Math.max(Number(e.target.value), pMin))}
-                onMouseUp={commitPrice}
-                onTouchEnd={commitPrice}
-                className="w-full accent-coral-500"
+                onChange={(e) => setPMax(Math.max(Number(e.target.value) || 0, pMin))}
+                onBlur={commitPrice}
+                onKeyDown={(e) => e.key === "Enter" && commitPrice()}
+                aria-label="Maximum price"
+                className="w-full rounded-md border border-blush-300 bg-white px-2.5 py-2 font-sans text-[13px] text-ink outline-none focus:border-coral-500"
               />
             </div>
           </FilterGroup>

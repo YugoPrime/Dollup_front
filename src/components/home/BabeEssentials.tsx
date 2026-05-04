@@ -45,11 +45,11 @@ function Tile({
 
 export function BabeEssentials({ products }: { products: Product[] }) {
   if (!products.length) return null;
-  const [hero, second, third, fourth] = products;
+  const [hero, ...rest] = products;
 
   return (
     <section className="bg-white py-10 md:py-14">
-      <div className="mx-auto max-w-[1200px] px-4 md:px-10">
+      <div className="mx-auto max-w-[1100px] px-4 md:px-10">
         <header className="mb-6 text-center">
           <p className="mb-2 font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-coral-500">★ Wardrobe heroes</p>
           <h2 className="font-display text-[28px] leading-none text-ink md:text-[36px]">
@@ -60,20 +60,20 @@ export function BabeEssentials({ products }: { products: Product[] }) {
           </p>
         </header>
 
-        {/* Mobile: 1 big + 3 stacked = 4 tiles */}
-        <div className="grid grid-cols-3 gap-2 md:hidden" style={{ gridAutoRows: "150px" }}>
-          <Tile product={hero} className="col-span-3 row-span-1 !aspect-auto" big />
-          {second && <Tile product={second} />}
-          {third && <Tile product={third} />}
-          {fourth && <Tile product={fourth} />}
+        {/* Mobile: 1 big + 2 stacked + 1 wide */}
+        <div className="grid grid-cols-2 gap-2 md:hidden" style={{ gridTemplateRows: "200px 200px 200px" }}>
+          <Tile product={hero} className="col-span-2 row-start-1" big />
+          {rest[0] && <Tile product={rest[0]} />}
+          {rest[1] && <Tile product={rest[1]} />}
+          {rest[2] && <Tile product={rest[2]} className="col-span-2" />}
         </div>
 
-        {/* Desktop landscape bento: 2 wide top tiles + 2 wide bottom tiles, all landscape */}
-        <div className="hidden md:grid md:gap-3" style={{ gridTemplateColumns: "1.4fr 1fr", gridAutoRows: "220px" }}>
-          <Tile product={hero} big />
-          {second && <Tile product={second} />}
-          {third && <Tile product={third} />}
-          {fourth && <Tile product={fourth} big />}
+        {/* Desktop: 1 tall left + 2 top right + 1 wide bottom = 4 tiles */}
+        <div className="hidden md:grid md:gap-3" style={{ gridTemplateColumns: "1.4fr 1fr 1fr", gridTemplateRows: "220px 220px" }}>
+          <Tile product={hero} className="row-span-2" big />
+          {rest[0] && <Tile product={rest[0]} />}
+          {rest[1] && <Tile product={rest[1]} />}
+          {rest[2] && <Tile product={rest[2]} className="col-span-2" />}
         </div>
       </div>
     </section>

@@ -76,13 +76,13 @@ export function HeroBento({ products }: { products: Product[] }) {
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
               href="/shop?sort=new"
-              className="rounded-full bg-ink px-6 py-3.5 font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-coral-700"
+              className="rounded-full bg-coral-500 px-6 py-3.5 font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-white shadow-[0_4px_12px_rgba(229,96,74,0.3)] transition-colors hover:bg-coral-700"
             >
               Shop new arrivals →
             </Link>
             <Link
               href="/shop?on_sale=1"
-              className="rounded-full border-2 border-ink bg-white/85 px-6 py-3.5 font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-ink backdrop-blur transition-colors hover:border-coral-500 hover:bg-coral-500 hover:text-white"
+              className="rounded-full border-2 border-coral-500 bg-white px-6 py-3.5 font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-coral-500 transition-colors hover:bg-coral-500 hover:text-white"
             >
               Browse sale
             </Link>

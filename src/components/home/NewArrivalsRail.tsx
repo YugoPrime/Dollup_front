@@ -30,6 +30,7 @@ export function NewArrivalsRail({
   const railRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const [paused, setPaused] = useState(false);
 
   // Track scroll position so the prev/next buttons disable at the ends.
   useEffect(() => {
@@ -47,6 +48,35 @@ export function NewArrivalsRail({
       window.removeEventListener("resize", update);
     };
   }, [products.length]);
+
+  // Gentle auto-scroll: advance ~0.4px per frame (~24px/sec). Pauses on hover,
+  // when the tab is hidden, and when the user prefers reduced motion. Loops back
+  // to the start when reaching the end.
+  useEffect(() => {
+    const el = railRef.current;
+    if (!el) return;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduceMotion) return;
+    let raf = 0;
+    let last = performance.now();
+    const tick = (now: number) => {
+      const dt = now - last;
+      last = now;
+      if (!paused && !document.hidden) {
+        const max = el.scrollWidth - el.clientWidth;
+        if (max > 0) {
+          if (el.scrollLeft >= max - 2) {
+            el.scrollTo({ left: 0, behavior: "smooth" });
+          } else {
+            el.scrollLeft += dt * 0.024; // ~24px/sec
+          }
+        }
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [paused, products.length]);
 
   if (!products.length) return null;
 
@@ -95,7 +125,11 @@ export function NewArrivalsRail({
         </div>
         <div
           ref={railRef}
-          className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-3 md:gap-4 md:px-10 md:pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          onMouseEnter={() => setPaused(true)}
+          onMouseLeave={() => setPaused(false)}
+          onTouchStart={() => setPaused(true)}
+          onTouchEnd={() => setPaused(false)}
+          className="flex gap-3 overflow-x-auto px-4 pb-3 md:gap-4 md:px-10 md:pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           style={{ scrollPaddingInline: "16px" }}
         >
           {products.map((p) => (

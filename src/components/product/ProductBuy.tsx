@@ -115,7 +115,6 @@ export function ProductBuy({ product }: { product: Product }) {
           selected={selected[sizeOption.id]}
           onSelect={(v) => setSelected((s) => ({ ...s, [sizeOption.id]: v }))}
           variant="size"
-          rightLink={{ href: "/size-guide", label: "Size guide →" }}
         />
       )}
 

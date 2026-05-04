@@ -7,8 +7,10 @@ import { useWishlist, clearWishlist } from "@/lib/wishlist-client";
 import { clientSdk } from "@/lib/cart-client";
 import type { HttpTypes } from "@medusajs/types";
 
+// Mirrors the server-side PRODUCT_FIELDS in lib/products.ts so ProductCard's
+// in-stock check has inventory_quantity / manage_inventory expanded.
 const PRODUCT_FIELDS =
-  "*variants,*variants.calculated_price,*variants.options,*options,*options.values,*images,*tags,*categories";
+  "*variants,*variants.calculated_price,*variants.options,+variants.inventory_quantity,+variants.manage_inventory,*options,*options.values,*images,*tags,*categories";
 
 export function WishlistClient() {
   const ids = useWishlist();

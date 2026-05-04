@@ -1,45 +1,57 @@
-import fs from "node:fs";
-import path from "node:path";
 import Link from "next/link";
 import Image from "next/image";
+import { getCategoryIconImages, listProducts, getLatestCollectionTag } from "@/lib/products";
 
 type Category = {
   label: string;
   href: string;
-  image?: string;
+  // Either a category handle (we'll fetch a product thumbnail from it) OR a
+  // direct image override (for "All New" / "Sale" which aren't a single category).
+  categoryHandle?: string;
+  imageOverride?: string | null;
   special?: boolean;
-  // CSS gradient used when no image is set yet — keeps the circle looking
-  // intentional rather than empty until a real photo is dropped in.
   gradient?: string;
 };
 
-// Server-side existence check so we silently fall back to the gradient until
-// the user drops the real image into /public/categories/<slug>.png.
-function imageExists(publicPath: string): boolean {
-  try {
-    return fs.existsSync(path.join(process.cwd(), "public", publicPath.replace(/^\/+/, "")));
-  } catch {
-    return false;
-  }
-}
-
-// Drop final 400×400 PNG/JPG for each into /public/categories/<slug>.png
-// (e.g. /public/categories/dresses.png) and the circle picks it up. Until then,
-// the gradient + first-letter fallback keeps the section looking intentional.
 const CATEGORIES: Category[] = [
-  { label: "All New", href: "/shop?sort=new", special: true, image: "/categories/all-new.png" },
-  { label: "Dresses", href: "/shop?category=dresses", image: "/categories/dresses.png", gradient: "linear-gradient(135deg,#FAE8E4,#F8B0A0)" },
-  { label: "Lingerie", href: "/shop?category=lingerie", image: "/categories/lingerie.png", gradient: "linear-gradient(135deg,#F8D5CD,#E5604A)" },
-  { label: "Beachwear", href: "/shop?category=beachwear", image: "/categories/beachwear.png", gradient: "linear-gradient(135deg,#FFF5E1,#F4D03F)" },
-  { label: "Accessories", href: "/shop?category=accessories", image: "/categories/accessories.png", gradient: "linear-gradient(135deg,#F5EDEB,#B89390)" },
-  { label: "Sale", href: "/shop?on_sale=1", image: "/categories/sale.png", gradient: "linear-gradient(135deg,#E5604A,#B8412C)" },
+  { label: "All New", href: "/shop?sort=new", special: true, gradient: "linear-gradient(135deg,#FCE9E4,#E5604A)" },
+  { label: "Dresses", href: "/shop?category=dresses", categoryHandle: "dresses", gradient: "linear-gradient(135deg,#FAE8E4,#F8B0A0)" },
+  { label: "Lingerie", href: "/shop?category=lingerie", categoryHandle: "lingerie", gradient: "linear-gradient(135deg,#F8D5CD,#E5604A)" },
+  { label: "Beachwear", href: "/shop?category=beachwear", categoryHandle: "beachwear", gradient: "linear-gradient(135deg,#FFF5E1,#F4D03F)" },
+  { label: "Accessories", href: "/shop?category=accessories", categoryHandle: "accessories", gradient: "linear-gradient(135deg,#F5EDEB,#B89390)" },
+  { label: "Sale", href: "/shop?on_sale=1", gradient: "linear-gradient(135deg,#E5604A,#B8412C)" },
 ];
 
-export function CategoryIcons() {
-  const items = CATEGORIES.map((c) => ({
-    ...c,
-    image: c.image && imageExists(c.image) ? c.image : undefined,
-  }));
+export async function CategoryIcons() {
+  // Fetch real product thumbnails for the category icons. Cheap (6 parallel
+  // 1-product queries). For "All New" we use the newest collectionN product;
+  // for "Sale" we use the newest on-sale product. The page sets revalidate=60.
+  const handles = CATEGORIES.map((c) => c.categoryHandle).filter((h): h is string => !!h);
+  const [thumbsByHandle, latestCollection, saleSample] = await Promise.all([
+    getCategoryIconImages(handles).catch(() => ({} as Record<string, string | null>)),
+    getLatestCollectionTag().catch(() => null),
+    listProducts({ onSale: true, limit: 1, order: "-created_at" }).catch(() => ({ products: [] })),
+  ]);
+
+  let allNewThumb: string | null = null;
+  if (latestCollection) {
+    try {
+      const res = await listProducts({ tag: latestCollection.id, limit: 1, order: "-created_at" });
+      allNewThumb = res.products[0]?.thumbnail ?? null;
+    } catch {
+      /* fallback to gradient */
+    }
+  }
+  const saleThumb = saleSample.products[0]?.thumbnail ?? null;
+
+  const items = CATEGORIES.map((c) => {
+    let image: string | null = c.imageOverride ?? null;
+    if (!image && c.categoryHandle) image = thumbsByHandle[c.categoryHandle] ?? null;
+    if (!image && c.label === "All New") image = allNewThumb;
+    if (!image && c.label === "Sale") image = saleThumb;
+    return { ...c, image };
+  });
+
   return (
     <section className="bg-white py-5 md:py-8">
       <div className="mx-auto max-w-[1200px]">
@@ -66,8 +78,21 @@ export function CategoryIcons() {
   );
 }
 
-function CategoryCircle({ category, size }: { category: Category; size: number }) {
+function CategoryCircle({
+  category,
+  size,
+}: {
+  category: Category & { image: string | null };
+  size: number;
+}) {
   const cls = "relative overflow-hidden rounded-full border-2 border-blush-300";
+  if (category.image) {
+    return (
+      <div className={cls} style={{ width: size, height: size }}>
+        <Image src={category.image} alt={category.label} fill sizes={`${size}px`} className="object-cover object-top" />
+      </div>
+    );
+  }
   if (category.special) {
     return (
       <div
@@ -82,14 +107,7 @@ function CategoryCircle({ category, size }: { category: Category; size: number }
       </div>
     );
   }
-  if (category.image) {
-    return (
-      <div className={cls} style={{ width: size, height: size }}>
-        <Image src={category.image} alt={category.label} fill sizes={`${size}px`} className="object-cover" />
-      </div>
-    );
-  }
-  // Gradient fallback with first-letter — used until a real photo is dropped in.
+  // Gradient + first-letter fallback when no image is available.
   const letter = category.label.charAt(0).toUpperCase();
   return (
     <div
@@ -100,10 +118,7 @@ function CategoryCircle({ category, size }: { category: Category; size: number }
         background: category.gradient ?? "linear-gradient(135deg,#F5EDEB,#B89390)",
       }}
     >
-      <span
-        className="font-display font-bold text-white"
-        style={{ fontSize: Math.round(size * 0.42) }}
-      >
+      <span className="font-display font-bold text-white" style={{ fontSize: Math.round(size * 0.42) }}>
         {letter}
       </span>
     </div>

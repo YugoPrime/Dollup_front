@@ -149,26 +149,26 @@ async function listWithFacetFilters(
   }
 
   if (args.size) {
-    const target = args.size.toLowerCase();
+    const target = canonicalSize(args.size) ?? args.size;
     filtered = filtered.filter((p) =>
       (p.variants ?? []).some((v) =>
         (v.options ?? []).some(
           (o) =>
             isSizeOption(o) &&
-            (o.value ?? "").toLowerCase() === target,
+            (canonicalSize(o.value ?? "") ?? "") === target,
         ),
       ),
     );
   }
 
   if (args.color) {
-    const target = args.color.toLowerCase();
+    const target = canonicalColor(args.color);
     filtered = filtered.filter((p) =>
       (p.variants ?? []).some((v) =>
         (v.options ?? []).some(
           (o) =>
             isColorOption(o) &&
-            (o.value ?? "").toLowerCase() === target,
+            canonicalColor(o.value ?? "") === target,
         ),
       ),
     );
@@ -243,6 +243,41 @@ function isVariantInStock(v: HttpTypes.StoreProductVariant): boolean {
 // only what's actually buyable. Same fetch pattern as listWithFacetFilters
 // but doesn't apply the size/color/price filters — those are what we're
 // deriving the facets for.
+// Picks one representative product thumbnail per category for the home page
+// category-icons row. Uses the newest product in the category. Returns null
+// per category if nothing is available so the component falls back to its
+// gradient placeholder.
+export async function getCategoryIconImages(
+  handles: string[],
+): Promise<Record<string, string | null>> {
+  const region = await getRegion();
+  const cats = await listCategories();
+  const out: Record<string, string | null> = {};
+  await Promise.all(
+    handles.map(async (h) => {
+      try {
+        const cat = cats.find((c) => c.handle === h);
+        if (!cat) {
+          out[h] = null;
+          return;
+        }
+        const ids = expandCategoryWithDescendants(cat.id, cats);
+        const res = await sdk.store.product.list({
+          category_id: ids,
+          region_id: region.id,
+          fields: "id,thumbnail,handle",
+          limit: 1,
+          order: "-created_at",
+        });
+        out[h] = res.products[0]?.thumbnail ?? null;
+      } catch {
+        out[h] = null;
+      }
+    }),
+  );
+  return out;
+}
+
 export type ShopFacets = {
   sizes: string[];
   colors: string[];
@@ -299,7 +334,10 @@ export async function getShopFacets(args: {
       if (!isVariantInStock(v)) continue;
       for (const o of v.options ?? []) {
         if (isSizeOption(o) && o.value) sizes.add(o.value);
-        if (isColorOption(o) && o.value) colors.add(o.value.toLowerCase());
+        if (isColorOption(o) && o.value) {
+          const canon = canonicalColor(o.value);
+          if (canon) colors.add(canon);
+        }
       }
       const amt = readCalculatedPrice(v)?.calculated_amount;
       if (typeof amt === "number") {
@@ -319,19 +357,52 @@ export async function getShopFacets(args: {
   };
 }
 
-const SIZE_ORDER = [
-  "xxs", "xs", "xs/s", "s", "m", "l", "xl", "xl/2xl", "2xl", "xxl", "3xl", "xxxl", "4xl",
-  "free size", "freesize", "free-size", "one size",
-];
+// Canonical color name → display label. Variants in the catalog use messy
+// spellings ("burgandy"/"burgundy", "Light Pink"/"lightpink"/"l.pink"); this
+// table maps whatever the variant says into a single canonical bucket so the
+// filter doesn't show 4 versions of pink. Returns null for colors we don't
+// recognise (intentionally hidden from the filter to keep it tight).
+const COLOR_CANONICAL: Record<string, string> = {
+  black: "black", white: "white", cream: "cream", ivory: "cream", off: "cream", "off white": "cream",
+  red: "red", burgundy: "burgundy", burgandy: "burgundy", wine: "burgundy",
+  pink: "pink", "light pink": "pink", "hot pink": "pink", fuchsia: "pink", rose: "pink",
+  blush: "blush", nude: "nude", beige: "nude", sand: "nude", tan: "nude", camel: "nude",
+  brown: "brown", chocolate: "brown", coffee: "brown",
+  grey: "grey", gray: "grey", silver: "grey", charcoal: "grey",
+  blue: "blue", navy: "navy", denim: "blue", "light blue": "blue", "sky blue": "blue", teal: "blue",
+  green: "green", olive: "green", khaki: "green", mint: "green", emerald: "green",
+  yellow: "yellow", mustard: "yellow", gold: "yellow",
+  orange: "orange", coral: "coral", peach: "coral", salmon: "coral",
+  purple: "purple", lavender: "purple", lilac: "purple", violet: "purple", mauve: "purple",
+  multi: "multi", multicolor: "multi", multicolour: "multi", print: "multi", pattern: "multi",
+};
+function canonicalColor(raw: string): string | null {
+  const key = raw.trim().toLowerCase();
+  return COLOR_CANONICAL[key] ?? COLOR_CANONICAL[key.replace(/[-_\s]+/g, " ")] ?? null;
+}
+
+// Canonical size whitelist for the shop filter — bra cup sizes (A/B/C/D),
+// shoe sizes (37/38/...), and other one-off variant sizes are intentionally
+// excluded so the filter stays clean and predictable.
+const SIZE_ORDER = ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL", "Free Size"];
+const SIZE_ALIASES: Record<string, string> = {
+  xs: "XS", s: "S", m: "M", l: "L", xl: "XL",
+  "2xl": "2XL", xxl: "2XL", "3xl": "3XL", xxxl: "3XL", "4xl": "4XL",
+  "free size": "Free Size", freesize: "Free Size", "free-size": "Free Size",
+  "one size": "Free Size",
+};
+function canonicalSize(raw: string): string | null {
+  const key = raw.trim().toLowerCase();
+  return SIZE_ALIASES[key] ?? null;
+}
 function sortSizes(arr: string[]): string[] {
-  return [...arr].sort((a, b) => {
-    const ia = SIZE_ORDER.indexOf(a.toLowerCase());
-    const ib = SIZE_ORDER.indexOf(b.toLowerCase());
-    if (ia === -1 && ib === -1) return a.localeCompare(b);
-    if (ia === -1) return 1;
-    if (ib === -1) return -1;
-    return ia - ib;
-  });
+  // Only keep canonical sizes, dedupe, sort by SIZE_ORDER.
+  const canonical = new Set<string>();
+  for (const s of arr) {
+    const c = canonicalSize(s);
+    if (c) canonical.add(c);
+  }
+  return [...canonical].sort((a, b) => SIZE_ORDER.indexOf(a) - SIZE_ORDER.indexOf(b));
 }
 
 // Returns the category id plus the ids of all its descendants. Used so that
