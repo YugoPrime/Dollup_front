@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useRef, useState } from "react";
+import { Lightbox } from "./Lightbox";
 
 type Img = { url: string; alt?: string };
 
@@ -16,6 +17,7 @@ type Img = { url: string; alt?: string };
 export function ProductGalleryMobile({ images, alt }: { images: Img[]; alt?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const onScroll = () => {
     const el = ref.current;
@@ -32,6 +34,7 @@ export function ProductGalleryMobile({ images, alt }: { images: Img[]; alt?: str
   }
 
   return (
+    <>
     <div className="relative">
       <div
         ref={ref}
@@ -40,8 +43,14 @@ export function ProductGalleryMobile({ images, alt }: { images: Img[]; alt?: str
         style={{ scrollbarWidth: "none" }}
       >
         {images.map((img, i) => (
-          <div
+          <button
+            type="button"
             key={img.url}
+            onClick={() => {
+              setActive(i);
+              setLightboxOpen(true);
+            }}
+            aria-label={`View image ${i + 1} fullscreen`}
             className="relative aspect-[3/4] w-[90%] shrink-0 snap-start"
           >
             <Image
@@ -52,7 +61,7 @@ export function ProductGalleryMobile({ images, alt }: { images: Img[]; alt?: str
               className="object-cover object-top"
               priority={i === 0}
             />
-          </div>
+          </button>
         ))}
       </div>
 
@@ -73,15 +82,11 @@ export function ProductGalleryMobile({ images, alt }: { images: Img[]; alt?: str
         ))}
       </div>
 
-      {/* Wishlist heart (top-right) */}
-      <button
-        aria-label="Add to wishlist"
-        className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/95 text-ink shadow-md"
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-        </svg>
-      </button>
     </div>
+
+    {lightboxOpen && (
+      <Lightbox images={images} initialIndex={active} onClose={() => setLightboxOpen(false)} />
+    )}
+  </>
   );
 }

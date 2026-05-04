@@ -83,7 +83,7 @@ export function InstagramMosaic() {
             href={INSTAGRAM_TAGGED_URL}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-2 rounded-full border border-ink bg-white px-5 py-2.5 font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-ink transition-colors hover:bg-ink hover:text-white"
+            className="inline-flex items-center gap-2 rounded-full border border-ink bg-white px-5 py-2.5 font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-ink transition-colors hover:border-coral-500 hover:bg-coral-500 hover:text-white"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="3" width="18" height="18" rx="5" />

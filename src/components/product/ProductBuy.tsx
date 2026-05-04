@@ -4,12 +4,14 @@ import { useMemo, useState } from "react";
 import type { HttpTypes } from "@medusajs/types";
 import { useCart } from "@/components/cart/CartProvider";
 import { formatPrice, getDisplayPrice, formatDiscountPercent } from "@/lib/format";
+import { toggleWishlist, useIsInWishlist } from "@/lib/wishlist-client";
 
 type Product = HttpTypes.StoreProduct;
 const LOW_STOCK_THRESHOLD = 5;
 
 export function ProductBuy({ product }: { product: Product }) {
   const { addItem, loading } = useCart();
+  const wished = useIsInWishlist(product.id);
   const options = useMemo(() => product.options ?? [], [product.options]);
   const variants = useMemo(() => product.variants ?? [], [product.variants]);
 
@@ -141,10 +143,16 @@ export function ProductBuy({ product }: { product: Product }) {
           {!inStock ? "Sold Out" : added ? "✓ Added to Bag" : loading ? "Adding…" : "Add to Bag"}
         </button>
         <button
-          aria-label="Add to wishlist"
-          className="flex h-12 w-14 items-center justify-center rounded-full border border-ink bg-white text-ink"
+          onClick={() => toggleWishlist(product.id)}
+          aria-label={wished ? "Remove from wishlist" : "Add to wishlist"}
+          aria-pressed={wished}
+          className={`flex h-12 w-14 items-center justify-center rounded-full border transition-colors ${
+            wished
+              ? "border-coral-500 bg-coral-500 text-white"
+              : "border-ink bg-white text-ink hover:border-coral-500 hover:text-coral-500"
+          }`}
         >
-          ♡
+          {wished ? "♥" : "♡"}
         </button>
       </div>
 
@@ -209,8 +217,10 @@ function OptionGroup({
             <button
               key={v}
               onClick={() => onSelect(v)}
-              className={`rounded-md border py-2.5 font-sans text-[12px] font-semibold ${
-                selected === v ? "border-ink bg-ink text-white" : "border-blush-400 bg-white text-ink"
+              className={`rounded-md border py-2.5 font-sans text-[12px] font-semibold transition-colors ${
+                selected === v
+                  ? "border-ink bg-ink text-white"
+                  : "border-blush-400 bg-white text-ink hover:border-coral-500 hover:text-coral-500"
               }`}
             >
               {v}
