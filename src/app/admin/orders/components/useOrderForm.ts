@@ -43,43 +43,52 @@ export type LineRow = {
 };
 
 export type FormState = {
-  buyerFirstName: string;
-  buyerLastName: string;
-  phone: string;
-  address1: string;
-  address2: string;
-  city: string;
-  district: string;
-  email: string;
-  deliveryMethod: DmDeliveryMethod;
+  // 1. Delivery
   deliveryDate: string;
+  deliveryMethod: DmDeliveryMethod;
+  // 2-3. Buyer
+  buyerName: string;
+  pseudo: string;
+  // 4-6. Address
+  city: string;
+  address2: string; // address details
+  phone: string;
+  email: string;
+  // products via items
+  customNotes: string;
+  // manual via state.manual
+  // money
+  deliveryFee: string; // empty = use auto; else override
+  discountMur: string;
+  totalOverride: string;
+  // payment / status
   paymentMethod: (typeof PAYMENT_METHODS)[number];
   pointOfSale: (typeof POINTS_OF_SALE)[number];
   saleType: SaleType;
-  discountMur: string;
-  totalOverride: string;
-  notes: string;
+  status: "" | "delivered" | "cancelled";
+  trackingNumber: string;
 };
 
 export type OrderFormFieldKey = keyof FormState;
 
 export const EMPTY: FormState = {
-  buyerFirstName: "",
-  buyerLastName: "",
-  phone: "",
-  address1: "",
-  address2: "",
-  city: "",
-  district: "",
-  email: "",
-  deliveryMethod: "Pick Up",
   deliveryDate: "",
+  deliveryMethod: "Pick Up",
+  buyerName: "",
+  pseudo: "",
+  city: "",
+  address2: "",
+  phone: "",
+  email: "",
+  customNotes: "",
+  deliveryFee: "",
+  discountMur: "",
+  totalOverride: "",
   paymentMethod: "Cash",
   pointOfSale: "Instagram",
   saleType: "paid",
-  discountMur: "",
-  totalOverride: "",
-  notes: "",
+  status: "",
+  trackingNumber: "",
 };
 
 export function rid() {
@@ -109,6 +118,7 @@ export type UseOrderFormResult = {
   manualLineTotal: number;
   discount: number;
   subtotalAfterDiscount: number;
+  autoDeliveryCost: number;
   deliveryCost: number;
   computedTotal: number;
   finalTotal: number;
@@ -182,7 +192,15 @@ export function useOrderForm(initial?: Partial<FormState>): UseOrderFormResult {
   const manualLineTotal = manual.title.trim() && manualPrice > 0 ? manualPrice : 0;
   const discount = Math.max(0, Number.parseInt(state.discountMur || "0", 10) || 0);
   const subtotalAfterDiscount = itemsSubtotal + manualLineTotal - discount;
-  const deliveryCost = computeDeliveryCost(state.deliveryMethod, subtotalAfterDiscount);
+  const autoDeliveryCost = computeDeliveryCost(
+    state.deliveryMethod,
+    subtotalAfterDiscount,
+  );
+  const deliveryFeeOverride = state.deliveryFee.trim();
+  const deliveryCost =
+    deliveryFeeOverride === ""
+      ? autoDeliveryCost
+      : Math.max(0, Number.parseInt(deliveryFeeOverride, 10) || 0);
   const computedTotal = subtotalAfterDiscount + deliveryCost;
   const overrideRaw = state.totalOverride.trim();
   const overrideNum = overrideRaw === "" ? null : Number.parseInt(overrideRaw, 10);
@@ -196,9 +214,9 @@ export function useOrderForm(initial?: Partial<FormState>): UseOrderFormResult {
       : computedTotal;
 
   const fieldErrors: Record<string, string> = {};
-  if (!state.buyerFirstName.trim()) fieldErrors.buyerFirstName = "Buyer name is required";
+  if (!state.buyerName.trim()) fieldErrors.buyerName = "Buyer name is required";
   if (!isPhoneValid(state.phone)) fieldErrors.phone = "Enter a valid phone number";
-  if (!state.address1.trim()) fieldErrors.address1 = "Address is required";
+  if (!state.city.trim()) fieldErrors.city = "City is required";
   const hasItems = items.length > 0 || manualLineTotal > 0;
   if (!hasItems) fieldErrors.items = "Add at least one product (catalog or manual)";
 
@@ -215,24 +233,32 @@ export function useOrderForm(initial?: Partial<FormState>): UseOrderFormResult {
   }
 
   function toCreateInput(): CreateDmOrderInput {
+    const trackingApplies =
+      state.deliveryMethod === "Postage" ||
+      state.deliveryMethod === "Express Postage";
     return {
-      buyerFirstName: state.buyerFirstName.trim(),
-      buyerLastName: state.buyerLastName.trim() || undefined,
+      buyerFirstName: state.buyerName.trim(),
+      buyerLastName: undefined,
       phone: state.phone.trim(),
-      address1: state.address1.trim(),
-      address2: state.address2.trim() || undefined,
-      city: state.city.trim() || undefined,
-      district: state.district || undefined,
+      address1: state.address2.trim() || state.city.trim(),
+      address2: undefined,
+      city: state.city.trim(),
       email: state.email.trim() || undefined,
       deliveryMethod: state.deliveryMethod,
       deliveryDate: state.deliveryDate || undefined,
+      deliveryFeeMur: deliveryCost,
       discountMur: discount,
       totalOverrideMur:
         overrideNum != null && Number.isFinite(overrideNum) ? overrideNum : null,
       paymentMethod: state.paymentMethod,
       pointOfSale: state.pointOfSale,
       saleType: state.saleType,
-      notes: state.notes.trim() || undefined,
+      customNotes: state.customNotes.trim() || undefined,
+      pseudo: state.pseudo.trim() || undefined,
+      trackingNumber: trackingApplies
+        ? state.trackingNumber.trim() || undefined
+        : undefined,
+      status: state.status || undefined,
       items: [
         ...items.map((it) =>
           it.kind === "variant"
@@ -281,6 +307,7 @@ export function useOrderForm(initial?: Partial<FormState>): UseOrderFormResult {
     manualLineTotal,
     discount,
     subtotalAfterDiscount,
+    autoDeliveryCost,
     deliveryCost,
     computedTotal,
     finalTotal,

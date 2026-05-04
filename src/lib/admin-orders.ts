@@ -93,6 +93,8 @@ export type OrderRow = {
   email: string | null;
   buyerName: string;
   phone: string | null;
+  city: string | null;
+  addressDetails: string | null;
   totalMur: number;
   paymentStatus: string | null;
   fulfillmentStatus: string | null;
@@ -101,8 +103,22 @@ export type OrderRow = {
   pointOfSale: string | null;
   saleType: string | null;
   deliveryMethod: string | null;
+  deliveryDate: string | null;
   notes: string | null;
-  items: { id: string; title: string; quantity: number; unitPriceMur: number }[];
+  customNotes: string | null;
+  pseudo: string | null;
+  trackingNumber: string | null;
+  vatAmount: number | null;
+  replacedByOrderId: string | null;
+  replacesOrderId: string | null;
+  replacesDisplayId: number | null;
+  items: {
+    id: string;
+    variantId: string | null;
+    title: string;
+    quantity: number;
+    unitPriceMur: number;
+  }[];
 };
 
 function mapOrder(o: HttpTypes.AdminOrder): OrderRow {
@@ -118,6 +134,8 @@ function mapOrder(o: HttpTypes.AdminOrder): OrderRow {
     email: o.email ?? null,
     buyerName,
     phone: ship?.phone ?? null,
+    city: ship?.city ?? null,
+    addressDetails: ship?.address_1 ?? null,
     totalMur: Math.round(Number(o.total ?? 0)),
     paymentStatus: o.payment_status ?? null,
     fulfillmentStatus: o.fulfillment_status ?? null,
@@ -126,9 +144,26 @@ function mapOrder(o: HttpTypes.AdminOrder): OrderRow {
     pointOfSale: typeof meta.point_of_sale === "string" ? meta.point_of_sale : null,
     saleType: typeof meta.sale_type === "string" ? meta.sale_type : null,
     deliveryMethod: typeof meta.delivery_method === "string" ? meta.delivery_method : null,
+    deliveryDate: typeof meta.delivery_date === "string" ? meta.delivery_date : null,
     notes: typeof meta.notes === "string" ? meta.notes : null,
+    customNotes: typeof meta.custom_notes === "string" ? meta.custom_notes : null,
+    pseudo: typeof meta.pseudo === "string" ? meta.pseudo : null,
+    trackingNumber:
+      typeof meta.tracking_number === "string" ? meta.tracking_number : null,
+    vatAmount: typeof meta.vat_amount === "number" ? meta.vat_amount : null,
+    replacedByOrderId:
+      typeof meta.replaced_by_order_id === "string"
+        ? meta.replaced_by_order_id
+        : null,
+    replacesOrderId:
+      typeof meta.replaces_order_id === "string" ? meta.replaces_order_id : null,
+    replacesDisplayId:
+      typeof meta.replaces_display_id === "number"
+        ? meta.replaces_display_id
+        : null,
     items: (o.items ?? []).map((it) => ({
       id: it.id,
+      variantId: it.variant_id ?? null,
       title: it.product_title ?? it.title ?? "Item",
       quantity: it.quantity,
       unitPriceMur: Math.round(Number(it.unit_price ?? 0)),
@@ -158,17 +193,23 @@ export type CreateDmOrderInput = {
   address1: string;
   address2?: string;
   city?: string;
-  district?: string;
   email?: string;
   items: CreateOrderItemInput[];
   deliveryMethod: DmDeliveryMethod;
   deliveryDate?: string;
+  deliveryFeeMur?: number;
   discountMur?: number;
   totalOverrideMur?: number | null;
   paymentMethod: string;
   pointOfSale: string;
   saleType: "paid" | "unpaid" | "deposit";
+  // Legacy compatibility — old form had a generic "notes" field. New form
+  // uses customNotes instead, but we keep this so any older callers compile.
   notes?: string;
+  customNotes?: string;
+  pseudo?: string;
+  trackingNumber?: string;
+  status?: "delivered" | "cancelled";
 };
 
 function synthesizeEmail(input: CreateDmOrderInput): string {
@@ -188,10 +229,14 @@ export async function createDmOrder(
   );
   const discount = Math.max(0, Math.round(input.discountMur ?? 0));
   const subtotalAfterDiscount = subtotal - discount;
-  const deliveryCost = computeDeliveryCost(
+  const autoDelivery = computeDeliveryCost(
     input.deliveryMethod,
     subtotalAfterDiscount,
   );
+  const deliveryCost =
+    typeof input.deliveryFeeMur === "number"
+      ? Math.max(0, Math.round(input.deliveryFeeMur))
+      : autoDelivery;
 
   const computedTotal = subtotalAfterDiscount + deliveryCost;
   const overrideTotal =
@@ -253,7 +298,7 @@ export async function createDmOrder(
     address_1: input.address1,
     address_2: input.address2 || null,
     city: input.city || null,
-    province: input.district || null,
+    province: null,
     country_code: "mu",
   };
 
@@ -266,7 +311,16 @@ export async function createDmOrder(
   };
   if (input.deliveryDate) metadata.delivery_date = input.deliveryDate;
   if (input.notes) metadata.notes = input.notes;
+  if (input.customNotes) metadata.custom_notes = input.customNotes;
+  if (input.pseudo) metadata.pseudo = input.pseudo;
+  if (input.trackingNumber) metadata.tracking_number = input.trackingNumber;
   if (overrideTotal != null) metadata.total_override_mur = overrideTotal;
+  // VAT extraction when payment is MCB Juice (15% included in total)
+  const finalTotalForVat =
+    overrideTotal != null ? overrideTotal : computedTotal;
+  if (input.paymentMethod === "MCB Juice") {
+    metadata.vat_amount = Math.round((finalTotalForVat * 15) / 115);
+  }
 
   const draftPayload: HttpTypes.AdminCreateDraftOrder = {
     email: synthesizeEmail(input),
@@ -302,6 +356,20 @@ export async function createDmOrder(
       await markOrderPaid(convertedOrder.id);
     } catch (err) {
       console.warn("[createDmOrder] markOrderPaid failed:", err);
+    }
+  }
+
+  if (input.status === "cancelled") {
+    try {
+      await sdk.admin.order.cancel(convertedOrder.id);
+    } catch (err) {
+      console.warn("[createDmOrder] cancel failed:", err);
+    }
+  } else if (input.status === "delivered") {
+    try {
+      await markOrderFulfilled(convertedOrder.id);
+    } catch (err) {
+      console.warn("[createDmOrder] markOrderFulfilled failed:", err);
     }
   }
 

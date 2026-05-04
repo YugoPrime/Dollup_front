@@ -3,12 +3,12 @@
 import {
   forwardRef,
   useImperativeHandle,
+  useState,
   useTransition,
 } from "react";
 import { createDmOrderAction } from "../actions";
 import {
   DM_DELIVERY_METHODS,
-  MU_DISTRICTS,
   type DmDeliveryMethod,
 } from "@/lib/checkout";
 import { formatPrice } from "@/lib/format";
@@ -27,11 +27,18 @@ import {
   SectionLabel,
   Select,
 } from "./OrderRowFields";
+import { VatBreakdown } from "./VatBreakdown";
 import type { SelectedVariant } from "./StockChecker";
 
 export type NewOrderRowRef = {
   addVariant: (v: SelectedVariant) => void;
 };
+
+const STATUS_OPTIONS = [
+  { value: "", label: "— pending —" },
+  { value: "delivered", label: "Delivered" },
+  { value: "cancelled", label: "Cancelled" },
+];
 
 export const NewOrderRow = forwardRef<NewOrderRowRef>(function NewOrderRow(_, ref) {
   const form = useOrderForm();
@@ -50,6 +57,7 @@ export const NewOrderRow = forwardRef<NewOrderRowRef>(function NewOrderRow(_, re
     itemsSubtotal,
     manualLineTotal,
     discount,
+    autoDeliveryCost,
     deliveryCost,
     computedTotal,
     finalTotal,
@@ -62,6 +70,9 @@ export const NewOrderRow = forwardRef<NewOrderRowRef>(function NewOrderRow(_, re
   } = form;
 
   const [submitting, startTransition] = useTransition();
+  const [showPseudo, setShowPseudo] = useState(false);
+  const [showEmail, setShowEmail] = useState(false);
+  const [showManual, setShowManual] = useState(false);
 
   useImperativeHandle(ref, () => ({
     addVariant,
@@ -70,7 +81,7 @@ export const NewOrderRow = forwardRef<NewOrderRowRef>(function NewOrderRow(_, re
   async function handleSubmit() {
     setErrorBanner(null);
     setSuccessBanner(null);
-    markTouched("buyerFirstName", "phone", "address1", "items");
+    markTouched("buyerName", "phone", "city", "items");
     if (Object.keys(fieldErrors).length > 0) return;
 
     const payload = toCreateInput();
@@ -80,11 +91,19 @@ export const NewOrderRow = forwardRef<NewOrderRowRef>(function NewOrderRow(_, re
       if (res.ok) {
         setSuccessBanner(`Order #${res.displayId} saved.`);
         reset();
+        setShowPseudo(false);
+        setShowEmail(false);
+        setShowManual(false);
       } else {
         setErrorBanner(res.error);
       }
     });
   }
+
+  const trackingApplies =
+    state.deliveryMethod === "Postage" ||
+    state.deliveryMethod === "Express Postage";
+  const manualOpen = showManual || !!manual.title || !!manual.price;
 
   return (
     <section className="rounded-2xl border border-blush-400 bg-white p-3 shadow-sm sm:p-4">
@@ -108,21 +127,75 @@ export const NewOrderRow = forwardRef<NewOrderRowRef>(function NewOrderRow(_, re
         </p>
       )}
 
-      <SectionLabel>Buyer</SectionLabel>
-      <div className="mt-1.5 grid gap-2 sm:grid-cols-2 md:grid-cols-4">
+      {/* 1. Delivery */}
+      <SectionLabel className="mt-3">Delivery</SectionLabel>
+      <div className="mt-1.5 grid gap-2 sm:grid-cols-2">
         <Field
-          label="First name"
-          value={state.buyerFirstName}
-          onChange={(v) => set("buyerFirstName", v)}
-          onBlur={() => markTouched("buyerFirstName")}
-          error={showErr("buyerFirstName")}
+          label="Delivery date"
+          type="date"
+          value={state.deliveryDate}
+          onChange={(v) => set("deliveryDate", v)}
+        />
+        <Select
+          label="Way of delivery"
+          value={state.deliveryMethod}
+          onChange={(v) => set("deliveryMethod", v as DmDeliveryMethod)}
+          options={DM_DELIVERY_METHODS.map((m) => ({ value: m, label: m }))}
+        />
+      </div>
+
+      {/* 2-3. Buyer */}
+      <SectionLabel className="mt-3">Buyer</SectionLabel>
+      <div className="mt-1.5 grid gap-2 sm:grid-cols-2">
+        <Field
+          label="Name"
+          value={state.buyerName}
+          onChange={(v) => set("buyerName", v)}
+          onBlur={() => markTouched("buyerName")}
+          error={showErr("buyerName")}
+          required
+        />
+        <div className="flex items-end">
+          {!showPseudo && !state.pseudo ? (
+            <button
+              type="button"
+              onClick={() => setShowPseudo(true)}
+              className="text-xs text-coral-700 transition hover:text-coral-500"
+            >
+              + Add pseudo
+            </button>
+          ) : (
+            <Field
+              label="Pseudo / IG handle"
+              value={state.pseudo}
+              onChange={(v) => set("pseudo", v)}
+              className="w-full"
+            />
+          )}
+        </div>
+      </div>
+
+      {/* 4-5. Address */}
+      <SectionLabel className="mt-3">Address</SectionLabel>
+      <div className="mt-1.5 grid gap-2 sm:grid-cols-2">
+        <Field
+          label="City"
+          value={state.city}
+          onChange={(v) => set("city", v)}
+          onBlur={() => markTouched("city")}
+          error={showErr("city")}
           required
         />
         <Field
-          label="Last name"
-          value={state.buyerLastName}
-          onChange={(v) => set("buyerLastName", v)}
+          label="Address details"
+          value={state.address2}
+          onChange={(v) => set("address2", v)}
         />
+      </div>
+
+      {/* 6. Contact */}
+      <SectionLabel className="mt-3">Contact</SectionLabel>
+      <div className="mt-1.5 grid gap-2 sm:grid-cols-2">
         <Field
           label="Phone"
           type="tel"
@@ -133,43 +206,28 @@ export const NewOrderRow = forwardRef<NewOrderRowRef>(function NewOrderRow(_, re
           error={showErr("phone")}
           required
         />
-        <Field
-          label="Email"
-          type="email"
-          value={state.email}
-          onChange={(v) => set("email", v)}
-        />
+        <div className="flex items-end">
+          {!showEmail && !state.email ? (
+            <button
+              type="button"
+              onClick={() => setShowEmail(true)}
+              className="text-xs text-coral-700 transition hover:text-coral-500"
+            >
+              + Add email
+            </button>
+          ) : (
+            <Field
+              label="Email"
+              type="email"
+              value={state.email}
+              onChange={(v) => set("email", v)}
+              className="w-full"
+            />
+          )}
+        </div>
       </div>
 
-      <SectionLabel className="mt-3">Address</SectionLabel>
-      <div className="mt-1.5 grid gap-2 sm:grid-cols-2 md:grid-cols-4">
-        <Field
-          label="Address line"
-          value={state.address1}
-          onChange={(v) => set("address1", v)}
-          onBlur={() => markTouched("address1")}
-          error={showErr("address1")}
-          required
-          className="md:col-span-2"
-        />
-        <Field
-          label="Details"
-          value={state.address2}
-          onChange={(v) => set("address2", v)}
-        />
-        <Field
-          label="City / village"
-          value={state.city}
-          onChange={(v) => set("city", v)}
-        />
-        <Select
-          label="District"
-          value={state.district}
-          onChange={(v) => set("district", v)}
-          options={[{ value: "", label: "—" }, ...MU_DISTRICTS.map((d) => ({ value: d, label: d }))]}
-        />
-      </div>
-
+      {/* 7-9. Products + Custom Notes */}
       <SectionLabel className="mt-3">Products</SectionLabel>
       <div className="mt-1.5">
         <ProductPicker onPick={addVariant} />
@@ -232,40 +290,76 @@ export const NewOrderRow = forwardRef<NewOrderRowRef>(function NewOrderRow(_, re
         {showErr("items") && (
           <p className="mt-2 text-xs text-coral-700">{showErr("items")}</p>
         )}
+        <label className="mt-3 block">
+          <span className="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
+            Custom notes
+          </span>
+          <textarea
+            value={state.customNotes}
+            onChange={(e) => set("customNotes", e.target.value)}
+            placeholder="e.g. all small even though M selected, hide price"
+            rows={2}
+            className="w-full rounded-md border-[1.5px] border-blush-400 bg-white px-2.5 py-1.5 text-sm text-ink outline-none transition-colors focus:border-coral-500"
+          />
+        </label>
       </div>
 
+      {/* Manual product (collapsible) */}
       <SectionLabel className="mt-3">Manual product</SectionLabel>
-      <div className="mt-1.5 grid gap-2 sm:grid-cols-3">
-        <Field
-          label="Title"
-          value={manual.title}
-          onChange={(v) => setManual((m) => ({ ...m, title: v }))}
-          className="sm:col-span-2"
-        />
-        <Field
-          label="Price (MUR)"
-          type="number"
-          inputMode="numeric"
-          value={manual.price}
-          onChange={(v) => setManual((m) => ({ ...m, price: v }))}
-        />
+      <div className="mt-1.5">
+        {!manualOpen ? (
+          <button
+            type="button"
+            onClick={() => setShowManual(true)}
+            className="text-xs text-coral-700 transition hover:text-coral-500"
+          >
+            + Add manual product
+          </button>
+        ) : (
+          <div className="grid gap-2 sm:grid-cols-3">
+            <Field
+              label="Title"
+              value={manual.title}
+              onChange={(v) => setManual((m) => ({ ...m, title: v }))}
+              className="sm:col-span-2"
+            />
+            <Field
+              label="Price (MUR)"
+              type="number"
+              inputMode="numeric"
+              value={manual.price}
+              onChange={(v) => setManual((m) => ({ ...m, price: v }))}
+            />
+          </div>
+        )}
       </div>
 
-      <SectionLabel className="mt-3">Delivery & payment</SectionLabel>
-      <div className="mt-1.5 grid gap-2 sm:grid-cols-3 md:grid-cols-6">
-        <Select
-          label="Delivery"
-          value={state.deliveryMethod}
-          onChange={(v) => set("deliveryMethod", v as DmDeliveryMethod)}
-          options={DM_DELIVERY_METHODS.map((m) => ({ value: m, label: m }))}
-          className="md:col-span-2"
-        />
-        <Field
-          label="Delivery date"
-          type="date"
-          value={state.deliveryDate}
-          onChange={(v) => set("deliveryDate", v)}
-        />
+      {/* Money: delivery fee + discount + total override */}
+      <SectionLabel className="mt-3">Money</SectionLabel>
+      <div className="mt-1.5 grid gap-2 sm:grid-cols-3">
+        <label className="block">
+          <span className="mb-1 flex items-center justify-between font-sans text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
+            <span>Delivery fee</span>
+            {state.deliveryFee.trim() !== "" && (
+              <button
+                type="button"
+                onClick={() => set("deliveryFee", "")}
+                className="text-[10px] font-semibold normal-case tracking-normal text-coral-700 transition hover:text-coral-500"
+                title="Reset to auto"
+              >
+                ↻ auto
+              </button>
+            )}
+          </span>
+          <input
+            type="number"
+            inputMode="numeric"
+            value={state.deliveryFee}
+            onChange={(e) => set("deliveryFee", e.target.value)}
+            placeholder={String(autoDeliveryCost)}
+            className="w-full rounded-md border-[1.5px] border-blush-400 bg-white px-2.5 py-1.5 text-sm text-ink outline-none transition-colors focus:border-coral-500"
+          />
+        </label>
         <Field
           label="Discount"
           type="number"
@@ -273,8 +367,51 @@ export const NewOrderRow = forwardRef<NewOrderRowRef>(function NewOrderRow(_, re
           value={state.discountMur}
           onChange={(v) => set("discountMur", v)}
         />
+        <Field
+          label="Total override"
+          type="number"
+          inputMode="numeric"
+          value={state.totalOverride}
+          onChange={(v) => set("totalOverride", v)}
+        />
+      </div>
+
+      {/* Totals summary */}
+      <div className="mt-3 flex flex-col gap-3 rounded-xl border border-blush-300/60 bg-cream/60 p-3 text-sm md:flex-row md:items-end md:gap-5">
+        <div className="flex flex-1 flex-col gap-1">
+          <Row label="Items subtotal">
+            {formatPrice(itemsSubtotal + manualLineTotal, "mur")}
+          </Row>
+          {discount > 0 && (
+            <Row label="Discount">- {formatPrice(discount, "mur")}</Row>
+          )}
+          <Row label={`Delivery (${state.deliveryMethod})`}>
+            {deliveryCost === 0 ? "Free" : formatPrice(deliveryCost, "mur")}
+          </Row>
+          <Row label="Computed total">{formatPrice(computedTotal, "mur")}</Row>
+          {adjustment !== 0 && (
+            <Row label="Adjustment line">
+              {adjustment > 0 ? "+" : ""}
+              {formatPrice(adjustment, "mur")}
+            </Row>
+          )}
+        </div>
+        <div className="flex flex-shrink-0 flex-col items-end gap-1">
+          <span className="font-sans text-[10px] font-bold uppercase tracking-wider text-ink-muted">
+            Final total
+          </span>
+          <span className="font-display text-2xl font-bold text-ink">
+            {formatPrice(finalTotal, "mur")}
+          </span>
+          <VatBreakdown total={finalTotal} paymentMethod={state.paymentMethod} />
+        </div>
+      </div>
+
+      {/* Payment */}
+      <SectionLabel className="mt-3">Payment</SectionLabel>
+      <div className="mt-1.5 grid gap-2 sm:grid-cols-3">
         <Select
-          label="Payment"
+          label="Method of payment"
           value={state.paymentMethod}
           onChange={(v) => set("paymentMethod", v as FormState["paymentMethod"])}
           options={PAYMENT_METHODS.map((m) => ({ value: m, label: m }))}
@@ -290,70 +427,44 @@ export const NewOrderRow = forwardRef<NewOrderRowRef>(function NewOrderRow(_, re
           value={state.saleType}
           onChange={(v) => set("saleType", v as SaleType)}
           options={SALE_TYPES.map((s) => ({ value: s.value, label: s.label }))}
-          className="md:col-span-2"
         />
-        <label className="block md:col-span-4">
-          <span className="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
-            Notes
-          </span>
-          <input
-            type="text"
-            value={state.notes}
-            onChange={(e) => set("notes", e.target.value)}
-            placeholder="optional internal note"
-            className="w-full rounded-md border-[1.5px] border-blush-400 bg-white px-2.5 py-1.5 text-sm text-ink outline-none transition-colors focus:border-coral-500"
-          />
-        </label>
       </div>
 
-      <div className="mt-3 flex flex-col gap-3 rounded-xl border border-blush-300/60 bg-cream/60 p-3 text-sm md:flex-row md:items-end md:gap-5">
-        <div className="flex flex-1 flex-col gap-1">
-          <Row label="Items subtotal">{formatPrice(itemsSubtotal + manualLineTotal, "mur")}</Row>
-          {discount > 0 && (
-            <Row label="Discount">- {formatPrice(discount, "mur")}</Row>
-          )}
-          <Row label={`Delivery (${state.deliveryMethod})`}>
-            {deliveryCost === 0 ? "Free" : formatPrice(deliveryCost, "mur")}
-          </Row>
-          <Row label="Computed total">{formatPrice(computedTotal, "mur")}</Row>
-          {adjustment !== 0 && (
-            <Row label="Adjustment line">
-              {adjustment > 0 ? "+" : ""}
-              {formatPrice(adjustment, "mur")}
-            </Row>
-          )}
-        </div>
-        <div className="flex flex-shrink-0 items-end gap-3">
-          <label className="block">
-            <span className="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
-              Total override
-            </span>
-            <input
-              type="number"
-              inputMode="numeric"
-              placeholder={String(computedTotal)}
-              value={state.totalOverride}
-              onChange={(e) => set("totalOverride", e.target.value)}
-              className="w-28 rounded border-[1.5px] border-blush-400 bg-white px-2 py-1.5 text-right text-sm"
+      {/* Status */}
+      <SectionLabel className="mt-3">Status</SectionLabel>
+      <div className="mt-1.5 grid gap-2 sm:grid-cols-2">
+        <Select
+          label="Status"
+          value={state.status}
+          onChange={(v) => set("status", v as FormState["status"])}
+          options={STATUS_OPTIONS}
+        />
+      </div>
+
+      {/* Tracking — only when Postage / Express Postage */}
+      {trackingApplies && (
+        <>
+          <SectionLabel className="mt-3">Tracking</SectionLabel>
+          <div className="mt-1.5 grid gap-2 sm:grid-cols-2">
+            <Field
+              label="Tracking #"
+              value={state.trackingNumber}
+              onChange={(v) => set("trackingNumber", v)}
             />
-          </label>
-          <div className="flex flex-col items-end">
-            <span className="font-sans text-[10px] font-bold uppercase tracking-wider text-ink-muted">
-              Final total
-            </span>
-            <span className="font-display text-2xl font-bold text-ink">
-              {formatPrice(finalTotal, "mur")}
-            </span>
           </div>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={submitting}
-            className="rounded-lg bg-coral-500 px-4 py-2.5 font-sans text-xs font-semibold uppercase tracking-wider text-white transition hover:bg-coral-700 disabled:opacity-60"
-          >
-            {submitting ? "Saving…" : "Save order"}
-          </button>
-        </div>
+        </>
+      )}
+
+      {/* Save */}
+      <div className="mt-4 flex justify-end">
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={submitting}
+          className="rounded-lg bg-coral-500 px-4 py-2.5 font-sans text-xs font-semibold uppercase tracking-wider text-white transition hover:bg-coral-700 disabled:opacity-60"
+        >
+          {submitting ? "Saving…" : "Save order"}
+        </button>
       </div>
     </section>
   );
