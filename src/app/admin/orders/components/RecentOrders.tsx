@@ -18,10 +18,10 @@ export async function RecentOrders() {
   }
 
   return (
-    <section className="rounded-2xl border border-blush-400 bg-white p-4 shadow-sm">
+    <section className="rounded-2xl border border-blush-400 bg-white p-3 shadow-sm sm:p-4">
       <div className="flex items-baseline justify-between gap-3">
         <h2 className="font-display text-lg text-ink">Recent orders</h2>
-        <span className="text-[11px] uppercase tracking-wider text-ink-muted">
+        <span className="text-[10px] uppercase tracking-wider text-ink-muted">
           last {orders.length}
         </span>
       </div>

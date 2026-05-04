@@ -23,14 +23,21 @@ export type VariantHit = {
   priceMur: number | null;
 };
 
-type ProductWithVariants = HttpTypes.AdminProduct & {
-  variants:
-    | (HttpTypes.AdminProductVariant & {
-        inventory_quantity?: number | null;
-        calculated_price?: { calculated_amount?: number | null } | null;
-      })[]
-    | null;
+type VariantWithRefs = HttpTypes.AdminProductVariant & {
+  inventory_quantity?: number | null;
+  prices?: { amount: number; currency_code: string }[] | null;
+  product?: {
+    id: string;
+    title: string;
+    thumbnail: string | null;
+  } | null;
 };
+
+function pickMurPrice(v: VariantWithRefs): number | null {
+  const prices = v.prices ?? [];
+  const mur = prices.find((p) => (p.currency_code ?? "").toLowerCase() === CURRENCY_CODE);
+  return mur ? Math.round(Number(mur.amount)) : null;
+}
 
 export async function searchVariants(
   query: string,
@@ -39,35 +46,43 @@ export async function searchVariants(
   const q = query.trim();
   if (!q) return [];
   const sdk = await getAdminSdk();
-  const limit = opts.limit ?? 20;
-  const res = await sdk.admin.product.list({
+  const limit = opts.limit ?? 25;
+  // Variant-level search: q hits sku and variant title. Product list's q does NOT
+  // search variant SKUs in this Medusa version, so we go through the variant API
+  // and enrich with product fields via dot-notation.
+  const res = await sdk.admin.productVariant.list({
     q,
     limit,
     fields:
-      "id,title,thumbnail,*variants,+variants.inventory_quantity,+variants.calculated_price",
+      "id,sku,title,inventory_quantity,manage_inventory,*prices,product.id,product.title,product.thumbnail",
   });
-  const products = res.products as unknown as ProductWithVariants[];
+  const variants = (res.variants ?? []) as unknown as VariantWithRefs[];
   const hits: VariantHit[] = [];
-  for (const p of products) {
-    if (!p.variants) continue;
-    for (const v of p.variants) {
-      const manage = v.manage_inventory ?? true;
-      const qty = manage ? (v.inventory_quantity ?? 0) : null;
-      const isAvailable = !manage || (qty ?? 0) > 0;
-      if (opts.availableOnly && !isAvailable) continue;
-      hits.push({
-        variantId: v.id,
-        productId: p.id,
-        sku: v.sku ?? null,
-        variantTitle: v.title ?? null,
-        productTitle: p.title ?? "",
-        productThumbnail: p.thumbnail ?? null,
-        manageInventory: manage,
-        inventoryQuantity: qty,
-        priceMur: v.calculated_price?.calculated_amount ?? null,
-      });
-    }
+  for (const v of variants) {
+    const product = v.product;
+    if (!product) continue;
+    const manage = v.manage_inventory ?? true;
+    const qty = manage ? (v.inventory_quantity ?? 0) : null;
+    const isAvailable = !manage || (qty ?? 0) > 0;
+    if (opts.availableOnly && !isAvailable) continue;
+    hits.push({
+      variantId: v.id,
+      productId: product.id,
+      sku: v.sku ?? null,
+      variantTitle: v.title ?? null,
+      productTitle: product.title ?? "",
+      productThumbnail: product.thumbnail ?? null,
+      manageInventory: manage,
+      inventoryQuantity: qty,
+      priceMur: pickMurPrice(v),
+    });
   }
+  // Stable order: by product, then by sku
+  hits.sort((a, b) => {
+    const t = a.productTitle.localeCompare(b.productTitle);
+    if (t !== 0) return t;
+    return (a.sku ?? "").localeCompare(b.sku ?? "");
+  });
   return hits;
 }
 

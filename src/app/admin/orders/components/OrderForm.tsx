@@ -258,12 +258,14 @@ export const OrderForm = forwardRef<OrderFormRef>(function OrderForm(_, ref) {
   }
 
   return (
-    <section className="rounded-2xl border border-blush-400 bg-white p-4 shadow-sm">
-      <h2 className="font-display text-lg text-ink">New order</h2>
+    <section className="rounded-2xl border border-blush-400 bg-white p-3 shadow-sm sm:p-4">
+      <div className="flex items-center justify-between">
+        <h2 className="font-display text-lg text-ink">New order</h2>
+      </div>
       {successBanner && (
         <p
           role="status"
-          className="mt-3 rounded-lg border border-blush-300 bg-blush-100/60 px-3 py-2 text-sm text-ink"
+          className="mt-2 rounded-lg border border-blush-300 bg-blush-100/60 px-3 py-1.5 text-sm text-ink"
         >
           {successBanner}
         </p>
@@ -271,15 +273,16 @@ export const OrderForm = forwardRef<OrderFormRef>(function OrderForm(_, ref) {
       {errorBanner && (
         <p
           role="alert"
-          className="mt-3 rounded-lg border border-coral-500 bg-coral-300/30 px-3 py-2 text-sm text-coral-700"
+          className="mt-2 rounded-lg border border-coral-500 bg-coral-300/30 px-3 py-1.5 text-sm text-coral-700"
         >
           {errorBanner}
         </p>
       )}
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+      <SectionLabel>Buyer</SectionLabel>
+      <div className="mt-1.5 grid gap-2 sm:grid-cols-2 md:grid-cols-4">
         <Field
-          label="Buyer first name"
+          label="First name"
           value={state.buyerFirstName}
           onChange={(v) => set("buyerFirstName", v)}
           onBlur={() => markTouched("buyerFirstName")}
@@ -302,25 +305,28 @@ export const OrderForm = forwardRef<OrderFormRef>(function OrderForm(_, ref) {
           required
         />
         <Field
-          label="Email (optional)"
+          label="Email"
           type="email"
           value={state.email}
           onChange={(v) => set("email", v)}
         />
+      </div>
+
+      <SectionLabel className="mt-3">Address</SectionLabel>
+      <div className="mt-1.5 grid gap-2 sm:grid-cols-2 md:grid-cols-4">
         <Field
-          label="Address"
+          label="Address line"
           value={state.address1}
           onChange={(v) => set("address1", v)}
           onBlur={() => markTouched("address1")}
           error={showErr("address1")}
           required
-          className="sm:col-span-2"
+          className="md:col-span-2"
         />
         <Field
-          label="Address details (optional)"
+          label="Details"
           value={state.address2}
           onChange={(v) => set("address2", v)}
-          className="sm:col-span-2"
         />
         <Field
           label="City / village"
@@ -335,10 +341,8 @@ export const OrderForm = forwardRef<OrderFormRef>(function OrderForm(_, ref) {
         />
       </div>
 
-      <div className="mt-5">
-        <h3 className="font-sans text-xs font-semibold uppercase tracking-wider text-ink-muted">
-          Products
-        </h3>
+      <SectionLabel className="mt-3">Products</SectionLabel>
+      <div className="mt-1.5">
         <ProductPicker
           onPick={(v) => {
             setItems((prev) => {
@@ -427,15 +431,16 @@ export const OrderForm = forwardRef<OrderFormRef>(function OrderForm(_, ref) {
         )}
       </div>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+      <SectionLabel className="mt-3">Manual product</SectionLabel>
+      <div className="mt-1.5 grid gap-2 sm:grid-cols-3">
         <Field
-          label="Manual product (title)"
+          label="Title"
           value={manual.title}
           onChange={(v) => setManual((m) => ({ ...m, title: v }))}
           className="sm:col-span-2"
         />
         <Field
-          label="Manual price (MUR)"
+          label="Price (MUR)"
           type="number"
           inputMode="numeric"
           value={manual.price}
@@ -443,28 +448,30 @@ export const OrderForm = forwardRef<OrderFormRef>(function OrderForm(_, ref) {
         />
       </div>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+      <SectionLabel className="mt-3">Delivery & payment</SectionLabel>
+      <div className="mt-1.5 grid gap-2 sm:grid-cols-3 md:grid-cols-6">
         <Select
-          label="Way of delivery"
+          label="Delivery"
           value={state.deliveryMethod}
           onChange={(v) => set("deliveryMethod", v as DmDeliveryMethod)}
           options={DM_DELIVERY_METHODS.map((m) => ({ value: m, label: m }))}
+          className="md:col-span-2"
         />
         <Field
-          label="Delivery date (optional)"
+          label="Delivery date"
           type="date"
           value={state.deliveryDate}
           onChange={(v) => set("deliveryDate", v)}
         />
         <Field
-          label="Discount (MUR)"
+          label="Discount"
           type="number"
           inputMode="numeric"
           value={state.discountMur}
           onChange={(v) => set("discountMur", v)}
         />
         <Select
-          label="Method of payment"
+          label="Payment"
           value={state.paymentMethod}
           onChange={(v) => set("paymentMethod", v as FormState["paymentMethod"])}
           options={PAYMENT_METHODS.map((m) => ({ value: m, label: m }))}
@@ -480,67 +487,92 @@ export const OrderForm = forwardRef<OrderFormRef>(function OrderForm(_, ref) {
           value={state.saleType}
           onChange={(v) => set("saleType", v as SaleType)}
           options={SALE_TYPES.map((s) => ({ value: s.value, label: s.label }))}
+          className="md:col-span-2"
         />
-      </div>
-
-      <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        <label className="block sm:col-span-2">
-          <span className="mb-1.5 block font-sans text-xs font-semibold text-ink">
+        <label className="block md:col-span-4">
+          <span className="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
             Notes
           </span>
-          <textarea
+          <input
+            type="text"
             value={state.notes}
             onChange={(e) => set("notes", e.target.value)}
-            rows={2}
-            className="w-full rounded-md border-[1.5px] border-blush-400 bg-white px-3 py-2 text-sm text-ink outline-none focus:border-coral-500"
+            placeholder="optional internal note"
+            className="w-full rounded-md border-[1.5px] border-blush-400 bg-white px-2.5 py-1.5 text-sm text-ink outline-none transition-colors focus:border-coral-500"
           />
         </label>
       </div>
 
-      <div className="mt-5 grid gap-2 rounded-xl border border-blush-300/60 bg-cream/60 p-3 text-sm">
-        <Row label="Items subtotal">{formatPrice(itemsSubtotal + manualLineTotal, "mur")}</Row>
-        {discount > 0 && (
-          <Row label="Discount">- {formatPrice(discount, "mur")}</Row>
-        )}
-        <Row label={`Delivery (${state.deliveryMethod})`}>
-          {deliveryCost === 0 ? "Free" : formatPrice(deliveryCost, "mur")}
-        </Row>
-        <Row label="Computed total">{formatPrice(computedTotal, "mur")}</Row>
-        <div className="mt-2 flex items-center justify-between gap-3">
-          <label className="font-sans text-xs font-semibold uppercase tracking-wider text-ink">
-            Total override
-          </label>
-          <input
-            type="number"
-            inputMode="numeric"
-            placeholder={String(computedTotal)}
-            value={state.totalOverride}
-            onChange={(e) => set("totalOverride", e.target.value)}
-            className="w-32 rounded border-[1.5px] border-blush-400 bg-white px-2 py-1 text-right text-sm"
-          />
-        </div>
-        {adjustment !== 0 && (
-          <Row label="Adjustment line">
-            {adjustment > 0 ? "+" : ""}
-            {formatPrice(adjustment, "mur")}
+      <div className="mt-3 flex flex-col gap-3 rounded-xl border border-blush-300/60 bg-cream/60 p-3 text-sm md:flex-row md:items-end md:gap-5">
+        <div className="flex flex-1 flex-col gap-1">
+          <Row label="Items subtotal">{formatPrice(itemsSubtotal + manualLineTotal, "mur")}</Row>
+          {discount > 0 && (
+            <Row label="Discount">- {formatPrice(discount, "mur")}</Row>
+          )}
+          <Row label={`Delivery (${state.deliveryMethod})`}>
+            {deliveryCost === 0 ? "Free" : formatPrice(deliveryCost, "mur")}
           </Row>
-        )}
-        <Row label="Final total" emphasize>
-          {formatPrice(finalTotal, "mur")}
-        </Row>
+          <Row label="Computed total">{formatPrice(computedTotal, "mur")}</Row>
+          {adjustment !== 0 && (
+            <Row label="Adjustment line">
+              {adjustment > 0 ? "+" : ""}
+              {formatPrice(adjustment, "mur")}
+            </Row>
+          )}
+        </div>
+        <div className="flex flex-shrink-0 items-end gap-3">
+          <label className="block">
+            <span className="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
+              Total override
+            </span>
+            <input
+              type="number"
+              inputMode="numeric"
+              placeholder={String(computedTotal)}
+              value={state.totalOverride}
+              onChange={(e) => set("totalOverride", e.target.value)}
+              className="w-28 rounded border-[1.5px] border-blush-400 bg-white px-2 py-1.5 text-right text-sm"
+            />
+          </label>
+          <div className="flex flex-col items-end">
+            <span className="font-sans text-[10px] font-bold uppercase tracking-wider text-ink-muted">
+              Final total
+            </span>
+            <span className="font-display text-2xl font-bold text-ink">
+              {formatPrice(finalTotal, "mur")}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="rounded-lg bg-coral-500 px-4 py-2.5 font-sans text-xs font-semibold uppercase tracking-wider text-white transition hover:bg-coral-700 disabled:opacity-60"
+          >
+            {submitting ? "Saving…" : "Save order"}
+          </button>
+        </div>
       </div>
-
-      <button
-        type="button"
-        onClick={handleSubmit}
-        disabled={submitting}
-        className="mt-5 w-full rounded-lg bg-coral-500 py-3 font-sans text-sm font-semibold uppercase tracking-wider text-white transition hover:bg-coral-700 disabled:opacity-60"
-      >
-        {submitting ? "Saving order…" : "Save order"}
-      </button>
     </section>
   );
 });
+
+function SectionLabel({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <h3
+      className={`font-sans text-[10px] font-bold uppercase tracking-[0.14em] text-ink-muted ${
+        className ?? ""
+      }`}
+    >
+      {children}
+    </h3>
+  );
+}
 
 function Row({
   label,
@@ -594,7 +626,7 @@ function Field({
 }) {
   return (
     <label className={`block ${className ?? ""}`}>
-      <span className="mb-1.5 block font-sans text-xs font-semibold text-ink">
+      <span className="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
         {label}
         {required && <span className="ml-1 text-coral-500">*</span>}
       </span>
@@ -604,12 +636,12 @@ function Field({
         inputMode={inputMode}
         onChange={(e) => onChange(e.target.value)}
         onBlur={onBlur}
-        className={`w-full rounded-md border-[1.5px] bg-white px-3 py-2 text-sm text-ink outline-none transition-colors focus:border-coral-500 ${
+        className={`w-full rounded-md border-[1.5px] bg-white px-2.5 py-1.5 text-sm text-ink outline-none transition-colors focus:border-coral-500 ${
           error ? "border-coral-500" : "border-blush-400"
         }`}
       />
       {error && (
-        <span className="mt-1 block font-sans text-[11px] text-coral-700">{error}</span>
+        <span className="mt-0.5 block font-sans text-[11px] text-coral-700">{error}</span>
       )}
     </label>
   );
@@ -620,21 +652,23 @@ function Select({
   value,
   onChange,
   options,
+  className,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   options: { value: string; label: string }[];
+  className?: string;
 }) {
   return (
-    <label className="block">
-      <span className="mb-1.5 block font-sans text-xs font-semibold text-ink">
+    <label className={`block ${className ?? ""}`}>
+      <span className="mb-1 block font-sans text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
         {label}
       </span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-md border-[1.5px] border-blush-400 bg-white px-3 py-2 text-sm text-ink outline-none transition-colors focus:border-coral-500"
+        className="w-full rounded-md border-[1.5px] border-blush-400 bg-white px-2.5 py-1.5 text-sm text-ink outline-none transition-colors focus:border-coral-500"
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>

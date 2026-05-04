@@ -1,6 +1,11 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { listProducts, listCategories, getTagIdByValue } from "@/lib/products";
+import {
+  listProducts,
+  listCategories,
+  getTagIdByValue,
+  expandCategoryWithDescendants,
+} from "@/lib/products";
 import { ProductCard } from "@/components/ProductCard";
 import { ShopFilterSidebar } from "@/components/shop/ShopFilterSidebar";
 import { ShopSortDropdown } from "@/components/shop/ShopSortDropdown";
@@ -43,9 +48,14 @@ export default async function ShopPage({
   const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
 
   const allCategories = await listCategories();
-  const matchedCategory = categoryHandle
-    ? allCategories.find((c) => c.handle === categoryHandle)
+  // Trim trailing slashes so /shop?category=beachwear/ still matches "beachwear".
+  const normalizedHandle = categoryHandle?.replace(/\/+$/, "") ?? null;
+  const matchedCategory = normalizedHandle
+    ? allCategories.find((c) => c.handle === normalizedHandle)
     : null;
+  const categoryFilter = matchedCategory
+    ? expandCategoryWithDescendants(matchedCategory.id, allCategories)
+    : undefined;
 
   const tagId = tagValue ? await getTagIdByValue(tagValue).catch(() => null) : null;
 
@@ -59,7 +69,7 @@ export default async function ShopPage({
       limit: PER_PAGE,
       offset,
       q,
-      category: matchedCategory?.id,
+      category: categoryFilter,
       tag: tagId ?? undefined,
       order,
     });

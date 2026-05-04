@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 export default function AdminOrdersPage() {
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-4 sm:py-6">
+    <div className="mx-auto w-full max-w-[1400px] px-4 py-4 sm:py-6">
       <header className="mb-3 flex items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl text-ink">DM orders</h1>
@@ -29,9 +29,11 @@ export default function AdminOrdersPage() {
           </button>
         </form>
       </header>
-      <AdminOrdersClient />
-      <div className="mt-4">
-        <RecentOrders />
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
+        <AdminOrdersClient />
+        <aside className="lg:sticky lg:top-3 lg:max-h-[calc(100vh-1.5rem)] lg:overflow-y-auto">
+          <RecentOrders />
+        </aside>
       </div>
     </div>
   );

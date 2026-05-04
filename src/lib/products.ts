@@ -10,7 +10,7 @@ export type ListProductsArgs = {
   limit?: number;
   offset?: number;
   q?: string;
-  category?: string;
+  category?: string | string[];
   collection?: string;
   tag?: string;
   order?: string;
@@ -25,13 +25,44 @@ export async function listProducts(args: ListProductsArgs = {}) {
     fields: PRODUCT_FIELDS,
   };
   if (args.q) query.q = args.q;
-  if (args.category) query.category_id = [args.category];
+  if (args.category) {
+    query.category_id = Array.isArray(args.category) ? args.category : [args.category];
+  }
   if (args.collection) query.collection_id = [args.collection];
   if (args.tag) query.tag_id = [args.tag];
   if (args.order) query.order = args.order;
 
   const { products, count } = await sdk.store.product.list(query);
   return { products, count, region };
+}
+
+// Returns the category id plus the ids of all its descendants. Used so that
+// /shop?category=beachwear (a parent bucket with no direct products) still
+// surfaces items from one-pieces, bikini-sets, cover-ups, etc.
+export function expandCategoryWithDescendants(
+  rootId: string,
+  all: { id: string; parent_category_id: string | null }[],
+): string[] {
+  const childrenByParent = new Map<string, string[]>();
+  for (const c of all) {
+    const p = c.parent_category_id;
+    if (!p) continue;
+    const arr = childrenByParent.get(p) ?? [];
+    arr.push(c.id);
+    childrenByParent.set(p, arr);
+  }
+  const ids = new Set<string>([rootId]);
+  const stack = [rootId];
+  while (stack.length > 0) {
+    const cur = stack.pop()!;
+    for (const child of childrenByParent.get(cur) ?? []) {
+      if (!ids.has(child)) {
+        ids.add(child);
+        stack.push(child);
+      }
+    }
+  }
+  return [...ids];
 }
 
 export async function getProductByHandle(handle: string) {
