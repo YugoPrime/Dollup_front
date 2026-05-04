@@ -1,22 +1,31 @@
+import fs from "node:fs";
+import path from "node:path";
 import Image from "next/image";
 
 const INSTAGRAM_URL = "https://www.instagram.com/dollupboutique/";
 const INSTAGRAM_TAGGED_URL = "https://www.instagram.com/dollupboutique/tagged/";
 
-// Drop photos in `public/instagram/` named 1.jpg..8.jpg to populate the mosaic.
-// To hide a tile until a real photo exists, remove its path from this array.
-const PHOTOS: { src: string; alt: string }[] = [
-  { src: "/instagram/1.jpg", alt: "Doll Up Boutique customer photo" },
-  { src: "/instagram/2.jpg", alt: "Doll Up Boutique customer photo" },
-  { src: "/instagram/3.jpg", alt: "Doll Up Boutique customer photo" },
-  { src: "/instagram/4.jpg", alt: "Doll Up Boutique customer photo" },
-  { src: "/instagram/5.jpg", alt: "Doll Up Boutique customer photo" },
-  { src: "/instagram/6.jpg", alt: "Doll Up Boutique customer photo" },
-  { src: "/instagram/7.jpg", alt: "Doll Up Boutique customer photo" },
-  { src: "/instagram/8.jpg", alt: "Doll Up Boutique customer photo" },
-];
+// Auto-discover photos in `public/instagram/`. Drop files named anything (jpg/png/webp)
+// and they appear here. Section auto-hides if the folder doesn't exist or is empty —
+// avoids broken image tiles. Will be replaced by Instagram Graph API in V2.
+function loadPhotos(): { src: string; alt: string }[] {
+  try {
+    const dir = path.join(process.cwd(), "public", "instagram");
+    if (!fs.existsSync(dir)) return [];
+    return fs
+      .readdirSync(dir)
+      .filter((f) => /\.(jpe?g|png|webp|avif)$/i.test(f))
+      .sort()
+      .slice(0, 8)
+      .map((f) => ({ src: `/instagram/${f}`, alt: "Doll Up Boutique customer photo" }));
+  } catch {
+    return [];
+  }
+}
 
 export function InstagramMosaic() {
+  const PHOTOS = loadPhotos();
+  if (PHOTOS.length === 0) return null;
   return (
     <section className="bg-white py-10 md:py-14">
       <div className="mx-auto max-w-[1200px] px-4 md:px-10">

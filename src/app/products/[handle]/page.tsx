@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getProductByHandle, listProducts } from "@/lib/products";
+import { getProductByHandle, listProducts, getLatestCollectionTag } from "@/lib/products";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { ProductBuy } from "@/components/product/ProductBuy";
 import { ProductAccordion } from "@/components/product/ProductAccordion";
@@ -31,18 +31,20 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
   const { product } = await getProductByHandle(handle);
   if (!product) notFound();
 
-  // Pull a few related products from the same category if available, else recent
-  const category = product.categories?.[0] ?? null;
+  // "You may also like" pulls a random sample from the catalog (per user request:
+  // not just same-category). Fetch a wide pool, shuffle, take 5.
   let related: Awaited<ReturnType<typeof listProducts>>["products"] = [];
+  let latestTag: string | null = null;
   try {
-    if (category) {
-      const res = await listProducts({ limit: 6, category: category.id });
-      related = res.products.filter((p) => p.id !== product.id).slice(0, 5);
-    }
-    if (!related.length) {
-      const res = await listProducts({ limit: 6, order: "-created_at" });
-      related = res.products.filter((p) => p.id !== product.id).slice(0, 5);
-    }
+    const [pool, tag] = await Promise.all([
+      listProducts({ limit: 60, order: "-created_at" }),
+      getLatestCollectionTag().catch(() => null),
+    ]);
+    latestTag = tag?.value ?? null;
+    related = pool.products
+      .filter((p) => p.id !== product.id)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 5);
   } catch {
     // empty related is fine — section hides itself
   }
@@ -67,7 +69,7 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
         </div>
       </div>
 
-      <YouMayAlsoLike products={related} />
+      <YouMayAlsoLike products={related} latestCollectionTag={latestTag} />
 
       <StickyATC product={product} watchElementId="pdp-buy-anchor" />
     </main>

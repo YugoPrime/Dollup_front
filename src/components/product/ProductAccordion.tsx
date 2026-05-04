@@ -4,12 +4,52 @@ import { useState } from "react";
 
 type Section = { key: string; title: string; body: React.ReactNode };
 
+// Importer embeds the size chart inside `description` as `<h3>Size Chart</h3>` followed
+// by either a plain HTML table or a single `<img>` tag (see inventory-audit/scripts/import-medusa.ts).
+// We split on that heading so the accordion can show the rest of the description in
+// "Description" and the chart itself in "Size & fit".
+function splitDescription(description: string | null | undefined): {
+  main: string;
+  sizeChart: string | null;
+} {
+  if (!description) return { main: "", sizeChart: null };
+  const re = /<h3[^>]*>\s*Size Chart\s*<\/h3>/i;
+  const match = re.exec(description);
+  if (!match) return { main: description, sizeChart: null };
+  const main = description.slice(0, match.index).trim();
+  const sizeChart = description.slice(match.index + match[0].length).trim();
+  return { main, sizeChart };
+}
+
 export function ProductAccordion({ description }: { description?: string | null }) {
+  const { main, sizeChart } = splitDescription(description);
+
   const sections: Section[] = [
     {
       key: "desc",
       title: "Description",
-      body: <p className="font-sans text-[13px] leading-[1.6] text-ink-soft">{description || "No description yet."}</p>,
+      body: main ? (
+        <div
+          className="prose-sm font-sans text-[13px] leading-[1.6] text-ink-soft [&_p]:mb-2 [&_strong]:text-ink"
+          dangerouslySetInnerHTML={{ __html: main }}
+        />
+      ) : (
+        <p className="font-sans text-[13px] leading-[1.6] text-ink-soft">No description yet.</p>
+      ),
+    },
+    {
+      key: "size",
+      title: "Size & fit",
+      body: sizeChart ? (
+        <div
+          className="font-sans text-[13px] leading-[1.6] text-ink-soft [&_img]:mt-2 [&_img]:max-w-full [&_img]:rounded-lg [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-blush-300 [&_th]:bg-blush-100 [&_th]:p-2 [&_th]:text-left [&_td]:border [&_td]:border-blush-300 [&_td]:p-2"
+          dangerouslySetInnerHTML={{ __html: sizeChart }}
+        />
+      ) : (
+        <p className="font-sans text-[13px] leading-[1.6] text-ink-soft">
+          True to size. If you&apos;re between sizes, message us on Instagram and we&apos;ll guide you.
+        </p>
+      ),
     },
     {
       key: "materials",
@@ -17,14 +57,16 @@ export function ProductAccordion({ description }: { description?: string | null 
       body: <p className="font-sans text-[13px] leading-[1.6] text-ink-soft">Hand wash cold. Lay flat to dry. Do not bleach.</p>,
     },
     {
-      key: "size",
-      title: "Size & fit",
-      body: <p className="font-sans text-[13px] leading-[1.6] text-ink-soft">True to size. Model is 5&apos;7&quot; wearing size S.</p>,
-    },
-    {
       key: "shipping",
       title: "Shipping",
-      body: <p className="font-sans text-[13px] leading-[1.6] text-ink-soft">Free delivery on orders Rs 1500+. Cash on delivery available across Mauritius.</p>,
+      body: (
+        <div className="font-sans text-[13px] leading-[1.6] text-ink-soft">
+          <p>
+            <strong className="text-ink">Confirm before noon</strong> to receive your order the next day across Mauritius.
+          </p>
+          <p className="mt-1.5">Free delivery on orders Rs 1,500+. Cash on delivery available island-wide.</p>
+        </div>
+      ),
     },
   ];
 

@@ -15,7 +15,15 @@ const ViewAllTile = ({ count }: { count: number }) => (
   </Link>
 );
 
-export function NewArrivalsRail({ products, totalCount }: { products: Product[]; totalCount: number }) {
+export function NewArrivalsRail({
+  products,
+  totalCount,
+  latestCollectionTag = null,
+}: {
+  products: Product[];
+  totalCount: number;
+  latestCollectionTag?: string | null;
+}) {
   if (!products.length) return null;
   return (
     <section className="bg-blush-100 py-5 md:py-8">
@@ -32,7 +40,7 @@ export function NewArrivalsRail({ products, totalCount }: { products: Product[];
         <div className="flex gap-2.5 overflow-x-auto px-4 pb-2 md:hidden">
           {products.slice(0, 4).map((p) => (
             <div key={p.id} className="w-[150px] shrink-0">
-              <ProductCard product={p} />
+              <ProductCard product={p} latestCollectionTag={latestCollectionTag} />
             </div>
           ))}
           <div className="w-[150px]">
@@ -44,7 +52,7 @@ export function NewArrivalsRail({ products, totalCount }: { products: Product[];
         {/* Desktop */}
         <div className="hidden grid-cols-5 gap-4 px-10 md:grid">
           {products.slice(0, 4).map((p) => (
-            <ProductCard key={p.id} product={p} />
+            <ProductCard key={p.id} product={p} latestCollectionTag={latestCollectionTag} />
           ))}
           <div className="aspect-[3/4.7]">
             <ViewAllTile count={totalCount} />

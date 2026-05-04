@@ -27,7 +27,7 @@ export function Header() {
         <span>Cash on delivery available</span>
       </div>
 
-      <div className="flex h-[64px] items-center gap-3 px-4 md:gap-6 md:px-8">
+      <div className="flex min-h-[88px] items-center gap-3 px-4 md:min-h-[104px] md:gap-6 md:px-8">
         <button
           onClick={() => setMenuOpen((v) => !v)}
           className="p-2 md:hidden"
@@ -44,10 +44,10 @@ export function Header() {
           <Image
             src="/logo.png"
             alt="Doll Up Boutique"
-            width={140}
-            height={48}
+            width={260}
+            height={224}
             priority
-            className="h-12 w-auto"
+            className="h-[72px] w-auto md:h-[88px]"
           />
         </Link>
 

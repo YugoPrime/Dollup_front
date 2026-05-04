@@ -73,16 +73,16 @@ export function HeroBento({ products }: { products: Product[] }) {
           <p className="mt-4 max-w-[380px] font-sans text-[14px] leading-[1.5] text-ink-soft">
             Mauritius-curated dresses, lingerie &amp; beachwear. Cash on delivery available island-wide.
           </p>
-          <div className="mt-6 flex gap-3">
+          <div className="mt-6 flex flex-wrap gap-3">
             <Link
               href="/shop?sort=new"
-              className="rounded-full bg-ink px-6 py-3.5 font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-white"
+              className="rounded-full bg-ink px-6 py-3.5 font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-coral-700"
             >
               Shop new arrivals →
             </Link>
             <Link
-              href="/shop?sort=sale"
-              className="self-end border-b border-ink pb-1 font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-ink"
+              href="/shop?on_sale=1"
+              className="rounded-full border-2 border-ink bg-white/85 px-6 py-3.5 font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-ink backdrop-blur transition-colors hover:bg-ink hover:text-white"
             >
               Browse sale
             </Link>

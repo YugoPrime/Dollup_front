@@ -9,14 +9,18 @@ import { formatPrice, getDisplayPrice, formatDiscountPercent } from "@/lib/forma
 
 type Product = HttpTypes.StoreProduct;
 
-const NEW_DAYS = 30;
 const LOW_STOCK_THRESHOLD = 5;
 const MAX_COLOR_DOTS = 4;
 
-function isNew(product: Product) {
-  if (!product.created_at) return false;
-  const days = (Date.now() - new Date(product.created_at).getTime()) / 86_400_000;
-  return days <= NEW_DAYS;
+// "New" = product carries the highest-numbered `collectionN` tag in the catalog.
+// Auto-rotates: when collection29 lands and gets a product, collection28 stops
+// being "new" without a code change. Resolved server-side and threaded through
+// each ProductCard via the `latestCollectionTag` prop on grids/rails.
+function isInLatestCollection(product: Product, latestTag: string | null) {
+  if (!latestTag) return false;
+  return (product.tags ?? []).some(
+    (t) => (t.value ?? "").toLowerCase() === latestTag.toLowerCase(),
+  );
 }
 
 function getLowStockMessage(product: Product): string | null {
@@ -62,7 +66,13 @@ function colorNameToHex(name: string): string {
   return map[name.toLowerCase()] ?? "#8a7773";
 }
 
-export function ProductCard({ product }: { product: Product }) {
+export function ProductCard({
+  product,
+  latestCollectionTag = null,
+}: {
+  product: Product;
+  latestCollectionTag?: string | null;
+}) {
   const { addItem, loading } = useCart();
   const [busy, setBusy] = useState(false);
 
@@ -112,7 +122,7 @@ export function ProductCard({ product }: { product: Product }) {
 
         {/* Badge stack — top-left */}
         <div className="absolute left-2 top-2 z-[3] flex flex-col gap-1.5">
-          {isNew(product) && (
+          {isInLatestCollection(product, latestCollectionTag) && (
             <span className="rounded bg-coral-500 px-2 py-1 font-sans text-[9px] font-bold uppercase tracking-wider text-white">
               New
             </span>

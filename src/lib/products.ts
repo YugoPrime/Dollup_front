@@ -211,20 +211,25 @@ export async function getTagIdByValue(value: string): Promise<string | null> {
 // (e.g. collection29) automatically becomes the new "latest" with no code change.
 // The SDK doesn't expose store.productTag.list yet, so we hit the endpoint directly.
 export async function getLatestCollectionTagId(): Promise<string | null> {
+  const tag = await getLatestCollectionTag();
+  return tag?.id ?? null;
+}
+
+export async function getLatestCollectionTag(): Promise<{ id: string; value: string } | null> {
   const res = await sdk.client.fetch<{
     product_tags: Array<{ id: string; value: string }>;
   }>("/store/product-tags", {
     method: "GET",
     query: { fields: "id,value", limit: 200 },
   });
-  let best: { id: string; n: number } | null = null;
+  let best: { id: string; value: string; n: number } | null = null;
   for (const t of res.product_tags ?? []) {
     const m = /^collection(\d+)$/i.exec(t.value);
     if (!m) continue;
     const n = parseInt(m[1], 10);
-    if (!best || n > best.n) best = { id: t.id, n };
+    if (!best || n > best.n) best = { id: t.id, value: t.value, n };
   }
-  return best?.id ?? null;
+  return best ? { id: best.id, value: best.value } : null;
 }
 
 /**
@@ -252,7 +257,7 @@ export async function listFeatured(): Promise<HttpTypes.StoreProduct[]> {
 
 // Babe Essentials products — hand-curated by handle.
 // Edit this list to swap which products appear in the home page mosaic.
-const ESSENTIALS_HANDLES = ["is1361", "is1362", "is520"];
+const ESSENTIALS_HANDLES = ["is1361", "is1362", "is520", "is522"];
 
 /**
  * Returns the curated "Babe essentials" products for the home page mosaic.

@@ -32,6 +32,7 @@ export const FOOTER_HELP = [
 export const FOOTER_ABOUT = [
   { label: "Our Story", href: "/about" },
   { label: "Lookbook", href: "/lookbook" },
+  { label: "Events & Giveaways", href: "/events" },
   { label: "Loyalty Programme", href: "/loyalty" },
   { label: "Wishlist", href: "/wishlist" },
 ];

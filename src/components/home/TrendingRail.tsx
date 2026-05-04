@@ -4,7 +4,13 @@ import { ProductCard } from "@/components/ProductCard";
 
 type Product = HttpTypes.StoreProduct;
 
-export function TrendingRail({ products }: { products: Product[] }) {
+export function TrendingRail({
+  products,
+  latestCollectionTag = null,
+}: {
+  products: Product[];
+  latestCollectionTag?: string | null;
+}) {
   if (!products.length) return null;
   return (
     <section className="bg-blush-100 py-5 md:py-7">
@@ -31,7 +37,7 @@ export function TrendingRail({ products }: { products: Product[] }) {
         {/* Desktop: 5-up grid */}
         <div className="hidden gap-4 px-10 md:grid md:grid-cols-5">
           {products.slice(0, 5).map((p) => (
-            <ProductCard key={p.id} product={p} />
+            <ProductCard key={p.id} product={p} latestCollectionTag={latestCollectionTag} />
           ))}
         </div>
       </div>

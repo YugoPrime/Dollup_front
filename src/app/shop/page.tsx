@@ -5,6 +5,7 @@ import {
   listCategories,
   getTagIdByValue,
   expandCategoryWithDescendants,
+  getLatestCollectionTag,
 } from "@/lib/products";
 import { ProductCard } from "@/components/ProductCard";
 import { ShopFilterSidebar } from "@/components/shop/ShopFilterSidebar";
@@ -49,7 +50,11 @@ export default async function ShopPage({
   const onSale = sp.on_sale === "1";
   const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
 
-  const allCategories = await listCategories();
+  const [allCategories, latestCollection] = await Promise.all([
+    listCategories(),
+    getLatestCollectionTag().catch(() => null),
+  ]);
+  const latestTag = latestCollection?.value ?? null;
   // Trim trailing slashes so /shop?category=beachwear/ still matches "beachwear".
   const normalizedHandle = categoryHandle?.replace(/\/+$/, "") ?? null;
   const matchedCategory = normalizedHandle
@@ -117,7 +122,7 @@ export default async function ShopPage({
           <>
             <div className="grid grid-cols-2 gap-2.5 px-4 py-3">
               {products.map((p) => (
-                <ProductCard key={p.id} product={p} />
+                <ProductCard key={p.id} product={p} latestCollectionTag={latestTag} />
               ))}
             </div>
             <Pagination page={page} total={total} sp={sp} />
@@ -135,7 +140,7 @@ export default async function ShopPage({
             <>
               <div className="grid grid-cols-4 gap-4">
                 {products.map((p) => (
-                  <ProductCard key={p.id} product={p} />
+                  <ProductCard key={p.id} product={p} latestCollectionTag={latestTag} />
                 ))}
               </div>
               <Pagination page={page} total={total} sp={sp} />

@@ -1,4 +1,4 @@
-import { listFeatured, listProducts, listEssentials } from "@/lib/products";
+import { listFeatured, listProducts, listEssentials, getLatestCollectionTag } from "@/lib/products";
 import { HeroBento } from "@/components/home/HeroBento";
 import { TrendingRail } from "@/components/home/TrendingRail";
 import { CategoryIcons } from "@/components/home/CategoryIcons";
@@ -12,7 +12,7 @@ export const revalidate = 60;
 
 export default async function HomePage() {
   // Fan-out fetch the four data sources we need on home in parallel
-  const [featured, trendingRes, newArrivalsRes, essentials] = await Promise.all([
+  const [featured, trendingRes, newArrivalsRes, essentials, latestCollection] = await Promise.all([
     listFeatured().catch((err) => {
       console.error("listFeatured failed:", err);
       return [];
@@ -25,18 +25,24 @@ export default async function HomePage() {
       console.error("listEssentials failed:", err);
       return [];
     }),
+    getLatestCollectionTag().catch(() => null),
   ]);
+  const latestTag = latestCollection?.value ?? null;
 
   return (
     <>
       <HeroBento products={featured} />
-      <TrendingRail products={trendingRes.products} />
+      <TrendingRail products={trendingRes.products} latestCollectionTag={latestTag} />
       <CategoryIcons />
+      <NewArrivalsRail
+        products={newArrivalsRes.products.slice(0, 4)}
+        totalCount={newArrivalsRes.count ?? 0}
+        latestCollectionTag={latestTag}
+      />
       <SalesOfTheMonth />
-      <NewArrivalsRail products={newArrivalsRes.products.slice(0, 4)} totalCount={newArrivalsRes.count ?? 0} />
+      <BabeEssentials products={essentials} />
       <LoyaltyTeaser />
       <InstagramMosaic />
-      <BabeEssentials products={essentials} />
     </>
   );
 }

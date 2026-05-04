@@ -2,8 +2,8 @@ import Link from "next/link";
 
 const PERKS = [
   { icon: "★", body: "Earn **1 point** per Rs 10 spent — redeem on any order." },
-  { icon: "⌖", body: "Unlock **early access** to new drops every Friday at 7am." },
-  { icon: "♥", body: "Birthday surprise & **free shipping** on first order." },
+  { icon: "♥", body: "**Birthday surprise** every year on us." },
+  { icon: "✦", body: "**Priority support** — your DMs jump the queue." },
 ];
 
 function renderPerk(body: string) {
