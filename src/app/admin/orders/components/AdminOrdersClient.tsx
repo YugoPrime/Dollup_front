@@ -12,7 +12,7 @@ import {
 } from "./DateFilter";
 import { searchOrdersAction } from "../actions";
 import type { CustomerHit, OrderRow } from "@/lib/admin-orders";
-import { useMediaQuery } from "@/lib/use-media-query";
+import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 
 export function AdminOrdersClient({
   initialOrders,
@@ -178,6 +178,7 @@ export function AdminOrdersClient({
         <RecentOrdersSheet
           orders={visibleOrders}
           onChanged={() => reloadOrders({ reset: true })}
+          isFilterActive={customerFilter != null || dateFilter.kind !== "all"}
         />
         {!customerFilter && visibleOrders.length > 0 && (
           <button

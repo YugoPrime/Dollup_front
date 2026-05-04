@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { formatPrice } from "@/lib/format";
 import type { OrderRow } from "@/lib/admin-orders";
 import { isAutoLine } from "@/lib/admin-order-lines";
-import { useMediaQuery } from "@/lib/use-media-query";
+import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import { updateOrderAction } from "../actions";
 import { hydrateOrderToForm, rid, useOrderForm } from "./useOrderForm";
 import { OrderFormLayout } from "./OrderRowFields";
@@ -13,9 +13,11 @@ import { OrderEditDrawer } from "./OrderEditDrawer";
 export function RecentOrdersSheet({
   orders,
   onChanged,
+  isFilterActive = false,
 }: {
   orders: OrderRow[];
   onChanged: () => void;
+  isFilterActive?: boolean;
 }) {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -51,7 +53,11 @@ export function RecentOrdersSheet({
         </span>
       </div>
       {orders.length === 0 && (
-        <p className="mt-3 text-sm text-ink-muted">No orders yet.</p>
+        <p className="mt-3 text-sm text-ink-muted">
+          {isFilterActive
+            ? "No orders match this filter."
+            : "No orders yet. Save your first DM order above."}
+        </p>
       )}
       {!isDesktop && orders.length > 0 && (
         <ul className="mt-3 divide-y divide-blush-300/40">
