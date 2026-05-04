@@ -6,6 +6,12 @@ import {
   computeDeliveryCost,
   computeVatAmount,
 } from "./checkout";
+import {
+  ADJUSTMENT_TITLE,
+  DELIVERY_LINE_RE,
+  DISCOUNT_TITLE,
+  isAutoLine,
+} from "./admin-order-lines";
 
 export const REGION_ID = "reg_01KN0AAX4FA592Q3HAY93W1AHV";
 export const SALES_CHANNEL_ID = "sc_01KN07JKHRN9DP25TM5S664C5W";
@@ -284,7 +290,7 @@ export async function createDmOrder(
   }
   if (discount > 0) {
     draftItems.push({
-      title: "Discount",
+      title: DISCOUNT_TITLE,
       quantity: 1,
       unit_price: -discount,
     });
@@ -298,7 +304,7 @@ export async function createDmOrder(
   });
   if (adjustment !== 0) {
     draftItems.push({
-      title: "Adjustment",
+      title: ADJUSTMENT_TITLE,
       quantity: 1,
       unit_price: adjustment,
     });
@@ -479,12 +485,6 @@ export type OrderEditDiff =
   | { kind: "heavy"; reason: string }
   | { kind: "noop" };
 
-const AUTO_LINE_RE = /^Delivery\s—|^Discount$|^Adjustment$/;
-
-function isAutoLine(title: string): boolean {
-  return AUTO_LINE_RE.test(title);
-}
-
 export async function updateOrderLight(
   orderId: string,
   patch: OrderLightPatch,
@@ -606,10 +606,12 @@ export function classifyOrderEdit(
   // before/after comparison is meaningful. Any change here means we need to
   // cancel + recreate so the order's invoice math is consistent.
   const deliveryLine = before.items.find((it) =>
-    /^Delivery\s—/.test(it.title),
+    DELIVERY_LINE_RE.test(it.title),
   );
-  const discountLine = before.items.find((it) => it.title === "Discount");
-  const adjustmentLine = before.items.find((it) => it.title === "Adjustment");
+  const discountLine = before.items.find((it) => it.title === DISCOUNT_TITLE);
+  const adjustmentLine = before.items.find(
+    (it) => it.title === ADJUSTMENT_TITLE,
+  );
   const oldDeliveryFee = deliveryLine?.unitPriceMur ?? 0;
   const oldDiscount = discountLine ? -discountLine.unitPriceMur : 0;
   const realLines = before.items.filter((it) => !isAutoLine(it.title));
@@ -618,9 +620,13 @@ export function classifyOrderEdit(
     0,
   );
   const oldComputedTotal = realSubtotal - oldDiscount + oldDeliveryFee;
-  const oldAdjustment = adjustmentLine?.unitPriceMur ?? 0;
-  const oldTotalOverride =
-    oldAdjustment !== 0 ? oldComputedTotal + oldAdjustment : null;
+  // Detect override by line *existence*, not by adjustment amount: a stored
+  // adjustment line is the signal that the operator overrode the total. Using
+  // `!== 0` would misread a (theoretical) zero-rounded adjustment as "no
+  // override" and mark a noop edit as heavy.
+  const oldTotalOverride = adjustmentLine
+    ? oldComputedTotal + adjustmentLine.unitPriceMur
+    : null;
 
   const nextDeliveryFee =
     typeof next.deliveryFeeMur === "number" ? next.deliveryFeeMur : 0;

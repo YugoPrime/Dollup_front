@@ -3,11 +3,10 @@
 import { useEffect, useState, useTransition } from "react";
 import { formatPrice } from "@/lib/format";
 import type { OrderRow } from "@/lib/admin-orders";
+import { isAutoLine } from "@/lib/admin-order-lines";
 import { updateOrderAction } from "../actions";
 import { hydrateOrderToForm, rid, useOrderForm } from "./useOrderForm";
 import { OrderFormLayout } from "./OrderRowFields";
-
-const AUTO_LINE_RE = /^Delivery\s—|^Discount$|^Adjustment$/;
 
 export function RecentOrdersSheet({
   orders,
@@ -106,7 +105,7 @@ function ReadOnlyRow({
   const trackingShown =
     order.deliveryMethod === "Postage" ||
     order.deliveryMethod === "Express Postage";
-  const realItems = order.items.filter((it) => !AUTO_LINE_RE.test(it.title));
+  const realItems = order.items.filter((it) => !isAutoLine(it.title));
   const productCell =
     realItems.length === 0
       ? "—"
@@ -189,7 +188,7 @@ function EditableRow({
   // Adjustment lines so the form only sees real product/manual lines).
   useEffect(() => {
     const realItems = order.items.filter(
-      (it) => !AUTO_LINE_RE.test(it.title),
+      (it) => !isAutoLine(it.title),
     );
     form.setItems(
       realItems.map((it) => ({

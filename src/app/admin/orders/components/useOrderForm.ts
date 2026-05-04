@@ -5,6 +5,12 @@ import {
   computeDeliveryCost,
   type DmDeliveryMethod,
 } from "@/lib/checkout";
+import {
+  ADJUSTMENT_TITLE,
+  DELIVERY_LINE_RE,
+  DISCOUNT_TITLE,
+  isAutoLine,
+} from "@/lib/admin-order-lines";
 import type { CreateDmOrderInput, OrderRow } from "@/lib/admin-orders";
 import type { SelectedVariant } from "./StockChecker";
 
@@ -115,23 +121,22 @@ export function hydrateOrderToForm(order: OrderRow): Partial<FormState> {
       : order.fulfillmentStatus === "fulfilled"
         ? "delivered"
         : "";
-  const deliveryLine = order.items.find((it) => /^Delivery\s—/.test(it.title));
-  const discountLine = order.items.find((it) => it.title === "Discount");
-  const adjustmentLine = order.items.find((it) => it.title === "Adjustment");
-  const realLines = order.items.filter(
-    (it) => !/^Delivery\s—|^Discount$|^Adjustment$/.test(it.title),
-  );
+  const deliveryLine = order.items.find((it) => DELIVERY_LINE_RE.test(it.title));
+  const discountLine = order.items.find((it) => it.title === DISCOUNT_TITLE);
+  const adjustmentLine = order.items.find((it) => it.title === ADJUSTMENT_TITLE);
+  const realLines = order.items.filter((it) => !isAutoLine(it.title));
   const realSubtotal = realLines.reduce(
     (s, it) => s + it.quantity * it.unitPriceMur,
     0,
   );
   const deliveryFeeMur = deliveryLine?.unitPriceMur ?? 0;
   const discountMur = discountLine ? -discountLine.unitPriceMur : 0;
-  const adjustment = adjustmentLine?.unitPriceMur ?? 0;
-  const totalOverrideMur =
-    adjustment !== 0
-      ? realSubtotal - discountMur + deliveryFeeMur + adjustment
-      : null;
+  // Detect override by line existence (not adjustment value): a stored
+  // adjustment line is the canonical signal that the operator overrode the
+  // total — even if it later rounded to zero, the override intent persists.
+  const totalOverrideMur = adjustmentLine
+    ? realSubtotal - discountMur + deliveryFeeMur + adjustmentLine.unitPriceMur
+    : null;
   return {
     deliveryDate: order.deliveryDate ?? "",
     deliveryMethod: (order.deliveryMethod ?? "Pick Up") as DmDeliveryMethod,
