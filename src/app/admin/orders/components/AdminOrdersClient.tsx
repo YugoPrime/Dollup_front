@@ -12,6 +12,7 @@ import {
 } from "./DateFilter";
 import { searchOrdersAction } from "../actions";
 import type { CustomerHit, OrderRow } from "@/lib/admin-orders";
+import { useMediaQuery } from "@/lib/use-media-query";
 
 export function AdminOrdersClient({
   initialOrders,
@@ -35,6 +36,8 @@ export function AdminOrdersClient({
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
   const [, startRefresh] = useTransition();
   const isFirstMount = useRef(true);
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const [stockOpen, setStockOpen] = useState(false);
 
   function handlePick(v: SelectedVariant) {
     formRef.current?.addVariant(v);
@@ -90,69 +93,116 @@ export function AdminOrdersClient({
     : orders;
 
   return (
-    <div className="space-y-4">
-      <div className="sticky top-0 z-10 -mx-4 bg-cream/85 px-4 pb-2 pt-3 backdrop-blur sm:static sm:mx-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
-        <StockChecker onPickVariant={handlePick} />
-      </div>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <div className="flex-1">
-          <CustomerSearch onSelect={setCustomerFilter} />
+    <div className="lg:grid lg:grid-cols-[1fr_300px] lg:gap-4">
+      {/* LEFT COLUMN — main content */}
+      <div className="space-y-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="flex-1">
+            <CustomerSearch onSelect={setCustomerFilter} />
+          </div>
+          <DateFilter value={dateFilter} onChange={setDateFilter} />
+          {!isDesktop && (
+            <button
+              type="button"
+              onClick={() => setStockOpen(true)}
+              className="rounded-md border border-coral-500 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-coral-700 hover:bg-coral-500 hover:text-white"
+            >
+              📦 Stock
+            </button>
+          )}
         </div>
-        <DateFilter value={dateFilter} onChange={setDateFilter} />
-      </div>
-      {errorBanner && (
-        <p
-          role="alert"
-          className="rounded-lg border border-coral-500 bg-coral-300/30 px-3 py-1.5 text-sm text-coral-700"
-        >
-          {errorBanner}
-        </p>
-      )}
-      {customerFilter && (
-        <div className="flex flex-wrap items-center gap-2 rounded-md border border-blush-300 bg-blush-100/40 px-3 py-2 text-xs">
-          <span>
-            Filtering for{" "}
-            <strong>
-              {customerFilter.name || customerFilter.displayPhone}
-            </strong>{" "}
-            ({customerFilter.orderCount} order
-            {customerFilter.orderCount === 1 ? "" : "s"})
-          </span>
-          <button
-            type="button"
-            onClick={() => formRef.current?.applyCustomer(customerFilter)}
-            className="rounded-md bg-coral-500 px-2 py-1 font-semibold uppercase tracking-wider text-white hover:bg-coral-700"
+        {errorBanner && (
+          <p
+            role="alert"
+            className="rounded-lg border border-coral-500 bg-coral-300/30 px-3 py-1.5 text-sm text-coral-700"
           >
-            📋 Use customer in new entry
-          </button>
-          <button
-            type="button"
-            onClick={() => setCustomerFilter(null)}
-            className="text-ink-muted hover:text-coral-700"
-            aria-label="Clear filter"
-          >
-            ✕
-          </button>
+            {errorBanner}
+          </p>
+        )}
+        {customerFilter && (
+          <div className="flex flex-wrap items-center gap-2 rounded-md border border-blush-300 bg-blush-100/40 px-3 py-2 text-xs">
+            <span>
+              Filtering for{" "}
+              <strong>
+                {customerFilter.name || customerFilter.displayPhone}
+              </strong>{" "}
+              ({customerFilter.orderCount} order
+              {customerFilter.orderCount === 1 ? "" : "s"})
+            </span>
+            <button
+              type="button"
+              onClick={() => formRef.current?.applyCustomer(customerFilter)}
+              className="rounded-md bg-coral-500 px-2 py-1 font-semibold uppercase tracking-wider text-white hover:bg-coral-700"
+            >
+              📋 Use customer in new entry
+            </button>
+            <button
+              type="button"
+              onClick={() => setCustomerFilter(null)}
+              className="text-ink-muted hover:text-coral-700"
+              aria-label="Clear filter"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+        <div id="dm-order-form">
+          <NewOrderRow
+            ref={formRef}
+            onSaved={() => reloadOrders({ reset: true })}
+          />
         </div>
-      )}
-      <div id="dm-order-form">
-        <NewOrderRow
-          ref={formRef}
-          onSaved={() => reloadOrders({ reset: true })}
+        <RecentOrdersSheet
+          orders={visibleOrders}
+          onChanged={() => reloadOrders({ reset: true })}
         />
+        {!customerFilter && visibleOrders.length > 0 && (
+          <button
+            type="button"
+            onClick={() => reloadOrders()}
+            className="mx-auto mt-3 block rounded-md border border-blush-400 px-3 py-1.5 text-xs hover:bg-blush-100"
+          >
+            Load older
+          </button>
+        )}
       </div>
-      <RecentOrdersSheet
-        orders={visibleOrders}
-        onChanged={() => reloadOrders({ reset: true })}
-      />
-      {!customerFilter && visibleOrders.length > 0 && (
-        <button
-          type="button"
-          onClick={() => reloadOrders()}
-          className="mx-auto mt-3 block rounded-md border border-blush-400 px-3 py-1.5 text-xs hover:bg-blush-100"
-        >
-          Load older
-        </button>
+
+      {/* RIGHT COLUMN — desktop sticky stock checker */}
+      {isDesktop && (
+        <aside className="sticky top-3 self-start">
+          <StockChecker onPickVariant={handlePick} />
+        </aside>
+      )}
+
+      {/* MOBILE: bottom drawer for stock checker */}
+      {!isDesktop && stockOpen && (
+        <div className="fixed inset-0 z-40 flex flex-col bg-black/40">
+          <button
+            type="button"
+            onClick={() => setStockOpen(false)}
+            aria-label="Close"
+            className="flex-1"
+          />
+          <div className="max-h-[85vh] overflow-y-auto rounded-t-2xl border-t border-blush-400 bg-white p-3 shadow-2xl">
+            <div className="mb-2 flex items-center justify-between">
+              <h3 className="font-display text-base text-ink">Stock checker</h3>
+              <button
+                type="button"
+                onClick={() => setStockOpen(false)}
+                className="text-ink-muted hover:text-coral-700"
+                aria-label="Close stock checker"
+              >
+                ✕
+              </button>
+            </div>
+            <StockChecker
+              onPickVariant={(v) => {
+                handlePick(v);
+                setStockOpen(false);
+              }}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

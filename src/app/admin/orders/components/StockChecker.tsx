@@ -107,7 +107,6 @@ export function StockChecker({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search SKU or product name…"
-          autoFocus
           inputMode="search"
           className="w-full rounded-lg border-[1.5px] border-blush-400 bg-cream px-3 py-2.5 text-base text-ink outline-none focus:border-coral-500"
         />
