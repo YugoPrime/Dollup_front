@@ -16,7 +16,6 @@ import {
   PAYMENT_METHODS,
   POINTS_OF_SALE,
   SALE_TYPES,
-  rid,
   useOrderForm,
   type FormState,
   type SaleType,
@@ -173,33 +172,7 @@ export const NewOrderRow = forwardRef<NewOrderRowRef>(function NewOrderRow(_, re
 
       <SectionLabel className="mt-3">Products</SectionLabel>
       <div className="mt-1.5">
-        <ProductPicker
-          onPick={(v) => {
-            setItems((prev) => {
-              const existing = prev.find(
-                (i) => i.kind === "variant" && i.variantId === v.variantId,
-              );
-              if (existing) {
-                return prev.map((i) =>
-                  i === existing ? { ...i, quantity: i.quantity + 1 } : i,
-                );
-              }
-              const title = [v.productTitle, v.variantTitle].filter(Boolean).join(" — ");
-              return [
-                ...prev,
-                {
-                  rid: rid(),
-                  kind: "variant",
-                  variantId: v.variantId,
-                  sku: v.sku,
-                  title,
-                  quantity: 1,
-                  unitPriceMur: v.priceMur ?? 0,
-                },
-              ];
-            });
-          }}
-        />
+        <ProductPicker onPick={addVariant} />
         {items.length === 0 && (
           <p className="mt-2 text-xs text-ink-muted">
             No products yet — search above or use the stock checker.
