@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { login } from "@/lib/auth-client";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 
 export function LoginForm() {
   const router = useRouter();
@@ -51,7 +52,19 @@ export function LoginForm() {
         </div>
       )}
 
-      <form className="mt-6 space-y-4" onSubmit={onSubmit}>
+      <div className="mt-6">
+        <GoogleSignInButton redirectAfter={redirect} />
+      </div>
+
+      {process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === "true" && (
+        <div className="my-5 flex items-center gap-3 font-sans text-[11px] uppercase tracking-wider text-ink-muted">
+          <span className="h-px flex-1 bg-blush-300" />
+          or
+          <span className="h-px flex-1 bg-blush-300" />
+        </div>
+      )}
+
+      <form className="space-y-4" onSubmit={onSubmit}>
         <label className="block">
           <span className="mb-1.5 block font-sans text-xs font-semibold text-ink">
             Email<span className="ml-1 text-coral-500">*</span>
@@ -77,6 +90,15 @@ export function LoginForm() {
             className="w-full rounded-md border-[1.5px] border-blush-400 bg-white px-3 py-2.5 font-sans text-sm text-ink outline-none focus:border-coral-500"
           />
         </label>
+
+        <div className="text-right">
+          <Link
+            href="/forgot-password"
+            className="font-sans text-[12px] font-medium text-coral-500 hover:text-coral-700"
+          >
+            Forgot password?
+          </Link>
+        </div>
 
         <button
           type="submit"

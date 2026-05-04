@@ -87,6 +87,78 @@ export async function register(args: {
   return customer;
 }
 
+// Kicks off the Google OAuth flow. Asks the backend for a redirect URL, then
+// sends the browser there. Google later redirects back to /auth/google/callback
+// with `code` and `state` query params; that page calls completeGoogleCallback.
+export async function startGoogleLogin(redirectAfter?: string): Promise<void> {
+  if (typeof window === "undefined") return;
+  if (redirectAfter) {
+    sessionStorage.setItem("dub_auth_redirect", redirectAfter);
+  }
+  const result = await clientSdk.auth.login("customer", "google", {});
+  if (typeof result === "string") {
+    // Backend gave us a token directly (no redirect needed) — e.g. dev shortcut.
+    await refreshCustomer();
+    window.location.href = redirectAfter ?? "/account";
+    return;
+  }
+  window.location.href = result.location;
+}
+
+// Completes the Google OAuth callback. Returns the post-login redirect path.
+export async function completeGoogleCallback(
+  query: Record<string, string>,
+): Promise<string> {
+  const token = await clientSdk.auth.callback("customer", "google", query);
+
+  // Try to load an existing customer first — most logins will succeed here.
+  let customer = await fetchCustomer();
+  if (!customer) {
+    // First-time Google sign-in: pull email from the JWT and create a profile.
+    const email = extractEmailFromJwt(token);
+    if (!email) {
+      throw new Error("Google sign-in succeeded but email was not provided.");
+    }
+    const { customer: created } = await clientSdk.store.customer.create({
+      email,
+    });
+    customer = created ?? null;
+  }
+
+  publish({ status: "ready", customer });
+
+  let redirect = "/account";
+  if (typeof window !== "undefined") {
+    const stored = sessionStorage.getItem("dub_auth_redirect");
+    if (stored) {
+      redirect = stored;
+      sessionStorage.removeItem("dub_auth_redirect");
+    }
+  }
+  return redirect;
+}
+
+function extractEmailFromJwt(token: string): string | null {
+  try {
+    const payload = token.split(".")[1];
+    if (!payload) return null;
+    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = base64 + "===".slice((base64.length + 3) % 4);
+    const decoded = JSON.parse(
+      typeof window === "undefined"
+        ? Buffer.from(padded, "base64").toString("utf8")
+        : atob(padded),
+    );
+    if (typeof decoded?.email === "string") return decoded.email;
+    if (typeof decoded?.app_metadata?.email === "string") {
+      return decoded.app_metadata.email;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export async function logout(): Promise<void> {
   try {
     await clientSdk.auth.logout();

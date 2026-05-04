@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { register } from "@/lib/auth-client";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 
 export function RegisterForm() {
   const router = useRouter();
@@ -69,7 +70,22 @@ export function RegisterForm() {
         </div>
       )}
 
-      <form className="mt-6 space-y-4" onSubmit={onSubmit}>
+      <div className="mt-6">
+        <GoogleSignInButton
+          redirectAfter={redirect}
+          label="Sign up with Google"
+        />
+      </div>
+
+      {process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === "true" && (
+        <div className="my-5 flex items-center gap-3 font-sans text-[11px] uppercase tracking-wider text-ink-muted">
+          <span className="h-px flex-1 bg-blush-300" />
+          or
+          <span className="h-px flex-1 bg-blush-300" />
+        </div>
+      )}
+
+      <form className="space-y-4" onSubmit={onSubmit}>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block">
             <span className="mb-1.5 block font-sans text-xs font-semibold text-ink">

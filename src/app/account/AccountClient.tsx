@@ -224,6 +224,14 @@ function OrdersCard() {
     <section className="rounded-xl border border-blush-300 bg-white p-6">
       <div className="flex items-center justify-between">
         <h2 className="font-display text-xl text-ink">Recent orders</h2>
+        {orders && orders.length > 0 && (
+          <Link
+            href="/account/orders"
+            className="font-sans text-[11px] font-bold uppercase tracking-wider text-coral-500 hover:text-coral-700"
+          >
+            View all
+          </Link>
+        )}
       </div>
 
       {error && (
@@ -291,9 +299,12 @@ function AddressesCard({ customer }: { customer: Customer }) {
     <section className="rounded-xl border border-blush-300 bg-white p-6">
       <div className="flex items-center justify-between">
         <h2 className="font-display text-xl text-ink">Saved addresses</h2>
-        <span className="font-sans text-[11px] font-bold uppercase tracking-wider text-ink-muted">
-          {addresses.length} saved
-        </span>
+        <Link
+          href="/account/addresses"
+          className="font-sans text-[11px] font-bold uppercase tracking-wider text-coral-500 hover:text-coral-700"
+        >
+          {addresses.length === 0 ? "Add" : "Manage"}
+        </Link>
       </div>
 
       {addresses.length === 0 ? (
