@@ -178,6 +178,75 @@ function mapOrder(o: HttpTypes.AdminOrder): OrderRow {
   };
 }
 
+export type CustomerHit = {
+  phone: string; // canonical (digits only)
+  displayPhone: string; // as stored
+  name: string;
+  city: string | null;
+  addressDetails: string | null;
+  pseudo: string | null;
+  email: string | null;
+  orderCount: number;
+  mostRecentOrderAt: string;
+  mostRecentOrderId: string;
+};
+
+export async function searchCustomers(
+  query: string,
+  limit = 8,
+): Promise<CustomerHit[]> {
+  const q = query.trim();
+  if (q.length < 2) return [];
+  const sdk = await getAdminSdk();
+  // Fetch a wider window of recent orders, then match client-side.
+  const res = await sdk.admin.order.list({
+    limit: 200,
+    order: "-created_at",
+    fields: "id,display_id,created_at,email,*shipping_address,metadata",
+  });
+  const orders = res.orders as HttpTypes.AdminOrder[];
+  const nameRe = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+  const digitsOnly = q.replace(/\D/g, "");
+
+  const byPhone = new Map<string, CustomerHit>();
+  for (const o of orders) {
+    const ship = o.shipping_address;
+    if (!ship) continue;
+    const name = [ship.first_name, ship.last_name]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+    const phone = ship.phone ?? "";
+    const phoneDigits = phone.replace(/\D/g, "");
+    const matchesName = name && nameRe.test(name);
+    const matchesPhone =
+      phoneDigits && digitsOnly && phoneDigits.includes(digitsOnly);
+    if (!matchesName && !matchesPhone) continue;
+    if (!phoneDigits) continue;
+    const meta = (o.metadata ?? {}) as Record<string, unknown>;
+    const existing = byPhone.get(phoneDigits);
+    if (existing) {
+      existing.orderCount += 1;
+    } else {
+      byPhone.set(phoneDigits, {
+        phone: phoneDigits,
+        displayPhone: phone,
+        name,
+        city: ship.city ?? null,
+        addressDetails: ship.address_1 ?? null,
+        pseudo: typeof meta.pseudo === "string" ? meta.pseudo : null,
+        email: o.email ?? null,
+        orderCount: 1,
+        mostRecentOrderAt: String(o.created_at ?? ""),
+        mostRecentOrderId: o.id,
+      });
+    }
+  }
+  return [...byPhone.values()]
+    .sort((a, b) => b.mostRecentOrderAt.localeCompare(a.mostRecentOrderAt))
+    .slice(0, limit);
+}
+
 export async function getRecentOrders(limit = 20): Promise<OrderRow[]> {
   const sdk = await getAdminSdk();
   // Over-fetch so we can drop replaced predecessors without thinning the

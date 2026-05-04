@@ -10,9 +10,11 @@ import { createDmOrderAction } from "../actions";
 import { useOrderForm } from "./useOrderForm";
 import { OrderFormLayout } from "./OrderRowFields";
 import type { SelectedVariant } from "./StockChecker";
+import type { CustomerHit } from "@/lib/admin-orders";
 
 export type NewOrderRowRef = {
   addVariant: (v: SelectedVariant) => void;
+  applyCustomer: (c: CustomerHit) => void;
 };
 
 export const NewOrderRow = forwardRef<
@@ -21,6 +23,7 @@ export const NewOrderRow = forwardRef<
 >(function NewOrderRow({ onSaved }, ref) {
   const form = useOrderForm();
   const {
+    set,
     markTouched,
     errorBanner,
     setErrorBanner,
@@ -39,6 +42,19 @@ export const NewOrderRow = forwardRef<
 
   useImperativeHandle(ref, () => ({
     addVariant,
+    applyCustomer(c) {
+      set("buyerName", c.name);
+      set("phone", c.displayPhone);
+      set("city", c.city ?? "");
+      set("address2", c.addressDetails ?? "");
+      set("pseudo", c.pseudo ?? "");
+      set("email", c.email ?? "");
+      if (typeof window !== "undefined") {
+        document
+          .getElementById("dm-order-form")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    },
   }));
 
   async function handleSubmit() {

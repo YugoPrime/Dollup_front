@@ -14,12 +14,16 @@ import {
   getRecentOrders,
   markOrderFulfilled,
   markOrderPaid,
+  searchCustomers,
   searchVariants,
   updateOrderLight,
   type CreateDmOrderInput,
+  type CustomerHit,
   type OrderRow,
   type VariantHit,
 } from "@/lib/admin-orders";
+
+export type { CustomerHit } from "@/lib/admin-orders";
 
 async function requireAdmin(): Promise<void> {
   const store = await cookies();
@@ -36,6 +40,13 @@ export async function searchVariantsAction(
   await requireAdmin();
   if (!query || query.trim().length < 2) return [];
   return searchVariants(query, { availableOnly: !!opts.availableOnly, limit: 25 });
+}
+
+export async function searchCustomersAction(
+  query: string,
+): Promise<CustomerHit[]> {
+  await requireAdmin();
+  return searchCustomers(query);
 }
 
 export type CreateDmOrderActionResult =
