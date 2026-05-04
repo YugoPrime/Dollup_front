@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -11,22 +13,39 @@ type Category = {
   gradient?: string;
 };
 
+// Server-side existence check so we silently fall back to the gradient until
+// the user drops the real image into /public/categories/<slug>.png.
+function imageExists(publicPath: string): boolean {
+  try {
+    return fs.existsSync(path.join(process.cwd(), "public", publicPath.replace(/^\/+/, "")));
+  } catch {
+    return false;
+  }
+}
+
+// Drop final 400×400 PNG/JPG for each into /public/categories/<slug>.png
+// (e.g. /public/categories/dresses.png) and the circle picks it up. Until then,
+// the gradient + first-letter fallback keeps the section looking intentional.
 const CATEGORIES: Category[] = [
-  { label: "All New", href: "/shop?sort=new", special: true },
-  { label: "Dresses", href: "/shop?category=dresses", gradient: "linear-gradient(135deg,#FAE8E4,#F8B0A0)" },
-  { label: "Lingerie", href: "/shop?category=lingerie", gradient: "linear-gradient(135deg,#F8D5CD,#E5604A)" },
-  { label: "Beachwear", href: "/shop?category=beachwear", gradient: "linear-gradient(135deg,#FFF5E1,#F4D03F)" },
-  { label: "Tops", href: "/shop?category=tops", gradient: "linear-gradient(135deg,#F5EDEB,#B89390)" },
-  { label: "Sale", href: "/shop?sort=sale", gradient: "linear-gradient(135deg,#E5604A,#B8412C)" },
+  { label: "All New", href: "/shop?sort=new", special: true, image: "/categories/all-new.png" },
+  { label: "Dresses", href: "/shop?category=dresses", image: "/categories/dresses.png", gradient: "linear-gradient(135deg,#FAE8E4,#F8B0A0)" },
+  { label: "Lingerie", href: "/shop?category=lingerie", image: "/categories/lingerie.png", gradient: "linear-gradient(135deg,#F8D5CD,#E5604A)" },
+  { label: "Beachwear", href: "/shop?category=beachwear", image: "/categories/beachwear.png", gradient: "linear-gradient(135deg,#FFF5E1,#F4D03F)" },
+  { label: "Accessories", href: "/shop?category=accessories", image: "/categories/accessories.png", gradient: "linear-gradient(135deg,#F5EDEB,#B89390)" },
+  { label: "Sale", href: "/shop?on_sale=1", image: "/categories/sale.png", gradient: "linear-gradient(135deg,#E5604A,#B8412C)" },
 ];
 
 export function CategoryIcons() {
+  const items = CATEGORIES.map((c) => ({
+    ...c,
+    image: c.image && imageExists(c.image) ? c.image : undefined,
+  }));
   return (
     <section className="bg-white py-5 md:py-8">
       <div className="mx-auto max-w-[1200px]">
         {/* Mobile: horizontal scroll */}
         <div className="flex gap-3.5 overflow-x-auto px-4 md:hidden">
-          {CATEGORIES.map((c) => (
+          {items.map((c) => (
             <Link key={c.label} href={c.href} className="flex w-16 shrink-0 flex-col items-center text-center">
               <CategoryCircle category={c} size={60} />
               <span className="mt-1.5 font-sans text-[10px] font-bold leading-tight text-ink">{c.label}</span>
@@ -35,7 +54,7 @@ export function CategoryIcons() {
         </div>
         {/* Desktop: 6-up grid */}
         <div className="hidden gap-3 px-10 md:grid md:grid-cols-6">
-          {CATEGORIES.map((c) => (
+          {items.map((c) => (
             <Link key={c.label} href={c.href} className="flex flex-col items-center text-center">
               <CategoryCircle category={c} size={88} />
               <span className="mt-2 font-sans text-[12px] font-semibold text-ink">{c.label}</span>

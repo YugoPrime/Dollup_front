@@ -1,11 +1,23 @@
 export type NavLink = {
   label: string;
   href: string;
+  children?: { label: string; href: string }[];
 };
 
 export const NAV_LINKS: NavLink[] = [
   { label: "New Arrivals", href: "/shop?sort=new" },
-  { label: "Dresses", href: "/shop?category=dresses" },
+  {
+    label: "Outfit",
+    href: "/shop?category=clothing",
+    children: [
+      { label: "Dresses", href: "/shop?category=dresses" },
+      { label: "Two-Pieces Set", href: "/shop?category=two-piece-outfits" },
+      { label: "Jumpsuits", href: "/shop?category=jumpsuits" },
+      { label: "Top", href: "/shop?category=tops" },
+      { label: "Bottom", href: "/shop?category=bottoms" },
+      { label: "Winter", href: "/shop?tag=winter" },
+    ],
+  },
   { label: "Lingerie", href: "/shop?category=lingerie" },
   { label: "Beachwear", href: "/shop?category=beachwear" },
   { label: "Accessories", href: "/shop?category=accessories" },

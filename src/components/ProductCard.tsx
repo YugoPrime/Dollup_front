@@ -6,6 +6,7 @@ import { useState } from "react";
 import type { HttpTypes } from "@medusajs/types";
 import { useCart } from "@/components/cart/CartProvider";
 import { formatPrice, getDisplayPrice, formatDiscountPercent } from "@/lib/format";
+import { toggleWishlist, useIsInWishlist } from "@/lib/wishlist-client";
 
 type Product = HttpTypes.StoreProduct;
 
@@ -75,6 +76,7 @@ export function ProductCard({
 }) {
   const { addItem, loading } = useCart();
   const [busy, setBusy] = useState(false);
+  const wished = useIsInWishlist(product.id);
 
   const price = getDisplayPrice(product);
   const inStock = product.variants?.some(
@@ -144,11 +146,22 @@ export function ProductCard({
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
+            toggleWishlist(product.id);
           }}
-          aria-label="Add to wishlist"
-          className="absolute right-2 top-2 z-[4] flex h-7 w-7 items-center justify-center rounded-full bg-white/90 shadow-sm hover:bg-white"
+          aria-label={wished ? "Remove from wishlist" : "Add to wishlist"}
+          aria-pressed={wished}
+          className="absolute right-2 top-2 z-[4] flex h-7 w-7 items-center justify-center rounded-full bg-white/90 shadow-sm transition-colors hover:bg-white"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1c1010" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill={wished ? "#E5604A" : "none"}
+            stroke={wished ? "#E5604A" : "#1c1010"}
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
           </svg>
         </button>
