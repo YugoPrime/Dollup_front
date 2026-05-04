@@ -4,9 +4,11 @@ import { useEffect, useState, useTransition } from "react";
 import { formatPrice } from "@/lib/format";
 import type { OrderRow } from "@/lib/admin-orders";
 import { isAutoLine } from "@/lib/admin-order-lines";
+import { useMediaQuery } from "@/lib/use-media-query";
 import { updateOrderAction } from "../actions";
 import { hydrateOrderToForm, rid, useOrderForm } from "./useOrderForm";
 import { OrderFormLayout } from "./OrderRowFields";
+import { OrderEditDrawer } from "./OrderEditDrawer";
 
 export function RecentOrdersSheet({
   orders,
@@ -15,8 +17,27 @@ export function RecentOrdersSheet({
   orders: OrderRow[];
   onChanged: () => void;
 }) {
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [mobileEditingOrder, setMobileEditingOrder] = useState<OrderRow | null>(
+    null,
+  );
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
+
+  // If the user resizes from desktop → mobile while a row is being edited
+  // inline, the desktop table unmounts and `editingId` becomes stale. Clear it.
+  useEffect(() => {
+    if (!isDesktop) setEditingId(null);
+  }, [isDesktop]);
+
+  function handleEdit(o: OrderRow) {
+    setErrorBanner(null);
+    if (isDesktop) {
+      setEditingId(o.id);
+    } else {
+      setMobileEditingOrder(o);
+    }
+  }
 
   return (
     <section className="rounded-2xl border border-blush-400 bg-white p-3 shadow-sm sm:p-4">
@@ -29,7 +50,47 @@ export function RecentOrdersSheet({
       {orders.length === 0 && (
         <p className="mt-3 text-sm text-ink-muted">No orders yet.</p>
       )}
-      {orders.length > 0 && (
+      {!isDesktop && orders.length > 0 && (
+        <ul className="mt-3 divide-y divide-blush-300/40">
+          {orders.map((o) => {
+            const statusLabel =
+              o.status === "canceled"
+                ? "Cancelled"
+                : o.fulfillmentStatus === "fulfilled"
+                  ? "Delivered"
+                  : "Pending";
+            return (
+              <li key={o.id} className="flex items-center gap-3 py-2">
+                <button
+                  type="button"
+                  onClick={() => handleEdit(o)}
+                  aria-label={`Edit order #${o.displayId}`}
+                  className="text-coral-700 transition hover:text-coral-500"
+                >
+                  ✏️
+                </button>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-ink">
+                    #{o.displayId} · {o.buyerName || "—"}
+                  </p>
+                  <p className="truncate text-[11px] text-ink-muted">
+                    {o.phone ?? "—"} · {o.deliveryMethod ?? "—"}
+                  </p>
+                </div>
+                <div className="flex flex-col items-end">
+                  <span className="text-sm font-bold text-ink">
+                    {formatPrice(o.totalMur, "mur")}
+                  </span>
+                  <span className="text-[10px] uppercase tracking-wider text-ink-muted">
+                    {statusLabel}
+                  </span>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {isDesktop && orders.length > 0 && (
         <div className="mt-3 overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
@@ -72,10 +133,7 @@ export function RecentOrdersSheet({
                   <ReadOnlyRow
                     key={o.id}
                     order={o}
-                    onEdit={() => {
-                      setEditingId(o.id);
-                      setErrorBanner(null);
-                    }}
+                    onEdit={() => handleEdit(o)}
                   />
                 );
               })}
@@ -91,6 +149,15 @@ export function RecentOrdersSheet({
           {errorBanner}
         </p>
       )}
+      <OrderEditDrawer
+        open={mobileEditingOrder != null}
+        order={mobileEditingOrder}
+        onClose={() => setMobileEditingOrder(null)}
+        onSaved={() => {
+          setMobileEditingOrder(null);
+          onChanged();
+        }}
+      />
     </section>
   );
 }
