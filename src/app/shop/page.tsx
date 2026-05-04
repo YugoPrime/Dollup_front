@@ -6,6 +6,7 @@ import {
   getTagIdByValue,
   expandCategoryWithDescendants,
   getLatestCollectionTag,
+  getShopFacets,
 } from "@/lib/products";
 import { ProductCard } from "@/components/ProductCard";
 import { ShopFilterSidebar } from "@/components/shop/ShopFilterSidebar";
@@ -26,16 +27,11 @@ type SearchParams = Promise<{
   tag?: string;
   page?: string;
   on_sale?: string;
+  price_min?: string;
+  price_max?: string;
 }>;
 
 const PER_PAGE = 24;
-
-const SORT_MAP: Record<string, string | undefined> = {
-  new: "-created_at",
-  popular: undefined, // no popular metric in Medusa today; falls back to default order
-  "price-asc": "variants.calculated_price",
-  "price-desc": "-variants.calculated_price",
-};
 
 export default async function ShopPage({
   searchParams,
@@ -48,6 +44,10 @@ export default async function ShopPage({
   const tagValue = sp.tag ?? null;
   const sortKey = sp.sort ?? "new";
   const onSale = sp.on_sale === "1";
+  const sizeFilter = sp.size ?? undefined;
+  const colorFilter = sp.color ?? undefined;
+  const priceMin = sp.price_min ? Number(sp.price_min) : undefined;
+  const priceMax = sp.price_max ? Number(sp.price_max) : undefined;
   const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
 
   const [allCategories, latestCollection] = await Promise.all([
@@ -66,13 +66,22 @@ export default async function ShopPage({
 
   const tagId = tagValue ? await getTagIdByValue(tagValue).catch(() => null) : null;
 
-  const order = SORT_MAP[sortKey];
+  // Sort: "price-asc"/"price-desc" go through a server-side re-sort because
+  // Store API order on a computed field is unreliable. Other keys map to
+  // standard Medusa order strings.
+  let order: string | undefined;
+  let sortPrice: "asc" | "desc" | undefined;
+  if (sortKey === "price-asc") sortPrice = "asc";
+  else if (sortKey === "price-desc") sortPrice = "desc";
+  else if (sortKey === "new") order = "-created_at";
+  // "popular" falls through to default ordering — no popularity metric yet.
+
   const offset = (page - 1) * PER_PAGE;
 
-  let products: Awaited<ReturnType<typeof listProducts>>["products"] = [];
-  let total = 0;
-  try {
-    const res = await listProducts({
+  // Fetch facets in parallel with the product list so the sidebar always shows
+  // sizes/colors/price-range that exist within the current category/tag scope.
+  const [productsRes, facets] = await Promise.all([
+    listProducts({
       limit: PER_PAGE,
       offset,
       q,
@@ -80,12 +89,24 @@ export default async function ShopPage({
       tag: tagId ?? undefined,
       order,
       onSale,
-    });
-    products = res.products;
-    total = res.count;
-  } catch (err) {
-    console.error("Shop load failed:", err);
-  }
+      size: sizeFilter,
+      color: colorFilter,
+      priceMin,
+      priceMax,
+      sortPrice,
+    }).catch((err) => {
+      console.error("Shop load failed:", err);
+      return { products: [] as Awaited<ReturnType<typeof listProducts>>["products"], count: 0, region: null };
+    }),
+    getShopFacets({
+      q,
+      category: categoryFilter,
+      tag: tagId ?? undefined,
+      onSale,
+    }).catch(() => ({ sizes: [], colors: [], priceMin: 0, priceMax: 0 })),
+  ]);
+  const products = productsRes.products;
+  const total = productsRes.count;
 
   const title = q
     ? `Search: ${q}`
@@ -115,7 +136,15 @@ export default async function ShopPage({
       </div>
 
       {/* Mobile shell: chips, grid, sticky bar, sheet */}
-      <ShopMobileClient>
+      <ShopMobileClient
+        categories={allCategories.map((c) => ({
+          id: c.id,
+          name: c.name,
+          handle: c.handle,
+          parent_category_id: c.parent_category_id,
+        }))}
+        facets={facets}
+      >
         {products.length === 0 ? (
           <EmptyState />
         ) : (
@@ -131,8 +160,16 @@ export default async function ShopPage({
       </ShopMobileClient>
 
       {/* Desktop body */}
-      <div className="mx-auto hidden max-w-[1280px] gap-6 px-8 pb-12 pt-6 md:grid md:grid-cols-[230px_1fr]">
-        <ShopFilterSidebar />
+      <div className="mx-auto hidden max-w-[1280px] gap-6 px-8 pb-12 pt-6 md:grid md:grid-cols-[260px_1fr] md:items-start">
+        <ShopFilterSidebar
+          categories={allCategories.map((c) => ({
+            id: c.id,
+            name: c.name,
+            handle: c.handle,
+            parent_category_id: c.parent_category_id,
+          }))}
+          facets={facets}
+        />
         <div>
           {products.length === 0 ? (
             <EmptyState />
@@ -182,6 +219,8 @@ function Pagination({
     if (sp.color) params.set("color", sp.color);
     if (sp.tag) params.set("tag", sp.tag);
     if (sp.on_sale) params.set("on_sale", sp.on_sale);
+    if (sp.price_min) params.set("price_min", sp.price_min);
+    if (sp.price_max) params.set("price_max", sp.price_max);
     if (p > 1) params.set("page", String(p));
     const qs = params.toString();
     return qs ? `/shop?${qs}` : "/shop";

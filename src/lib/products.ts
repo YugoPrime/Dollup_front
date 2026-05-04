@@ -15,6 +15,15 @@ export type ListProductsArgs = {
   tag?: string;
   order?: string;
   onSale?: boolean;
+  // Server-side facet filters (Medusa Store API has no native equivalents)
+  size?: string;
+  color?: string;
+  priceMin?: number;
+  priceMax?: number;
+  // Sort price asc/desc client-side after fetch — Medusa Store API doesn't
+  // sort by computed `calculated_price` reliably, so when this is set we
+  // page through results and re-sort.
+  sortPrice?: "asc" | "desc";
 };
 
 export async function listProducts(args: ListProductsArgs = {}) {
@@ -36,8 +45,18 @@ export async function listProducts(args: ListProductsArgs = {}) {
   if (args.tag) baseQuery.tag_id = [args.tag];
   if (args.order) baseQuery.order = args.order;
 
-  if (args.onSale) {
-    return listOnSaleProducts(args, region);
+  // Any of these facet filters require fetching a wider pool and filtering
+  // in memory — Store API doesn't expose the equivalents.
+  const needsClientFilter =
+    args.onSale ||
+    args.size ||
+    args.color ||
+    args.priceMin != null ||
+    args.priceMax != null ||
+    args.sortPrice;
+
+  if (needsClientFilter) {
+    return listWithFacetFilters(args, region);
   }
 
   if (args.q) {
@@ -85,10 +104,11 @@ async function listWithSkuFallback(
   return { products, count: main.count + extra, region };
 }
 
-// On-sale filter: Medusa Store API can't filter by "has discount" directly, so
-// we page through products (catalog ~600 items) and keep ones whose first variant
-// has calculated_amount < original_amount — i.e. covered by a Sale price list.
-async function listOnSaleProducts(
+// Unified facet filter: Medusa Store API has no native filters for on-sale,
+// option values (size/color), or price range. So we page through the catalog
+// (cap 1200) applying the cheap server-side filters first (category/tag/q) and
+// then apply each enabled facet in memory. Slice to the requested page at the end.
+async function listWithFacetFilters(
   args: ListProductsArgs,
   region: Awaited<ReturnType<typeof getRegion>>,
 ) {
@@ -98,37 +118,220 @@ async function listOnSaleProducts(
     limit: 100,
     offset: 0,
   };
+  if (args.q) baseFilters.q = args.q;
   if (args.category) {
     baseFilters.category_id = Array.isArray(args.category) ? args.category : [args.category];
   }
   if (args.collection) baseFilters.collection_id = [args.collection];
   if (args.tag) baseFilters.tag_id = [args.tag];
-  if (args.order) baseFilters.order = args.order;
+  // Skip Store-side `order` if we're going to re-sort by price below — saves a wasted sort.
+  if (args.order && !args.sortPrice) baseFilters.order = args.order;
 
   const all: HttpTypes.StoreProduct[] = [];
-  const MAX_BATCHES = 12; // 12 × 100 = 1200 product cap, enough headroom for a ~600 catalog
+  const MAX_BATCHES = 12;
   for (let i = 0; i < MAX_BATCHES; i++) {
     const res = await sdk.store.product.list({ ...baseFilters, offset: i * 100 });
     all.push(...res.products);
     if (res.products.length < 100) break;
   }
 
-  const onSale = all.filter((p) =>
-    (p.variants ?? []).some((v) => {
-      const cp = (v as { calculated_price?: { calculated_amount?: number | null; original_amount?: number | null } | null }).calculated_price;
-      const c = cp?.calculated_amount;
-      const o = cp?.original_amount;
-      return typeof c === "number" && typeof o === "number" && c < o;
-    }),
-  );
+  let filtered = all;
+
+  if (args.onSale) {
+    filtered = filtered.filter((p) =>
+      (p.variants ?? []).some((v) => {
+        const cp = readCalculatedPrice(v);
+        const c = cp?.calculated_amount;
+        const o = cp?.original_amount;
+        return typeof c === "number" && typeof o === "number" && c < o;
+      }),
+    );
+  }
+
+  if (args.size) {
+    const target = args.size.toLowerCase();
+    filtered = filtered.filter((p) =>
+      (p.variants ?? []).some((v) =>
+        (v.options ?? []).some(
+          (o) =>
+            isSizeOption(o) &&
+            (o.value ?? "").toLowerCase() === target,
+        ),
+      ),
+    );
+  }
+
+  if (args.color) {
+    const target = args.color.toLowerCase();
+    filtered = filtered.filter((p) =>
+      (p.variants ?? []).some((v) =>
+        (v.options ?? []).some(
+          (o) =>
+            isColorOption(o) &&
+            (o.value ?? "").toLowerCase() === target,
+        ),
+      ),
+    );
+  }
+
+  if (args.priceMin != null || args.priceMax != null) {
+    const lo = args.priceMin ?? -Infinity;
+    const hi = args.priceMax ?? Infinity;
+    filtered = filtered.filter((p) => {
+      const amounts = (p.variants ?? [])
+        .map((v) => readCalculatedPrice(v)?.calculated_amount)
+        .filter((a): a is number => typeof a === "number");
+      if (!amounts.length) return false;
+      const min = Math.min(...amounts);
+      return min >= lo && min <= hi;
+    });
+  }
+
+  if (args.sortPrice) {
+    const dir = args.sortPrice === "asc" ? 1 : -1;
+    filtered = [...filtered].sort((a, b) => {
+      const ap = lowestPrice(a) ?? (dir > 0 ? Infinity : -Infinity);
+      const bp = lowestPrice(b) ?? (dir > 0 ? Infinity : -Infinity);
+      return (ap - bp) * dir;
+    });
+  }
 
   const limit = args.limit ?? 24;
   const offset = args.offset ?? 0;
   return {
-    products: onSale.slice(offset, offset + limit),
-    count: onSale.length,
+    products: filtered.slice(offset, offset + limit),
+    count: filtered.length,
     region,
   };
+}
+
+// --- helpers shared by listWithFacetFilters and getShopFacets ---
+
+type PriceRecord = {
+  calculated_amount?: number | null;
+  original_amount?: number | null;
+} | null;
+
+function readCalculatedPrice(v: HttpTypes.StoreProductVariant): PriceRecord {
+  return (v as { calculated_price?: PriceRecord }).calculated_price ?? null;
+}
+
+function lowestPrice(p: HttpTypes.StoreProduct): number | null {
+  const amounts = (p.variants ?? [])
+    .map((v) => readCalculatedPrice(v)?.calculated_amount)
+    .filter((a): a is number => typeof a === "number");
+  return amounts.length ? Math.min(...amounts) : null;
+}
+
+function isSizeOption(o: { option?: { title?: string | null } | null; option_id?: string | null }): boolean {
+  const title = o.option?.title ?? "";
+  return title.toLowerCase() === "size";
+}
+
+function isColorOption(o: { option?: { title?: string | null } | null; option_id?: string | null }): boolean {
+  const title = o.option?.title ?? "";
+  return title.toLowerCase() === "color";
+}
+
+function isVariantInStock(v: HttpTypes.StoreProductVariant): boolean {
+  if (!v.manage_inventory) return true;
+  return (v.inventory_quantity ?? 0) > 0;
+}
+
+// Returns the facets (sizes, colors, price min/max) available within the
+// user's current category / tag / on-sale scope so the sidebar can render
+// only what's actually buyable. Same fetch pattern as listWithFacetFilters
+// but doesn't apply the size/color/price filters — those are what we're
+// deriving the facets for.
+export type ShopFacets = {
+  sizes: string[];
+  colors: string[];
+  priceMin: number;
+  priceMax: number;
+};
+
+export async function getShopFacets(args: {
+  q?: string;
+  category?: string | string[];
+  tag?: string;
+  onSale?: boolean;
+}): Promise<ShopFacets> {
+  const region = await getRegion();
+  const baseFilters: HttpTypes.StoreProductListParams = {
+    region_id: region.id,
+    fields: PRODUCT_FIELDS,
+    limit: 100,
+    offset: 0,
+  };
+  if (args.q) baseFilters.q = args.q;
+  if (args.category) {
+    baseFilters.category_id = Array.isArray(args.category) ? args.category : [args.category];
+  }
+  if (args.tag) baseFilters.tag_id = [args.tag];
+
+  const all: HttpTypes.StoreProduct[] = [];
+  const MAX_BATCHES = 12;
+  for (let i = 0; i < MAX_BATCHES; i++) {
+    const res = await sdk.store.product.list({ ...baseFilters, offset: i * 100 });
+    all.push(...res.products);
+    if (res.products.length < 100) break;
+  }
+
+  let scoped = all;
+  if (args.onSale) {
+    scoped = scoped.filter((p) =>
+      (p.variants ?? []).some((v) => {
+        const cp = readCalculatedPrice(v);
+        const c = cp?.calculated_amount;
+        const o = cp?.original_amount;
+        return typeof c === "number" && typeof o === "number" && c < o;
+      }),
+    );
+  }
+
+  const sizes = new Set<string>();
+  const colors = new Set<string>();
+  let lo = Infinity;
+  let hi = -Infinity;
+
+  for (const p of scoped) {
+    for (const v of p.variants ?? []) {
+      if (!isVariantInStock(v)) continue;
+      for (const o of v.options ?? []) {
+        if (isSizeOption(o) && o.value) sizes.add(o.value);
+        if (isColorOption(o) && o.value) colors.add(o.value.toLowerCase());
+      }
+      const amt = readCalculatedPrice(v)?.calculated_amount;
+      if (typeof amt === "number") {
+        if (amt < lo) lo = amt;
+        if (amt > hi) hi = amt;
+      }
+    }
+  }
+
+  const sortedSizes = sortSizes([...sizes]);
+  const sortedColors = [...colors].sort();
+  return {
+    sizes: sortedSizes,
+    colors: sortedColors,
+    priceMin: lo === Infinity ? 0 : Math.floor(lo),
+    priceMax: hi === -Infinity ? 0 : Math.ceil(hi),
+  };
+}
+
+const SIZE_ORDER = [
+  "xxs", "xs", "xs/s", "s", "m", "l", "xl", "xl/2xl", "2xl", "xxl", "3xl", "xxxl", "4xl",
+  "free size", "freesize", "free-size", "one size",
+];
+function sortSizes(arr: string[]): string[] {
+  return [...arr].sort((a, b) => {
+    const ia = SIZE_ORDER.indexOf(a.toLowerCase());
+    const ib = SIZE_ORDER.indexOf(b.toLowerCase());
+    if (ia === -1 && ib === -1) return a.localeCompare(b);
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ia - ib;
+  });
 }
 
 // Returns the category id plus the ids of all its descendants. Used so that
