@@ -595,41 +595,12 @@ export function classifyOrderEdit(
     }
   }
 
-  // Detect delivery fee / discount / total override changes by reverse-engineering
-  // the auto-appended lines in the original order.
-  const deliveryLine = before.items.find((it) => /^Delivery\s—/.test(it.title));
-  const discountLine = before.items.find((it) => it.title === "Discount");
-  const adjustmentLine = before.items.find(
-    (it) => it.title === "Adjustment",
-  );
-  const oldDeliveryFee = deliveryLine ? deliveryLine.unitPriceMur : 0;
-  const oldDiscount = discountLine ? -discountLine.unitPriceMur : 0;
-  const realLinesSubtotal = realBeforeItems.reduce(
-    (s, it) => s + it.quantity * it.unitPriceMur,
-    0,
-  );
-  const oldComputedTotal =
-    realLinesSubtotal - oldDiscount + oldDeliveryFee;
-  const oldAdjustment = adjustmentLine ? adjustmentLine.unitPriceMur : 0;
-  const oldTotalOverride =
-    oldAdjustment !== 0 ? oldComputedTotal + oldAdjustment : null;
-
-  const nextDeliveryFee =
-    typeof next.deliveryFeeMur === "number" ? next.deliveryFeeMur : 0;
-  const nextDiscount =
-    typeof next.discountMur === "number" ? next.discountMur : 0;
-  const nextTotalOverride =
-    next.totalOverrideMur != null && Number.isFinite(next.totalOverrideMur)
-      ? next.totalOverrideMur
-      : null;
-
-  if (
-    nextDeliveryFee !== oldDeliveryFee ||
-    nextDiscount !== oldDiscount ||
-    nextTotalOverride !== oldTotalOverride
-  ) {
-    return { kind: "heavy", reason: "Delivery/discount/total changed" };
-  }
+  // Slice 3 deliberately does NOT compare deliveryFee / discount / totalOverride.
+  // Why: hydrateOrderToForm leaves those three inputs blank for inline edit, so
+  // every order with a non-zero discount or override would be flagged heavy on
+  // any edit (even fixing a phone typo). Slice 4 introduces editable money
+  // fields and a real before/after diff. Until then we only treat line item
+  // changes as heavy.
 
   // ----- Light patch building -----
   const patch: OrderLightPatch = {};
