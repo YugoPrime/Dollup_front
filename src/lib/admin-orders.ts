@@ -227,6 +227,15 @@ export async function searchCustomers(
     const existing = byPhone.get(phoneDigits);
     if (existing) {
       existing.orderCount += 1;
+      // Best-available fallback for identity fields: if the most recent
+      // entry was a quick DM order without a name / pseudo / email, fill
+      // from older orders that did have it. Address fields (city,
+      // addressDetails) deliberately keep most-recent to follow moves.
+      if (!existing.name && name) existing.name = name;
+      if (!existing.pseudo && typeof meta.pseudo === "string" && meta.pseudo) {
+        existing.pseudo = meta.pseudo;
+      }
+      if (!existing.email && o.email) existing.email = o.email;
     } else {
       byPhone.set(phoneDigits, {
         phone: phoneDigits,
