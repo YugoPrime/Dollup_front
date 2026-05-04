@@ -14,7 +14,13 @@ export function DateFilter({
   value: DateFilterValue;
   onChange: (v: DateFilterValue) => void;
 }) {
-  const [showCustom, setShowCustom] = useState(value.kind === "custom");
+  // Track the dropdown's intended selection separately so picking
+  // "Custom range…" doesn't snap visually back to the previous preset
+  // while the from/to inputs are still being edited.
+  const [intent, setIntent] = useState<string>(
+    value.kind === "preset" ? value.preset : value.kind,
+  );
+  const showCustom = intent === "custom";
   const [customFrom, setCustomFrom] = useState(
     value.kind === "custom" ? value.from : "",
   );
@@ -23,26 +29,22 @@ export function DateFilter({
   );
 
   function selectPreset(p: string) {
+    setIntent(p);
     if (p === "all") {
       onChange({ kind: "all" });
-      setShowCustom(false);
       return;
     }
-    if (p === "custom") {
-      setShowCustom(true);
-      return;
-    }
+    if (p === "custom") return; // wait for Apply
     onChange({
       kind: "preset",
       preset: p as "today" | "yesterday" | "last7" | "thisMonth",
     });
-    setShowCustom(false);
   }
 
   return (
     <div className="flex items-center gap-2">
       <select
-        value={value.kind === "preset" ? value.preset : value.kind}
+        value={intent}
         onChange={(e) => selectPreset(e.target.value)}
         className="rounded-md border-[1.5px] border-blush-400 bg-white px-2 py-1.5 text-xs"
       >

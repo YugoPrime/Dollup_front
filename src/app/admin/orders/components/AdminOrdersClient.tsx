@@ -26,7 +26,13 @@ export function AdminOrdersClient({
   const [dateFilter, setDateFilter] = useState<DateFilterValue>({
     kind: "all",
   });
-  const [offset, setOffset] = useState(initialOrders.length);
+  const PAGE_SIZE = 50;
+  // Offset advances by PAGE_SIZE per server fetch — the server pages by
+  // raw rows, so we must mirror that. Don't advance by visible-row count;
+  // that double-pulls rows that were already fetched but filtered out as
+  // replaced predecessors.
+  const [offset, setOffset] = useState(PAGE_SIZE);
+  const [errorBanner, setErrorBanner] = useState<string | null>(null);
   const [, startRefresh] = useTransition();
   const isFirstMount = useRef(true);
 
@@ -41,22 +47,26 @@ export function AdminOrdersClient({
   function reloadOrders(opts: { reset?: boolean } = {}) {
     startRefresh(async () => {
       try {
+        setErrorBanner(null);
         const queryParams = dateFilterToQuery(dateFilter);
         const nextOffset = opts.reset ? 0 : offset;
         const res = await searchOrdersAction({
           ...queryParams,
-          limit: 50,
+          limit: PAGE_SIZE,
           offset: nextOffset,
         });
         if (opts.reset) {
           setOrders(res);
-          setOffset(res.length);
+          setOffset(PAGE_SIZE);
         } else {
           setOrders((prev) => [...prev, ...res]);
-          setOffset(nextOffset + res.length);
+          setOffset(nextOffset + PAGE_SIZE);
         }
-      } catch {
-        // swallow — caller's UI already reflects success/failure
+      } catch (err) {
+        const msg =
+          err instanceof Error ? err.message : "Could not load orders";
+        console.error("[AdminOrdersClient.reloadOrders]", err);
+        setErrorBanner(msg);
       }
     });
   }
@@ -90,6 +100,14 @@ export function AdminOrdersClient({
         </div>
         <DateFilter value={dateFilter} onChange={setDateFilter} />
       </div>
+      {errorBanner && (
+        <p
+          role="alert"
+          className="rounded-lg border border-coral-500 bg-coral-300/30 px-3 py-1.5 text-sm text-coral-700"
+        >
+          {errorBanner}
+        </p>
+      )}
       {customerFilter && (
         <div className="flex flex-wrap items-center gap-2 rounded-md border border-blush-300 bg-blush-100/40 px-3 py-2 text-xs">
           <span>

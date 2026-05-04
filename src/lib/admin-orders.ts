@@ -274,15 +274,18 @@ export async function getRecentOrders(limit = 20): Promise<OrderRow[]> {
 }
 
 export type OrderQueryFilter = {
-  query?: string;
-  // yyyy-mm-dd. Interpreted as UTC date boundaries — for a Mauritius
-  // operator (UTC+4) this means "today" filter may be slightly off in the
-  // last 4 hours of local day. Acceptable for solo-founder UX.
+  // yyyy-mm-dd. Bounds use Mauritius local-day boundaries (UTC+4 fixed,
+  // no DST) so "Today" on the filter dropdown matches the operator's
+  // local calendar day.
   dateFrom?: string;
   dateTo?: string;
   limit?: number;
   offset?: number;
 };
+
+// Mauritius is UTC+4 with no DST. Build the +04:00 offset boundary
+// strings directly so a yyyy-mm-dd input maps to the correct UTC instant.
+const MU_OFFSET = "+04:00";
 
 export async function searchOrders(
   filter: OrderQueryFilter = {},
@@ -290,19 +293,26 @@ export async function searchOrders(
   const sdk = await getAdminSdk();
   const limit = filter.limit ?? 50;
   const offset = filter.offset ?? 0;
-  // Over-fetch so we can drop replaced predecessors without thinning the
-  // visible count.
-  const fetchLimit = Math.max(limit * 2, 50);
+  // Don't over-fetch + slice: the server pages by raw rows, so dropping
+  // replaced predecessors after a slice would leak duplicates into the
+  // next "Load older" call (those rows would still sit at offset
+  // limit..fetchLimit-1 server-side). Accept that a page may show fewer
+  // than `limit` visible rows when replacements exist; the operator can
+  // click "Load older" again.
   const params: Record<string, unknown> = {
-    limit: fetchLimit,
+    limit,
     offset,
     order: "-created_at",
     fields:
       "id,display_id,created_at,email,total,payment_status,fulfillment_status,status,metadata,*items,*shipping_address",
   };
   const createdAt: Record<string, string> = {};
-  if (filter.dateFrom) createdAt.$gte = `${filter.dateFrom}T00:00:00.000Z`;
-  if (filter.dateTo) createdAt.$lte = `${filter.dateTo}T23:59:59.999Z`;
+  if (filter.dateFrom) {
+    createdAt.$gte = `${filter.dateFrom}T00:00:00.000${MU_OFFSET}`;
+  }
+  if (filter.dateTo) {
+    createdAt.$lte = `${filter.dateTo}T23:59:59.999${MU_OFFSET}`;
+  }
   if (Object.keys(createdAt).length > 0) {
     params.created_at = createdAt;
   }
@@ -310,8 +320,7 @@ export async function searchOrders(
     params as Parameters<typeof sdk.admin.order.list>[0],
   );
   const all = (res.orders as HttpTypes.AdminOrder[]).map(mapOrder);
-  const visible = all.filter((o) => o.replacedByOrderId == null);
-  return visible.slice(0, limit);
+  return all.filter((o) => o.replacedByOrderId == null);
 }
 
 export type CreateOrderItemInput =
