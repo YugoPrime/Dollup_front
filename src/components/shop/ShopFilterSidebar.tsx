@@ -54,6 +54,18 @@ export function ShopFilterSidebar() {
         ))}
       </Group>
 
+      <Group label="Offers">
+        <label className="flex cursor-pointer items-center gap-2 py-1.5 font-sans text-[13px] text-ink">
+          <input
+            type="checkbox"
+            checked={has("on_sale", "1")}
+            onChange={() => setParam("on_sale", has("on_sale", "1") ? null : "1")}
+            className="accent-coral-500"
+          />
+          On sale
+        </label>
+      </Group>
+
       <Group label="Size">
         <div className="grid grid-cols-4 gap-1.5">
           {SIZES.map((s) => (

@@ -24,6 +24,7 @@ type SearchParams = Promise<{
   color?: string;
   tag?: string;
   page?: string;
+  on_sale?: string;
 }>;
 
 const PER_PAGE = 24;
@@ -45,6 +46,7 @@ export default async function ShopPage({
   const q = sp.q ?? undefined;
   const tagValue = sp.tag ?? null;
   const sortKey = sp.sort ?? "new";
+  const onSale = sp.on_sale === "1";
   const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
 
   const allCategories = await listCategories();
@@ -72,6 +74,7 @@ export default async function ShopPage({
       category: categoryFilter,
       tag: tagId ?? undefined,
       order,
+      onSale,
     });
     products = res.products;
     total = res.count;
@@ -81,7 +84,11 @@ export default async function ShopPage({
 
   const title = q
     ? `Search: ${q}`
-    : matchedCategory?.name ?? (tagValue ? `${tagValue} edit` : "All products");
+    : onSale
+      ? matchedCategory?.name
+        ? `${matchedCategory.name} on sale`
+        : "Sale"
+      : matchedCategory?.name ?? (tagValue ? `${tagValue} edit` : "All products");
 
   return (
     <main>
@@ -169,6 +176,7 @@ function Pagination({
     if (sp.size) params.set("size", sp.size);
     if (sp.color) params.set("color", sp.color);
     if (sp.tag) params.set("tag", sp.tag);
+    if (sp.on_sale) params.set("on_sale", sp.on_sale);
     if (p > 1) params.set("page", String(p));
     const qs = params.toString();
     return qs ? `/shop?${qs}` : "/shop";

@@ -10,6 +10,7 @@ export function ShopFilterChips({ onOpenFilters }: { onOpenFilters: () => void }
 
   const activeCategory = params.get("category");
   const sort = params.get("sort") ?? "new";
+  const onSale = params.get("on_sale") === "1";
 
   const setParam = (key: string, value: string | null) => {
     const next = new URLSearchParams(params.toString());
@@ -25,6 +26,16 @@ export function ShopFilterChips({ onOpenFilters }: { onOpenFilters: () => void }
         className="flex shrink-0 items-center gap-1.5 rounded-full border border-blush-300 bg-blush-100 px-3.5 py-2 font-sans text-[11px] font-semibold text-ink"
       >
         ⚙ Filters
+      </button>
+      <button
+        onClick={() => setParam("on_sale", onSale ? null : "1")}
+        className={`shrink-0 rounded-full border px-3.5 py-2 font-sans text-[11px] font-semibold ${
+          onSale
+            ? "border-coral-500 bg-coral-500 text-white"
+            : "border-blush-400 bg-white text-ink"
+        }`}
+      >
+        Sale{onSale && <span className="ml-1 opacity-80">×</span>}
       </button>
       {CATEGORIES.map((c) => (
         <button

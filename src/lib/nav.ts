@@ -9,7 +9,7 @@ export const NAV_LINKS: NavLink[] = [
   { label: "Lingerie", href: "/shop?category=lingerie" },
   { label: "Beachwear", href: "/shop?category=beachwear" },
   { label: "Accessories", href: "/shop?category=accessories" },
-  { label: "Sale", href: "/shop?sort=sale" },
+  { label: "Sale", href: "/shop?on_sale=1" },
 ];
 
 export const FOOTER_SHOP = [
@@ -18,7 +18,7 @@ export const FOOTER_SHOP = [
   { label: "Lingerie", href: "/shop?category=lingerie" },
   { label: "Beachwear", href: "/shop?category=beachwear" },
   { label: "Accessories", href: "/shop?category=accessories" },
-  { label: "Sale", href: "/shop?sort=sale" },
+  { label: "Sale", href: "/shop?on_sale=1" },
 ];
 
 export const FOOTER_HELP = [

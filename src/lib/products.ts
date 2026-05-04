@@ -14,26 +14,121 @@ export type ListProductsArgs = {
   collection?: string;
   tag?: string;
   order?: string;
+  onSale?: boolean;
 };
 
 export async function listProducts(args: ListProductsArgs = {}) {
   const region = await getRegion();
-  const query: HttpTypes.StoreProductListParams = {
-    limit: args.limit ?? 24,
-    offset: args.offset ?? 0,
+  const limit = args.limit ?? 24;
+  const offset = args.offset ?? 0;
+
+  const baseQuery: HttpTypes.StoreProductListParams = {
+    limit,
+    offset,
     region_id: region.id,
     fields: PRODUCT_FIELDS,
   };
-  if (args.q) query.q = args.q;
+  if (args.q) baseQuery.q = args.q;
   if (args.category) {
-    query.category_id = Array.isArray(args.category) ? args.category : [args.category];
+    baseQuery.category_id = Array.isArray(args.category) ? args.category : [args.category];
   }
-  if (args.collection) query.collection_id = [args.collection];
-  if (args.tag) query.tag_id = [args.tag];
-  if (args.order) query.order = args.order;
+  if (args.collection) baseQuery.collection_id = [args.collection];
+  if (args.tag) baseQuery.tag_id = [args.tag];
+  if (args.order) baseQuery.order = args.order;
 
-  const { products, count } = await sdk.store.product.list(query);
+  if (args.onSale) {
+    return listOnSaleProducts(args, region);
+  }
+
+  if (args.q) {
+    return listWithSkuFallback(args, region, baseQuery);
+  }
+
+  const { products, count } = await sdk.store.product.list(baseQuery);
   return { products, count, region };
+}
+
+// Store API's q only matches title/description, so a customer typing the parent
+// SKU (e.g. "IS520") finds nothing. Handles in this catalog are the lowercased
+// parent SKU (see inventory-audit/scripts/import-medusa.ts handleFromRef), so we
+// run a parallel exact-handle lookup and prepend it to the q result.
+async function listWithSkuFallback(
+  args: ListProductsArgs,
+  region: Awaited<ReturnType<typeof getRegion>>,
+  baseQuery: HttpTypes.StoreProductListParams,
+) {
+  const q = (args.q ?? "").trim();
+  // Skip handle lookup for multi-word queries — handles are single tokens.
+  const handleQuery = !q.includes(" ") ? q.toLowerCase() : null;
+
+  const handlePromise = handleQuery
+    ? sdk.store.product.list({
+        handle: handleQuery,
+        region_id: region.id,
+        fields: PRODUCT_FIELDS,
+        limit: 1,
+      })
+    : Promise.resolve({ products: [] as HttpTypes.StoreProduct[], count: 0 });
+
+  const [main, byHandle] = await Promise.all([
+    sdk.store.product.list(baseQuery),
+    handlePromise,
+  ]);
+
+  const products = [...main.products];
+  const handleHit = byHandle.products?.[0];
+  let extra = 0;
+  if (handleHit && !products.some((p) => p.id === handleHit.id)) {
+    products.unshift(handleHit);
+    extra = 1;
+  }
+  return { products, count: main.count + extra, region };
+}
+
+// On-sale filter: Medusa Store API can't filter by "has discount" directly, so
+// we page through products (catalog ~600 items) and keep ones whose first variant
+// has calculated_amount < original_amount — i.e. covered by a Sale price list.
+async function listOnSaleProducts(
+  args: ListProductsArgs,
+  region: Awaited<ReturnType<typeof getRegion>>,
+) {
+  const baseFilters: HttpTypes.StoreProductListParams = {
+    region_id: region.id,
+    fields: PRODUCT_FIELDS,
+    limit: 100,
+    offset: 0,
+  };
+  if (args.category) {
+    baseFilters.category_id = Array.isArray(args.category) ? args.category : [args.category];
+  }
+  if (args.collection) baseFilters.collection_id = [args.collection];
+  if (args.tag) baseFilters.tag_id = [args.tag];
+  if (args.order) baseFilters.order = args.order;
+
+  const all: HttpTypes.StoreProduct[] = [];
+  const MAX_BATCHES = 12; // 12 × 100 = 1200 product cap, enough headroom for a ~600 catalog
+  for (let i = 0; i < MAX_BATCHES; i++) {
+    const res = await sdk.store.product.list({ ...baseFilters, offset: i * 100 });
+    all.push(...res.products);
+    if (res.products.length < 100) break;
+  }
+
+  const onSale = all.filter((p) =>
+    (p.variants ?? []).some((v) => {
+      const cp = (v as { calculated_price?: { calculated_amount?: number | null; original_amount?: number | null } | null }).calculated_price;
+      const c = cp?.calculated_amount;
+      const o = cp?.original_amount;
+      return typeof c === "number" && typeof o === "number" && c < o;
+    }),
+  );
+
+  const limit = args.limit ?? 24;
+  const offset = args.offset ?? 0;
+  return {
+    products: onSale.slice(offset, offset + limit),
+    count: onSale.length,
+    region,
+  };
 }
 
 // Returns the category id plus the ids of all its descendants. Used so that
