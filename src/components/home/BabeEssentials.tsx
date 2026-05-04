@@ -5,6 +5,15 @@ import { formatPrice, getDisplayPrice } from "@/lib/format";
 
 type Product = HttpTypes.StoreProduct;
 
+// Per-handle homepage image override — kept separate from product.thumbnail so
+// the PDP gallery isn't bound to whatever marketing shot we want on the bento.
+const HOMEPAGE_IMAGE_OVERRIDES: Record<string, string> = {
+  is2382: "https://cdn.dollupboutique.com/homepage/babe-essentials/is2382.jpg",
+  is1362: "https://cdn.dollupboutique.com/homepage/babe-essentials/is1362.jpg",
+  is1361: "https://cdn.dollupboutique.com/homepage/babe-essentials/is1361.jpg",
+  is522: "https://cdn.dollupboutique.com/homepage/babe-essentials/is522.jpg",
+};
+
 function Tile({
   product,
   className,
@@ -14,7 +23,10 @@ function Tile({
   className?: string;
   big?: boolean;
 }) {
-  const img = product.thumbnail ?? product.images?.[0]?.url;
+  const img =
+    HOMEPAGE_IMAGE_OVERRIDES[product.handle ?? ""] ??
+    product.thumbnail ??
+    product.images?.[0]?.url;
   const price = getDisplayPrice(product);
   return (
     <Link

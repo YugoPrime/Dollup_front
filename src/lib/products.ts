@@ -529,9 +529,10 @@ export async function listFeatured(): Promise<HttpTypes.StoreProduct[]> {
   return recent.products.slice(0, 5);
 }
 
-// Babe Essentials products — hand-curated by handle.
+// Babe Essentials products — hand-curated by handle. Order matters: index 0 is
+// the big hero/portrait tile; the rest fill the small tiles + wide bottom.
 // Edit this list to swap which products appear in the home page mosaic.
-const ESSENTIALS_HANDLES = ["is1361", "is1362", "is520", "is522"];
+const ESSENTIALS_HANDLES = ["is2382", "is1362", "is1361", "is522"];
 
 /**
  * Returns the curated "Babe essentials" products for the home page mosaic.
