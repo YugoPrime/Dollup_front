@@ -86,6 +86,29 @@ export function AdminOrdersClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateFilter]);
 
+  // Close the mobile stock drawer if the layout grows past the desktop
+  // breakpoint, otherwise the drawer pops back open if the user later
+  // returns to mobile width.
+  useEffect(() => {
+    if (isDesktop) setStockOpen(false);
+  }, [isDesktop]);
+
+  // While the mobile drawer is open: lock body scroll, listen for Escape
+  // to close. No-ops on desktop (drawer never mounts there).
+  useEffect(() => {
+    if (!stockOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setStockOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [stockOpen]);
+
   const visibleOrders = customerFilter
     ? orders.filter(
         (o) => (o.phone ?? "").replace(/\D/g, "") === customerFilter.phone,
@@ -176,7 +199,12 @@ export function AdminOrdersClient({
 
       {/* MOBILE: bottom drawer for stock checker */}
       {!isDesktop && stockOpen && (
-        <div className="fixed inset-0 z-40 flex flex-col bg-black/40">
+        <div
+          className="fixed inset-0 z-50 flex flex-col bg-black/40"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Stock checker"
+        >
           <button
             type="button"
             onClick={() => setStockOpen(false)}
