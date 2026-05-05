@@ -28,14 +28,22 @@ export default async function AdminOrdersPage() {
             Inventory updates immediately. One device at a time to avoid races.
           </p>
         </div>
-        <form action={logoutAction}>
-          <button
-            type="submit"
+        <div className="flex items-center gap-2">
+          <a
+            href="/admin/prep"
             className="rounded-md border border-blush-400 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-ink-muted transition hover:text-coral-700"
           >
-            Sign out
-          </button>
-        </form>
+            → Prep
+          </a>
+          <form action={logoutAction}>
+            <button
+              type="submit"
+              className="rounded-md border border-blush-400 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-ink-muted transition hover:text-coral-700"
+            >
+              Sign out
+            </button>
+          </form>
+        </div>
       </header>
       {loadError && (
         <p
