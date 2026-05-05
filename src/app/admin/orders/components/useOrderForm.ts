@@ -11,6 +11,7 @@ import {
   isAutoLine,
 } from "@/lib/admin-order-lines";
 import type { CreateDmOrderInput, OrderRow } from "@/lib/admin-orders";
+import { getEffectiveStatus } from "@/lib/admin-orders-shared";
 import type { SelectedVariant } from "./StockChecker";
 
 export const PAYMENT_METHODS = [
@@ -70,7 +71,7 @@ export type FormState = {
   paymentMethod: (typeof PAYMENT_METHODS)[number];
   pointOfSale: (typeof POINTS_OF_SALE)[number];
   saleType: SaleType;
-  status: "" | "delivered" | "cancelled";
+  status: "" | "ready" | "delivered" | "cancelled";
   trackingNumber: string;
 };
 
@@ -114,12 +115,8 @@ export function rid() {
  * correctly.
  */
 export function hydrateOrderToForm(order: OrderRow): Partial<FormState> {
-  const status: FormState["status"] =
-    order.status === "canceled"
-      ? "cancelled"
-      : order.fulfillmentStatus === "fulfilled"
-        ? "delivered"
-        : "";
+  const eff = getEffectiveStatus(order);
+  const status: FormState["status"] = eff === "preparation" ? "" : eff;
   const discountLine = order.items.find((it) => it.title === DISCOUNT_TITLE);
   const adjustmentLine = order.items.find((it) => it.title === ADJUSTMENT_TITLE);
   const realLines = order.items.filter((it) => !isAutoLine(it.title));

@@ -19,7 +19,8 @@ import {
 import { VatBreakdown } from "./VatBreakdown";
 
 const STATUS_OPTIONS = [
-  { value: "", label: "— pending —" },
+  { value: "", label: "Preparation" },
+  { value: "ready", label: "Ready" },
   { value: "delivered", label: "Delivered" },
   { value: "cancelled", label: "Cancelled" },
 ];

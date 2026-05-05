@@ -110,15 +110,13 @@ export async function searchVariants(
   return hits;
 }
 
-export type DmStatus = "preparation" | "ready";
-export type EffectiveStatus = "preparation" | "ready" | "delivered" | "cancelled";
-
-export function getEffectiveStatus(row: OrderRow): EffectiveStatus {
-  if (row.status === "canceled") return "cancelled";
-  if (row.fulfillmentStatus === "fulfilled") return "delivered";
-  if (row.dmStatus === "ready") return "ready";
-  return "preparation";
-}
+import {
+  type DmStatus,
+  type EffectiveStatus,
+  getEffectiveStatus,
+} from "./admin-orders-shared";
+export type { DmStatus, EffectiveStatus };
+export { getEffectiveStatus };
 
 export type OrderRow = {
   id: string;
@@ -417,7 +415,7 @@ export type CreateDmOrderInput = {
   customNotes?: string;
   pseudo?: string;
   trackingNumber?: string;
-  status?: "delivered" | "cancelled";
+  status?: "delivered" | "cancelled" | "ready" | "preparation";
 };
 
 function synthesizeEmail(input: CreateDmOrderInput): string {
@@ -931,19 +929,21 @@ export function classifyOrderEdit(
     patch.saleType = next.saleType;
   }
 
-  // Status: form emits "delivered" | "cancelled" | undefined. Map back vs the
-  // current row state. We can move forward (-> cancelled / delivered) but
-  // never un-cancel or un-fulfill (those become no-ops).
-  if (next.status === "cancelled" && before.status !== "canceled") {
+  // Status: form emits "delivered" | "cancelled" | "ready" | "preparation" |
+  // undefined. Map back vs the current effective state. Forward-only for
+  // cancelled/delivered (no un-cancel or un-fulfil from the admin UI).
+  const effBefore = getEffectiveStatus(before);
+  if (next.status === "cancelled" && effBefore !== "cancelled") {
     patch.status = "cancelled";
-  } else if (
-    next.status === "delivered" &&
-    before.fulfillmentStatus !== "fulfilled"
-  ) {
+  } else if (next.status === "delivered" && effBefore !== "delivered") {
     patch.status = "delivered";
+  } else if (next.status === "ready" && effBefore !== "ready" && effBefore !== "cancelled" && effBefore !== "delivered") {
+    patch.status = "ready";
+  } else if ((next.status === "preparation" || !next.status) && effBefore === "ready") {
+    // Demotion from ready → preparation is allowed; cannot reverse cancelled/delivered.
+    patch.status = "preparation";
   }
-  // If next.status is empty and the order is currently cancelled/fulfilled,
-  // do not flag a patch — there is no reverse path in light edits.
+  // All other combinations are no-ops (e.g. trying to un-cancel).
 
   if (Object.keys(patch).length === 0) return { kind: "noop" };
   return { kind: "light", patch };
