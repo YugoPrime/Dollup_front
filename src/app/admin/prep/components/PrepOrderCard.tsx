@@ -12,20 +12,33 @@ import {
 
 const BY_POST_TAB: PrepTab = "by_post";
 
+function isOrderByPost(deliveryMethod: string | null): boolean {
+  if (!deliveryMethod) return false;
+  return (
+    deliveryMethod === "Postage" ||
+    deliveryMethod === "Express Postage" ||
+    deliveryMethod === "Rodrigues Postage"
+  );
+}
+
 export function PrepOrderCard({
   order,
   tab,
   onDone,
 }: {
   order: OrderRow;
-  tab: PrepTab;
+  // Optional — when omitted (e.g. "All" tab), the by-post branch is decided
+  // from the order's own delivery_method instead of the tab.
+  tab?: PrepTab;
   onDone: (orderId: string) => void;
 }) {
   const [tracking, setTracking] = useState(order.trackingNumber ?? "");
   const [isSaving, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  const isByPost = tab === BY_POST_TAB;
+  const isByPost =
+    tab === BY_POST_TAB ||
+    (tab === undefined && isOrderByPost(order.deliveryMethod));
   const actionLabel = isByPost ? "Mark Shipped" : "Mark Ready";
   const showTracking = isByPost;
   const lacksTracking = isByPost && !tracking.trim();
