@@ -2,6 +2,8 @@ import "server-only";
 import type { HttpTypes } from "@medusajs/types";
 import { getAdminSdk } from "./medusa-admin";
 import {
+  DM_DELIVERY_METHODS,
+  HOME_DELIVERY_FREE_THRESHOLD_MUR,
   type DmDeliveryMethod,
   computeDeliveryCost,
   computeVatAmount,
@@ -17,6 +19,21 @@ export const REGION_ID = "reg_01KN0AAX4FA592Q3HAY93W1AHV";
 export const SALES_CHANNEL_ID = "sc_01KN07JKHRN9DP25TM5S664C5W";
 export const STOCK_LOCATION_ID = "sloc_01KN48PYHQ0DTXXN2N0JWZSAYV";
 export const CURRENCY_CODE = "mur";
+
+// Backend shipping option IDs (Mauritius region, Default Shipping Profile,
+// Manual fulfillment provider). Default price comes from Medusa admin —
+// changing the price there flows to new orders automatically. We only pass
+// `custom_amount` when the operator overrides the fee or when the
+// "free Home Delivery over Rs 1500" rule kicks in.
+export const SHIPPING_OPTION_IDS: Record<DmDeliveryMethod, string> = {
+  "Pick Up": "so_01KN7026VDVZEGH4TX9TDQE4PA",
+  "Home Delivery": "so_01KN7026VC5TN711WFX5WJ42Y7",
+  "Postage": "so_01KN7026VC8N1SNK1RRP1DK14H",
+  "Express Postage": "so_01KN7026VD4JX2MACM6SK4PQR3",
+  "Rodrigues Postage": "so_01KQVHBYDRPW5M8AJRK123GJ9N",
+};
+// Compile-time check that the map covers every DmDeliveryMethod.
+void (DM_DELIVERY_METHODS satisfies readonly (keyof typeof SHIPPING_OPTION_IDS)[]);
 
 export type VariantHit = {
   variantId: string;
@@ -103,6 +120,10 @@ export type OrderRow = {
   city: string | null;
   addressDetails: string | null;
   totalMur: number;
+  // Resolved delivery fee in MUR. New orders read this from
+  // `shipping_methods[0].amount`; legacy orders fall back to the
+  // "Delivery — *" line item amount (see mapOrder). null if neither.
+  deliveryFeeMur: number | null;
   paymentStatus: string | null;
   fulfillmentStatus: string | null;
   status: string | null;
@@ -135,6 +156,23 @@ function mapOrder(o: HttpTypes.AdminOrder): OrderRow {
   const buyerName = ship
     ? [ship.first_name, ship.last_name].filter(Boolean).join(" ").trim()
     : "";
+  // Delivery fee resolution:
+  //   1. New orders carry it on shipping_methods[0].amount.
+  //   2. Legacy orders (created with the old code) carry it on a
+  //      "Delivery — *" line item — fall back to that for hydration.
+  const shippingMethods = (o as unknown as {
+    shipping_methods?: { amount?: number | null }[] | null;
+  }).shipping_methods;
+  const smAmount = shippingMethods?.[0]?.amount;
+  const legacyDeliveryLine = (o.items ?? []).find((it) =>
+    DELIVERY_LINE_RE.test(it.title ?? ""),
+  );
+  const deliveryFeeMur =
+    typeof smAmount === "number"
+      ? Math.round(Number(smAmount))
+      : legacyDeliveryLine
+        ? Math.round(Number(legacyDeliveryLine.unit_price ?? 0))
+        : null;
   return {
     id: o.id,
     displayId: o.display_id ?? 0,
@@ -145,6 +183,7 @@ function mapOrder(o: HttpTypes.AdminOrder): OrderRow {
     city: ship?.city ?? null,
     addressDetails: ship?.address_1 ?? null,
     totalMur: Math.round(Number(o.total ?? 0)),
+    deliveryFeeMur,
     paymentStatus: o.payment_status ?? null,
     fulfillmentStatus: o.fulfillment_status ?? null,
     status: o.status ?? null,
@@ -269,7 +308,7 @@ export async function getRecentOrders(limit = 20): Promise<OrderRow[]> {
     limit: fetchLimit,
     order: "-created_at",
     fields:
-      "id,display_id,created_at,email,total,payment_status,fulfillment_status,status,metadata,*items,*shipping_address",
+      "id,display_id,created_at,email,total,payment_status,fulfillment_status,status,metadata,*items,*shipping_address,*shipping_methods",
   });
   const all = (res.orders as HttpTypes.AdminOrder[]).map(mapOrder);
   // Drop orders that have been superseded by a heavy edit.
@@ -308,7 +347,7 @@ export async function searchOrders(
     offset,
     order: "-created_at",
     fields:
-      "id,display_id,created_at,email,total,payment_status,fulfillment_status,status,metadata,*items,*shipping_address",
+      "id,display_id,created_at,email,total,payment_status,fulfillment_status,status,metadata,*items,*shipping_address,*shipping_methods",
   };
   const createdAt: Record<string, string> = {};
   if (filter.dateFrom) {
@@ -380,14 +419,21 @@ export async function createDmOrder(
   );
   const discount = Math.max(0, Math.round(input.discountMur ?? 0));
   const subtotalAfterDiscount = subtotal - discount;
-  const autoDelivery = computeDeliveryCost(
-    input.deliveryMethod,
-    subtotalAfterDiscount,
-  );
-  const deliveryCost =
+
+  // Delivery cost: priority is operator override -> free-HD rule -> frontend
+  // `computeDeliveryCost` default. Medusa's create-draft-order endpoint
+  // requires `name` AND `amount` on each shipping_methods entry (despite the
+  // SDK type only listing shipping_option_id), so we always resolve to a
+  // concrete number and pass it through.
+  const isFreeHomeDelivery =
+    input.deliveryMethod === "Home Delivery" &&
+    subtotalAfterDiscount >= HOME_DELIVERY_FREE_THRESHOLD_MUR;
+  const deliveryCost: number =
     typeof input.deliveryFeeMur === "number"
       ? Math.max(0, Math.round(input.deliveryFeeMur))
-      : autoDelivery;
+      : isFreeHomeDelivery
+        ? 0
+        : computeDeliveryCost(input.deliveryMethod, subtotalAfterDiscount);
 
   const computedTotal = subtotalAfterDiscount + deliveryCost;
   const overrideTotal =
@@ -427,13 +473,6 @@ export async function createDmOrder(
       unit_price: -discount,
     });
   }
-  draftItems.push({
-    title: `Delivery — ${input.deliveryMethod}${
-      deliveryCost === 0 ? " (Free)" : ""
-    }`,
-    quantity: 1,
-    unit_price: deliveryCost,
-  });
   if (adjustment !== 0) {
     draftItems.push({
       title: ADJUSTMENT_TITLE,
@@ -473,6 +512,11 @@ export async function createDmOrder(
     metadata.vat_amount = computeVatAmount(finalTotalForVat);
   }
 
+  const shippingOptionId = SHIPPING_OPTION_IDS[input.deliveryMethod];
+  const shippingName = `${input.deliveryMethod}${
+    deliveryCost === 0 ? " (Free)" : ""
+  }`;
+
   const draftPayload: HttpTypes.AdminCreateDraftOrder = {
     email: synthesizeEmail(input),
     region_id: REGION_ID,
@@ -481,6 +525,18 @@ export async function createDmOrder(
     shipping_address: address,
     billing_address: address,
     items: draftItems,
+    // Medusa's draft-order create route requires `name` AND `amount` on each
+    // shipping_methods entry — the SDK type omits both. We cast through to
+    // pass them. `name` is the human-readable label that shows in the order
+    // UI; `amount` is the price in MUR (frontend-computed, may be a custom
+    // override or the `computeDeliveryCost` default).
+    shipping_methods: [
+      {
+        shipping_option_id: shippingOptionId,
+        name: shippingName,
+        amount: deliveryCost,
+      },
+    ] as unknown as HttpTypes.AdminCreateDraftOrder["shipping_methods"],
     metadata,
     no_notification_order: true,
   };
@@ -539,30 +595,30 @@ export async function createDmOrder(
   };
 }
 
-async function getOrderWithPayments(orderId: string): Promise<HttpTypes.AdminOrder> {
-  const sdk = await getAdminSdk();
-  const { order } = await sdk.admin.order.retrieve(orderId, {
-    fields:
-      "id,display_id,total,*items,*payment_collections,*payment_collections.payments",
-  });
-  return order;
-}
-
 export async function markOrderPaid(orderId: string): Promise<void> {
   const sdk = await getAdminSdk();
-  const order = await getOrderWithPayments(orderId);
-  const collections = (order as unknown as {
-    payment_collections?: {
-      payments?: { id: string; captured_at?: string | null; amount?: number }[];
-    }[];
-  }).payment_collections ?? [];
-  for (const pc of collections) {
-    for (const p of pc.payments ?? []) {
-      if (!p.captured_at) {
-        await sdk.admin.payment.capture(p.id, {});
-      }
-    }
-  }
+  // outstanding_amount = order total minus already-captured payments. For a
+  // freshly draft-converted order it equals the full total; the order has no
+  // payment collection yet so we have to create one before we can mark it
+  // paid via the manual provider.
+  const { order } = await sdk.admin.order.retrieve(orderId, {
+    fields: "id,total,outstanding_amount",
+  });
+  const outstanding = Math.round(
+    Number(
+      (order as unknown as { outstanding_amount?: number }).outstanding_amount ??
+        order.total ??
+        0,
+    ),
+  );
+  if (outstanding <= 0) return;
+  const { payment_collection } = await sdk.admin.paymentCollection.create({
+    order_id: orderId,
+    amount: outstanding,
+  });
+  await sdk.admin.paymentCollection.markAsPaid(payment_collection.id, {
+    order_id: orderId,
+  });
 }
 
 export async function markOrderFulfilled(orderId: string): Promise<void> {
@@ -734,17 +790,18 @@ export function classifyOrderEdit(
   }
 
   // Money diff (Slice 4): hydrateOrderToForm now populates deliveryFee /
-  // discountMur / totalOverride from the order's auto-appended lines, so a
-  // before/after comparison is meaningful. Any change here means we need to
-  // cancel + recreate so the order's invoice math is consistent.
-  const deliveryLine = before.items.find((it) =>
-    DELIVERY_LINE_RE.test(it.title),
-  );
+  // discountMur / totalOverride from the order's auto-appended lines and
+  // shipping_methods, so a before/after comparison is meaningful. Any change
+  // here means we need to cancel + recreate so the order's invoice math is
+  // consistent.
+  // Delivery: read from new OrderRow.deliveryFeeMur (sources from
+  // shipping_methods on new orders, falls back to legacy "Delivery — *" line
+  // item amount for old orders — the fallback lives in mapOrder).
   const discountLine = before.items.find((it) => it.title === DISCOUNT_TITLE);
   const adjustmentLine = before.items.find(
     (it) => it.title === ADJUSTMENT_TITLE,
   );
-  const oldDeliveryFee = deliveryLine?.unitPriceMur ?? 0;
+  const oldDeliveryFee = before.deliveryFeeMur ?? 0;
   const oldDiscount = discountLine ? -discountLine.unitPriceMur : 0;
   const realLines = before.items.filter((it) => !isAutoLine(it.title));
   const realSubtotal = realLines.reduce(

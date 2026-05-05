@@ -7,7 +7,6 @@ import {
 } from "@/lib/checkout";
 import {
   ADJUSTMENT_TITLE,
-  DELIVERY_LINE_RE,
   DISCOUNT_TITLE,
   isAutoLine,
 } from "@/lib/admin-order-lines";
@@ -121,7 +120,6 @@ export function hydrateOrderToForm(order: OrderRow): Partial<FormState> {
       : order.fulfillmentStatus === "fulfilled"
         ? "delivered"
         : "";
-  const deliveryLine = order.items.find((it) => DELIVERY_LINE_RE.test(it.title));
   const discountLine = order.items.find((it) => it.title === DISCOUNT_TITLE);
   const adjustmentLine = order.items.find((it) => it.title === ADJUSTMENT_TITLE);
   const realLines = order.items.filter((it) => !isAutoLine(it.title));
@@ -129,7 +127,10 @@ export function hydrateOrderToForm(order: OrderRow): Partial<FormState> {
     (s, it) => s + it.quantity * it.unitPriceMur,
     0,
   );
-  const deliveryFeeMur = deliveryLine?.unitPriceMur ?? 0;
+  // Delivery fee comes from OrderRow.deliveryFeeMur — populated from
+  // shipping_methods on new orders, falls back to legacy "Delivery — *" line
+  // item amount for orders created before the shipping_methods migration.
+  const deliveryFeeMur = order.deliveryFeeMur ?? 0;
   const discountMur = discountLine ? -discountLine.unitPriceMur : 0;
   // Detect override by line existence (not adjustment value): a stored
   // adjustment line is the canonical signal that the operator overrode the
@@ -137,13 +138,25 @@ export function hydrateOrderToForm(order: OrderRow): Partial<FormState> {
   const totalOverrideMur = adjustmentLine
     ? realSubtotal - discountMur + deliveryFeeMur + adjustmentLine.unitPriceMur
     : null;
+  // Address Details / city fallback unwind: createDmOrder writes city into
+  // address_1 when the operator left Address Details empty. If we hydrate
+  // that back into the form's address2 field as-is, a later city edit would
+  // leave address_1 stuck on the OLD city. So when the stored value equals
+  // the city, treat it as a fallback and show the field empty — a city edit
+  // then correctly re-applies the fallback with the new city. False-positive
+  // risk (operator legitimately typed the city as the street) is acceptable
+  // since saving with the field empty produces the same result anyway.
+  const addressIsCityFallback =
+    !!order.addressDetails &&
+    !!order.city &&
+    order.addressDetails.trim() === order.city.trim();
   return {
     deliveryDate: order.deliveryDate ?? "",
     deliveryMethod: (order.deliveryMethod ?? "Pick Up") as DmDeliveryMethod,
     buyerName: order.buyerName,
     pseudo: order.pseudo ?? "",
     city: order.city ?? "",
-    address2: order.addressDetails ?? "",
+    address2: addressIsCityFallback ? "" : (order.addressDetails ?? ""),
     phone: order.phone ?? "",
     email: order.email ?? "",
     customNotes: order.customNotes ?? "",
