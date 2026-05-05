@@ -116,7 +116,8 @@ export type EffectiveStatus = "preparation" | "ready" | "delivered" | "cancelled
 export function getEffectiveStatus(row: OrderRow): EffectiveStatus {
   if (row.status === "canceled") return "cancelled";
   if (row.fulfillmentStatus === "fulfilled") return "delivered";
-  return row.dmStatus;
+  if (row.dmStatus === "ready") return "ready";
+  return "preparation";
 }
 
 export type OrderRow = {
@@ -220,10 +221,7 @@ function mapOrder(o: HttpTypes.AdminOrder): OrderRow {
       typeof meta.replaces_display_id === "number"
         ? meta.replaces_display_id
         : null,
-    dmStatus: ((): DmStatus => {
-      const v = meta.dm_status;
-      return v === "ready" ? "ready" : "preparation";
-    })(),
+    dmStatus: readDmStatus(meta),
     items: (o.items ?? []).map((it) => {
       const itAny = it as unknown as {
         variant_sku?: string | null;
@@ -666,14 +664,22 @@ export async function markOrderFulfilled(orderId: string): Promise<void> {
   });
 }
 
-export async function markOrderReady(orderId: string): Promise<void> {
+async function setDmStatus(orderId: string, status: DmStatus): Promise<void> {
   const sdk = await getAdminSdk();
   const { order } = await sdk.admin.order.retrieve(orderId, {
     fields: "id,metadata",
   });
   const meta = { ...(order.metadata ?? {}) } as Record<string, unknown>;
-  meta.dm_status = "ready";
+  meta.dm_status = status;
   await sdk.admin.order.update(orderId, { metadata: meta });
+}
+
+function readDmStatus(meta: Record<string, unknown>): DmStatus {
+  return meta.dm_status === "ready" ? "ready" : "preparation";
+}
+
+export async function markOrderReady(orderId: string): Promise<void> {
+  await setDmStatus(orderId, "ready");
 }
 
 export async function markOrderShipped(orderId: string): Promise<void> {
@@ -808,13 +814,8 @@ export async function updateOrderLight(
   } else if (patch.status === "ready") {
     await markOrderReady(orderId);
   } else if (patch.status === "preparation") {
-    // Roll back to preparation: clear ready flag. Cannot un-cancel or un-fulfill.
-    const { order } = await sdk.admin.order.retrieve(orderId, {
-      fields: "id,metadata",
-    });
-    const meta = { ...(order.metadata ?? {}) } as Record<string, unknown>;
-    meta.dm_status = "preparation";
-    await sdk.admin.order.update(orderId, { metadata: meta });
+    // Demotion from ready → preparation. Cannot recover from cancelled/delivered.
+    await setDmStatus(orderId, "preparation");
   }
   // "pending" is a no-op — we cannot un-cancel or un-fulfill from the admin UI.
 }
