@@ -110,6 +110,15 @@ export async function searchVariants(
   return hits;
 }
 
+export type DmStatus = "preparation" | "ready";
+export type EffectiveStatus = "preparation" | "ready" | "delivered" | "cancelled";
+
+export function getEffectiveStatus(row: OrderRow): EffectiveStatus {
+  if (row.status === "canceled") return "cancelled";
+  if (row.fulfillmentStatus === "fulfilled") return "delivered";
+  return row.dmStatus;
+}
+
 export type OrderRow = {
   id: string;
   displayId: number;
@@ -127,6 +136,7 @@ export type OrderRow = {
   paymentStatus: string | null;
   fulfillmentStatus: string | null;
   status: string | null;
+  dmStatus: DmStatus;
   paymentMethod: string | null;
   pointOfSale: string | null;
   saleType: string | null;
@@ -145,6 +155,8 @@ export type OrderRow = {
     variantId: string | null;
     sku: string | null;
     title: string;
+    variantTitle: string | null;
+    thumbnail: string | null;
     quantity: number;
     unitPriceMur: number;
   }[];
@@ -208,16 +220,30 @@ function mapOrder(o: HttpTypes.AdminOrder): OrderRow {
       typeof meta.replaces_display_id === "number"
         ? meta.replaces_display_id
         : null,
-    items: (o.items ?? []).map((it) => ({
-      id: it.id,
-      variantId: it.variant_id ?? null,
-      sku: typeof (it as { variant_sku?: string | null }).variant_sku === "string"
-        ? ((it as { variant_sku?: string | null }).variant_sku ?? null)
-        : null,
-      title: it.product_title ?? it.title ?? "Item",
-      quantity: it.quantity,
-      unitPriceMur: Math.round(Number(it.unit_price ?? 0)),
-    })),
+    dmStatus: ((): DmStatus => {
+      const v = meta.dm_status;
+      return v === "ready" ? "ready" : "preparation";
+    })(),
+    items: (o.items ?? []).map((it) => {
+      const itAny = it as unknown as {
+        variant_sku?: string | null;
+        variant_title?: string | null;
+        thumbnail?: string | null;
+        variant?: { title?: string | null } | null;
+      };
+      return {
+        id: it.id,
+        variantId: it.variant_id ?? null,
+        sku: typeof itAny.variant_sku === "string" ? itAny.variant_sku : null,
+        title: it.product_title ?? it.title ?? "Item",
+        variantTitle:
+          itAny.variant?.title ??
+          (typeof itAny.variant_title === "string" ? itAny.variant_title : null),
+        thumbnail: typeof itAny.thumbnail === "string" ? itAny.thumbnail : null,
+        quantity: it.quantity,
+        unitPriceMur: Math.round(Number(it.unit_price ?? 0)),
+      };
+    }),
   };
 }
 
@@ -308,7 +334,7 @@ export async function getRecentOrders(limit = 20): Promise<OrderRow[]> {
     limit: fetchLimit,
     order: "-created_at",
     fields:
-      "id,display_id,created_at,email,total,payment_status,fulfillment_status,status,metadata,*items,*shipping_address,*shipping_methods",
+      "id,display_id,created_at,email,total,payment_status,fulfillment_status,status,metadata,*items,items.thumbnail,items.variant.title,*shipping_address,*shipping_methods",
   });
   const all = (res.orders as HttpTypes.AdminOrder[]).map(mapOrder);
   // Drop orders that have been superseded by a heavy edit.
@@ -347,7 +373,7 @@ export async function searchOrders(
     offset,
     order: "-created_at",
     fields:
-      "id,display_id,created_at,email,total,payment_status,fulfillment_status,status,metadata,*items,*shipping_address,*shipping_methods",
+      "id,display_id,created_at,email,total,payment_status,fulfillment_status,status,metadata,*items,items.thumbnail,items.variant.title,*shipping_address,*shipping_methods",
   };
   const createdAt: Record<string, string> = {};
   if (filter.dateFrom) {
@@ -498,6 +524,7 @@ export async function createDmOrder(
     sale_type: input.saleType,
     delivery_method: input.deliveryMethod,
     source: "dm_admin",
+    dm_status: "preparation",
   };
   if (input.deliveryDate) metadata.delivery_date = input.deliveryDate;
   if (input.notes) metadata.notes = input.notes;
@@ -639,6 +666,21 @@ export async function markOrderFulfilled(orderId: string): Promise<void> {
   });
 }
 
+export async function markOrderReady(orderId: string): Promise<void> {
+  const sdk = await getAdminSdk();
+  const { order } = await sdk.admin.order.retrieve(orderId, {
+    fields: "id,metadata",
+  });
+  const meta = { ...(order.metadata ?? {}) } as Record<string, unknown>;
+  meta.dm_status = "ready";
+  await sdk.admin.order.update(orderId, { metadata: meta });
+}
+
+export async function markOrderShipped(orderId: string): Promise<void> {
+  await markOrderReady(orderId);
+  await markOrderFulfilled(orderId);
+}
+
 export async function cancelOrder(orderId: string): Promise<void> {
   const sdk = await getAdminSdk();
   await sdk.admin.order.cancel(orderId);
@@ -665,7 +707,7 @@ export type OrderLightPatch = {
   pointOfSale?: string;
   saleType?: "paid" | "unpaid" | "deposit";
   // status changes
-  status?: "delivered" | "cancelled" | "pending";
+  status?: "delivered" | "cancelled" | "pending" | "ready" | "preparation";
 };
 
 export type OrderEditDiff =
@@ -763,6 +805,16 @@ export async function updateOrderLight(
     await sdk.admin.order.cancel(orderId);
   } else if (patch.status === "delivered") {
     await markOrderFulfilled(orderId);
+  } else if (patch.status === "ready") {
+    await markOrderReady(orderId);
+  } else if (patch.status === "preparation") {
+    // Roll back to preparation: clear ready flag. Cannot un-cancel or un-fulfill.
+    const { order } = await sdk.admin.order.retrieve(orderId, {
+      fields: "id,metadata",
+    });
+    const meta = { ...(order.metadata ?? {}) } as Record<string, unknown>;
+    meta.dm_status = "preparation";
+    await sdk.admin.order.update(orderId, { metadata: meta });
   }
   // "pending" is a no-op — we cannot un-cancel or un-fulfill from the admin UI.
 }
