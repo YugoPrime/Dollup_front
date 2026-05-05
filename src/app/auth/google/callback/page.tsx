@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function GoogleCallbackPage() {
   return (
-    <main className="mx-auto flex min-h-[60vh] max-w-md flex-col items-center justify-center px-4 py-12">
+    <div className="mx-auto flex min-h-[60vh] max-w-md flex-col items-center justify-center px-4 py-12">
       <Suspense
         fallback={
           <p className="font-sans text-sm text-ink-muted">
@@ -19,6 +19,6 @@ export default function GoogleCallbackPage() {
       >
         <GoogleCallbackClient />
       </Suspense>
-    </main>
+    </div>
   );
 }

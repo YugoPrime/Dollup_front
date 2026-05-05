@@ -28,15 +28,15 @@ export function AccountClient() {
 
   if (status === "loading" || !customer) {
     return (
-      <main className="mx-auto max-w-[1100px] px-4 py-12 md:px-8">
+      <div className="mx-auto max-w-[1100px] px-4 py-12 md:px-8">
         <div className="h-8 w-40 animate-pulse rounded bg-blush-100" />
         <div className="mt-6 h-48 animate-pulse rounded-xl bg-blush-100" />
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="mx-auto max-w-[1100px] px-4 py-8 md:px-8 md:py-12">
+    <div className="mx-auto max-w-[1100px] px-4 py-8 md:px-8 md:py-12">
       <nav
         aria-label="Breadcrumb"
         className="mb-3 font-sans text-[10px] font-bold uppercase tracking-wider text-ink-muted"
@@ -79,7 +79,7 @@ export function AccountClient() {
       <div className="mt-6">
         <AddressesCard customer={customer} />
       </div>
-    </main>
+    </div>
   );
 }
 

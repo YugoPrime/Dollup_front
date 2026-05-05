@@ -44,3 +44,9 @@ next-env.d.ts
 .claude/
 .superpowers/
 .design-reference/
+
+# screenshots / test artifacts at repo root (not committed)
+/.playwright-mcp/
+/live-*.png
+/home-after.png
+/shop-after.png

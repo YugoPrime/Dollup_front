@@ -3,6 +3,7 @@
 import { useEffect, useSyncExternalStore } from "react";
 import type { HttpTypes } from "@medusajs/types";
 import { clientSdk, MEDUSA_JWT_KEY } from "@/lib/cart-client";
+import { safeRedirectPath } from "@/lib/safe-redirect";
 
 export type Customer = HttpTypes.StoreCustomer;
 export type AuthState = {
@@ -92,14 +93,13 @@ export async function register(args: {
 // with `code` and `state` query params; that page calls completeGoogleCallback.
 export async function startGoogleLogin(redirectAfter?: string): Promise<void> {
   if (typeof window === "undefined") return;
-  if (redirectAfter) {
-    sessionStorage.setItem("dub_auth_redirect", redirectAfter);
-  }
+  const redirect = safeRedirectPath(redirectAfter);
+  sessionStorage.setItem("dub_auth_redirect", redirect);
   const result = await clientSdk.auth.login("customer", "google", {});
   if (typeof result === "string") {
     // Backend gave us a token directly (no redirect needed) — e.g. dev shortcut.
     await refreshCustomer();
-    window.location.href = redirectAfter ?? "/account";
+    window.location.href = redirect;
     return;
   }
   window.location.href = result.location;
@@ -131,7 +131,7 @@ export async function completeGoogleCallback(
   if (typeof window !== "undefined") {
     const stored = sessionStorage.getItem("dub_auth_redirect");
     if (stored) {
-      redirect = stored;
+      redirect = safeRedirectPath(stored);
       sessionStorage.removeItem("dub_auth_redirect");
     }
   }

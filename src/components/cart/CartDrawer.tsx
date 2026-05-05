@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useEffect } from "react";
+import { FocusTrapLayer } from "@/components/a11y/FocusTrapLayer";
 import { useCart } from "./CartProvider";
 import { formatPrice } from "@/lib/format";
 
@@ -16,22 +18,32 @@ export function CartDrawer() {
   const remaining = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
   const progress = Math.min(100, (subtotal / FREE_SHIPPING_THRESHOLD) * 100);
 
+  useEffect(() => {
+    if (!open) return;
+    const original = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = original;
+    };
+  }, [open]);
+
+  if (!open) return null;
+
   return (
-    <>
+    <FocusTrapLayer
+      ariaLabel="Cart"
+      className="fixed inset-0 z-[200]"
+      onDeactivate={() => setOpen(false)}
+    >
       <button
         type="button"
-        aria-hidden={!open}
-        tabIndex={open ? 0 : -1}
+        aria-hidden="true"
+        tabIndex={-1}
         onClick={() => setOpen(false)}
-        className={`fixed inset-0 z-[200] bg-ink/45 backdrop-blur-[2px] transition-opacity duration-300 ${
-          open ? "opacity-100" : "pointer-events-none opacity-0"
-        }`}
+        className="fixed inset-0 bg-ink/45 backdrop-blur-[2px]"
       />
       <aside
-        aria-label="Cart"
-        className={`fixed top-0 right-0 bottom-0 z-[201] flex w-full max-w-[400px] flex-col bg-white shadow-[-8px_0_40px_rgba(0,0,0,0.12)] transition-transform duration-300 ease-out ${
-          open ? "translate-x-0" : "translate-x-full"
-        }`}
+        className="fixed bottom-0 right-0 top-0 z-[201] flex w-full max-w-[400px] flex-col bg-white shadow-[-8px_0_40px_rgba(0,0,0,0.12)]"
       >
         <header className="flex items-center justify-between border-b border-blush-400 px-6 py-5">
           <h2 className="font-display text-lg font-semibold text-ink">
@@ -42,7 +54,7 @@ export function CartDrawer() {
           </h2>
           <button
             onClick={() => setOpen(false)}
-            className="rounded p-1.5 text-ink-soft hover:bg-blush-100"
+            className="flex h-11 w-11 items-center justify-center rounded text-ink-soft hover:bg-blush-100"
             aria-label="Close cart"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
@@ -99,17 +111,19 @@ export function CartDrawer() {
                             updateItem(item.id, Math.max(1, item.quantity - 1))
                           }
                           disabled={loading}
-                          className="flex h-7 w-7 items-center justify-center text-base text-ink-soft hover:bg-blush-100"
+                          className="flex h-11 w-11 items-center justify-center text-base text-ink-soft hover:bg-blush-100"
+                          aria-label={`Decrease quantity of ${item.product_title}`}
                         >
                           −
                         </button>
-                        <span className="w-7 text-center text-[13px] font-medium">
+                        <span className="w-8 text-center text-[13px] font-medium">
                           {item.quantity}
                         </span>
                         <button
                           onClick={() => updateItem(item.id, item.quantity + 1)}
                           disabled={loading}
-                          className="flex h-7 w-7 items-center justify-center text-base text-ink-soft hover:bg-blush-100"
+                          className="flex h-11 w-11 items-center justify-center text-base text-ink-soft hover:bg-blush-100"
+                          aria-label={`Increase quantity of ${item.product_title}`}
                         >
                           +
                         </button>
@@ -121,8 +135,8 @@ export function CartDrawer() {
                   </div>
                   <button
                     onClick={() => removeItem(item.id)}
-                    aria-label="Remove"
-                    className="absolute right-0 top-0 p-1 text-coral-300 hover:text-coral-500"
+                    aria-label={`Remove ${item.product_title}`}
+                    className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center text-coral-300 hover:text-coral-500"
                   >
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                       <line x1="18" y1="6" x2="6" y2="18" />
@@ -182,6 +196,6 @@ export function CartDrawer() {
           </>
         )}
       </aside>
-    </>
+    </FocusTrapLayer>
   );
 }

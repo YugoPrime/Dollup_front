@@ -38,7 +38,8 @@ export const FOOTER_HELP = [
   { label: "Contact Us", href: "/contact" },
   { label: "Size Guide", href: "/size-guide" },
   { label: "FAQ", href: "/faq" },
-  { label: "Shipping", href: "/faq#shipping" },
+  { label: "Shipping", href: "/shipping" },
+  { label: "Returns", href: "/returns" },
 ];
 
 export const FOOTER_ABOUT = [
@@ -48,3 +49,16 @@ export const FOOTER_ABOUT = [
   { label: "Loyalty Programme", href: "/loyalty" },
   { label: "Wishlist", href: "/wishlist" },
 ];
+
+export const FOOTER_LEGAL = [
+  { label: "Privacy Policy", href: "/privacy" },
+  { label: "Terms & Conditions", href: "/terms" },
+  { label: "Returns Policy", href: "/returns" },
+];
+
+export const SOCIAL_LINKS = {
+  instagram: "https://www.instagram.com/dollupboutique/",
+  facebook: "https://www.facebook.com/dollupboutique/",
+  tiktok: "https://www.tiktok.com/@dollupboutique",
+  whatsapp: "https://wa.me/23059416359",
+};

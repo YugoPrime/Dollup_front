@@ -31,26 +31,24 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
   const { product } = await getProductByHandle(handle);
   if (!product) notFound();
 
-  // "You may also like" pulls a random sample from the catalog (per user request:
-  // not just same-category). Fetch a wide pool, shuffle, take 5.
+  // "You may also like" pulls a light sample from recent catalog items.
   let related: Awaited<ReturnType<typeof listProducts>>["products"] = [];
   let latestTag: string | null = null;
   try {
     const [pool, tag] = await Promise.all([
-      listProducts({ limit: 60, order: "-created_at" }),
+      listProducts({ limit: 12, order: "-created_at" }),
       getLatestCollectionTag().catch(() => null),
     ]);
     latestTag = tag?.value ?? null;
     related = pool.products
       .filter((p) => p.id !== product.id)
-      .sort(() => Math.random() - 0.5)
       .slice(0, 5);
   } catch {
     // empty related is fine — section hides itself
   }
 
   return (
-    <main>
+    <div>
       <nav aria-label="Breadcrumb" className="px-4 py-3 font-sans text-[10px] font-bold uppercase tracking-wider text-ink-muted md:px-8 md:py-4">
         <Link href="/" className="hover:text-coral-500">Home</Link>
         <span className="mx-1.5 text-blush-400">/</span>
@@ -83,6 +81,6 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
       <YouMayAlsoLike products={related} latestCollectionTag={latestTag} />
 
       <StickyATC product={product} watchElementId="pdp-buy-anchor" />
-    </main>
+    </div>
   );
 }

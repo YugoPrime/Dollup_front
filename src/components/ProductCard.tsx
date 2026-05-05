@@ -150,7 +150,7 @@ export function ProductCard({
           }}
           aria-label={wished ? "Remove from wishlist" : "Add to wishlist"}
           aria-pressed={wished}
-          className="absolute right-2 top-2 z-[4] flex h-7 w-7 items-center justify-center rounded-full bg-white/90 shadow-sm transition-colors hover:bg-white"
+          className="absolute right-2 top-2 z-[4] flex h-11 w-11 items-center justify-center rounded-full bg-white/90 shadow-sm transition-colors hover:bg-white"
         >
           <svg
             width="14"
@@ -182,7 +182,7 @@ export function ProductCard({
             <button
               onClick={onQuickAdd}
               disabled={busy || loading}
-              className="w-full rounded-md bg-white py-2 font-sans text-[10px] font-bold uppercase tracking-wider text-ink shadow-sm hover:bg-blush-100 disabled:opacity-60"
+              className="min-h-11 w-full rounded-md bg-white py-2 font-sans text-[10px] font-bold uppercase tracking-wider text-ink shadow-sm hover:bg-blush-100 disabled:opacity-60"
             >
               {busy ? "Adding…" : isMultiVariant ? "Select size" : "+ Quick Add"}
             </button>

@@ -47,7 +47,7 @@ export function WishlistClient() {
   }, [ids]);
 
   return (
-    <main className="mx-auto max-w-[1280px] px-4 py-8 md:px-8 md:py-12">
+    <div className="mx-auto max-w-[1280px] px-4 py-8 md:px-8 md:py-12">
       <nav aria-label="Breadcrumb" className="mb-3 font-sans text-[10px] font-bold uppercase tracking-wider text-ink-muted">
         <Link href="/" className="hover:text-coral-500">Home</Link>
         <span className="mx-1.5 text-blush-400">/</span>
@@ -87,7 +87,7 @@ export function WishlistClient() {
           ))}
         </div>
       )}
-    </main>
+    </div>
   );
 }
 

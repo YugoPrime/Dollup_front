@@ -10,7 +10,7 @@ import { WishlistAuthSync } from "@/components/wishlist/WishlistAuthSync";
 const playfair = Playfair_Display({
   variable: "--font-playfair",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400"],
   style: ["normal", "italic"],
   display: "swap",
 });
@@ -42,10 +42,13 @@ export default function RootLayout({
       className={`${playfair.variable} ${dmSans.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <a href="#site-content" className="skip-to-content">
+          Skip to content
+        </a>
         <CartProvider>
           <WishlistAuthSync />
           <Header />
-          <main className="flex-1 animate-fade-up">
+          <main id="site-content" className="flex-1 animate-fade-up">
             <div className="pb-[64px] md:pb-0">{children}</div>
           </main>
           <Footer />

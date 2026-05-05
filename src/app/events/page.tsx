@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function EventsPage() {
   return (
-    <main className="bg-cream">
+    <div className="bg-cream">
       {/* Hero */}
       <section className="bg-gradient-to-br from-[#FCE9E4] via-[#F8D5CD] to-[#F8B0A0] px-6 py-16 md:px-10 md:py-24">
         <div className="mx-auto max-w-[900px] text-center">
@@ -155,6 +155,6 @@ export default function EventsPage() {
           </Link>
         </div>
       </section>
-    </main>
+    </div>
   );
 }

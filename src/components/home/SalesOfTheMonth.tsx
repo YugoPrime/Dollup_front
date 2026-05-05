@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSyncExternalStore } from "react";
 import { salesOfMonthConfig } from "@/lib/sales-of-month";
+import { sanitizeRichText } from "@/lib/sanitize-html";
 
 type Remaining = { d: number; h: number; m: number; s: number; expired: boolean };
 
@@ -48,6 +49,7 @@ function Unit({ n, label }: { n: number; label: string }) {
 
 export function SalesOfTheMonth() {
   const cfg = salesOfMonthConfig;
+  const descriptionHtml = sanitizeRichText(cfg.description);
   // useSyncExternalStore returns ZERO during SSR + first client render (avoiding
   // the time-based hydration mismatch), then updates every 1s once subscribed.
   const r = useSyncExternalStore(
@@ -81,7 +83,7 @@ export function SalesOfTheMonth() {
         </div>
         <p
           className="mx-auto mb-5 max-w-[420px] font-sans text-[13px] leading-[1.5] text-[#E0CFCB] md:text-[16px]"
-          dangerouslySetInnerHTML={{ __html: cfg.description }}
+          dangerouslySetInnerHTML={{ __html: descriptionHtml }}
         />
         <div className="mb-6 flex justify-center gap-2">
           <Unit n={r.d} label="Days" />

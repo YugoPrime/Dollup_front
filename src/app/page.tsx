@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { listFeatured, listProducts, listEssentials, getLatestCollectionTag } from "@/lib/products";
 import { HeroBento } from "@/components/home/HeroBento";
 import { TrendingRail } from "@/components/home/TrendingRail";
@@ -7,48 +8,107 @@ import { NewArrivalsRail } from "@/components/home/NewArrivalsRail";
 import { LoyaltyTeaser } from "@/components/home/LoyaltyTeaser";
 import { InstagramMosaic } from "@/components/home/InstagramMosaic";
 import { BabeEssentials } from "@/components/home/BabeEssentials";
+import {
+  CategoryIconSkeleton,
+  EssentialsSkeleton,
+  InstagramSkeleton,
+  ProductRailSkeleton,
+} from "@/components/home/HomeSkeletons";
 
 export const revalidate = 60;
 
-export default async function HomePage() {
-  // Resolve the latest collection tag first — needed both as a filter for the
-  // New Arrivals rail (only show collection28 products) and as a value for
-  // ProductCard's NEW badge.
-  const latestCollection = await getLatestCollectionTag().catch(() => null);
-  const latestTag = latestCollection?.value ?? null;
+type LatestCollection = Awaited<ReturnType<typeof getLatestCollectionTag>>;
+type LatestCollectionPromise = Promise<LatestCollection>;
 
-  // Fan-out fetch the data sources we need on home in parallel
-  const [featured, trendingRes, newArrivalsRes, essentials] = await Promise.all([
-    listFeatured().catch((err) => {
-      console.error("listFeatured failed:", err);
-      return [];
-    }),
-    listProducts({ tag: "trending", limit: 10 }).catch(() =>
-      listProducts({ order: "-created_at", limit: 10 }).catch(() => ({ products: [], count: 0, region: null! })),
-    ),
-    latestCollection
-      ? listProducts({ tag: latestCollection.id, order: "-created_at", limit: 16 }).catch(() => ({ products: [], count: 0, region: null! }))
-      : listProducts({ order: "-created_at", limit: 16 }).catch(() => ({ products: [], count: 0, region: null! })),
-    listEssentials().catch((err) => {
-      console.error("listEssentials failed:", err);
-      return [];
-    }),
-  ]);
+export default function HomePage() {
+  const latestCollectionPromise = getLatestCollectionTag().catch(() => null);
 
   return (
     <>
-      <HeroBento products={featured} />
-      <TrendingRail products={trendingRes.products} latestCollectionTag={latestTag} />
-      <CategoryIcons />
-      <NewArrivalsRail
-        products={newArrivalsRes.products}
-        totalCount={newArrivalsRes.count ?? 0}
-        latestCollectionTag={latestTag}
-      />
+      <HeroSection />
+      <Suspense fallback={<ProductRailSkeleton />}>
+        <TrendingRailSection latestCollectionPromise={latestCollectionPromise} />
+      </Suspense>
+      <Suspense fallback={<CategoryIconSkeleton />}>
+        <CategoryIcons />
+      </Suspense>
+      <Suspense fallback={<ProductRailSkeleton />}>
+        <NewArrivalsSection latestCollectionPromise={latestCollectionPromise} />
+      </Suspense>
       <SalesOfTheMonth />
-      <BabeEssentials products={essentials} />
+      <Suspense fallback={<EssentialsSkeleton />}>
+        <BabeEssentialsSection />
+      </Suspense>
       <LoyaltyTeaser />
-      <InstagramMosaic />
+      <Suspense fallback={<InstagramSkeleton />}>
+        <InstagramMosaic />
+      </Suspense>
     </>
   );
+}
+
+async function HeroSection() {
+  const featured = await listFeatured().catch((err) => {
+    console.error("listFeatured failed:", err);
+    return [];
+  });
+  return <HeroBento products={featured} />;
+}
+
+async function TrendingRailSection({
+  latestCollectionPromise,
+}: {
+  latestCollectionPromise: LatestCollectionPromise;
+}) {
+  const [latestCollection, trendingRes] = await Promise.all([
+    latestCollectionPromise,
+    listProducts({ tag: "trending", limit: 10 }).catch(() =>
+      listProducts({ order: "-created_at", limit: 10 }).catch(() => ({
+        products: [],
+        count: 0,
+        region: null!,
+      })),
+    ),
+  ]);
+  return (
+    <TrendingRail
+      products={trendingRes.products}
+      latestCollectionTag={latestCollection?.value ?? null}
+    />
+  );
+}
+
+async function NewArrivalsSection({
+  latestCollectionPromise,
+}: {
+  latestCollectionPromise: LatestCollectionPromise;
+}) {
+  const latestCollection = await latestCollectionPromise;
+  const newArrivalsRes = latestCollection
+    ? await listProducts({ tag: latestCollection.id, order: "-created_at", limit: 16 }).catch(() => ({
+        products: [],
+        count: 0,
+        region: null!,
+      }))
+    : await listProducts({ order: "-created_at", limit: 16 }).catch(() => ({
+        products: [],
+        count: 0,
+        region: null!,
+      }));
+
+  return (
+    <NewArrivalsRail
+      products={newArrivalsRes.products}
+      totalCount={newArrivalsRes.count ?? 0}
+      latestCollectionTag={latestCollection?.value ?? null}
+    />
+  );
+}
+
+async function BabeEssentialsSection() {
+  const essentials = await listEssentials().catch((err) => {
+    console.error("listEssentials failed:", err);
+    return [];
+  });
+  return <BabeEssentials products={essentials} />;
 }

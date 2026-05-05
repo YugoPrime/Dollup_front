@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { FOOTER_SHOP, FOOTER_HELP, FOOTER_ABOUT } from "@/lib/nav";
+import { FOOTER_SHOP, FOOTER_HELP, FOOTER_ABOUT, FOOTER_LEGAL, SOCIAL_LINKS } from "@/lib/nav";
 import { NewsletterForm } from "./NewsletterForm";
 
 export function Footer() {
@@ -33,15 +33,42 @@ export function Footer() {
             Your go-to for fashion, lingerie &amp; beachwear since 2018.
           </p>
           <div className="mb-4 flex gap-3">
-            {["Facebook", "Instagram", "TikTok"].map((s) => (
-              <a
-                key={s}
-                href="#"
-                className="font-sans text-[11px] font-bold uppercase tracking-[0.08em] text-coral-500 transition-colors hover:text-coral-700"
-              >
-                {s}
-              </a>
-            ))}
+            <a
+              href={SOCIAL_LINKS.facebook}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Doll Up Boutique on Facebook"
+              className="font-sans text-[11px] font-bold uppercase tracking-[0.08em] text-coral-500 transition-colors hover:text-coral-700"
+            >
+              Facebook
+            </a>
+            <a
+              href={SOCIAL_LINKS.instagram}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Doll Up Boutique on Instagram"
+              className="font-sans text-[11px] font-bold uppercase tracking-[0.08em] text-coral-500 transition-colors hover:text-coral-700"
+            >
+              Instagram
+            </a>
+            <a
+              href={SOCIAL_LINKS.tiktok}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Doll Up Boutique on TikTok"
+              className="font-sans text-[11px] font-bold uppercase tracking-[0.08em] text-coral-500 transition-colors hover:text-coral-700"
+            >
+              TikTok
+            </a>
+            <a
+              href={SOCIAL_LINKS.whatsapp}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Doll Up Boutique on WhatsApp"
+              className="font-sans text-[11px] font-bold uppercase tracking-[0.08em] text-coral-500 transition-colors hover:text-coral-700"
+            >
+              WhatsApp
+            </a>
           </div>
           <Link
             href="/loyalty"
@@ -62,10 +89,10 @@ export function Footer() {
         <FooterCol title="About" links={FOOTER_ABOUT} />
       </div>
 
-      <div className="mx-auto flex max-w-[1100px] flex-wrap items-center justify-between gap-3 border-t border-blush-300 px-6 py-5 font-sans text-[11px] text-ink-muted md:px-8">
-        <span>© {new Date().getFullYear()} Doll Up Boutique. All rights reserved.</span>
-        <div className="flex gap-2">
-          {["MCB Juice", "myT Money", "Cash on Delivery"].map((p) => (
+      <div className="mx-auto flex max-w-[1100px] flex-col gap-3 border-t border-blush-300 px-6 py-5 font-sans text-[11px] text-ink-muted md:flex-row md:flex-wrap md:items-center md:justify-between md:px-8">
+        <span>© {new Date().getFullYear()} Doll Up Boutique Limited. BRN C18159019 · VAT 27646277.</span>
+        <div className="flex flex-wrap gap-2">
+          {["Juice", "Bank Transfer", "myT Money", "Cash on Delivery"].map((p) => (
             <span
               key={p}
               className="rounded bg-white px-2.5 py-1 text-[10px] font-bold tracking-wider text-ink shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
@@ -74,6 +101,20 @@ export function Footer() {
             </span>
           ))}
         </div>
+      </div>
+
+      {/* Legal links row */}
+      <div className="mx-auto flex max-w-[1100px] flex-wrap items-center gap-x-4 gap-y-1 border-t border-blush-100 px-6 py-3 font-sans text-[11px] text-ink-muted md:px-8">
+        {FOOTER_LEGAL.map((l) => (
+          <Link
+            key={l.label}
+            href={l.href}
+            prefetch={false}
+            className="transition-colors hover:text-coral-500"
+          >
+            {l.label}
+          </Link>
+        ))}
       </div>
     </footer>
   );

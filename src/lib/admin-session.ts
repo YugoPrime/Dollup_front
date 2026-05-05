@@ -47,7 +47,7 @@ export function verifySessionToken(token: string | undefined | null): boolean {
 
 export const adminCookieOptions = {
   httpOnly: true,
-  sameSite: "lax" as const,
+  sameSite: "strict" as const,
   secure: process.env.NODE_ENV === "production",
   path: "/",
   maxAge: SESSION_TTL_MS / 1000,

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { unstable_cache } from "next/cache";
 import { getCategoryIconImages, listProducts, getLatestCollectionTag } from "@/lib/products";
 
 type Category = {
@@ -22,35 +23,43 @@ const CATEGORIES: Category[] = [
   { label: "Sale", href: "/shop?on_sale=1", gradient: "linear-gradient(135deg,#E5604A,#B8412C)" },
 ];
 
+const getCachedCategoryIconItems = unstable_cache(
+  async (): Promise<Array<Category & { image: string | null }>> => {
+    const handles = CATEGORIES.map((c) => c.categoryHandle).filter((h): h is string => !!h);
+    const [thumbsByHandle, latestCollection, saleSample] = await Promise.all([
+      getCategoryIconImages(handles).catch(() => ({} as Record<string, string | null>)),
+      getLatestCollectionTag().catch(() => null),
+      listProducts({ onSale: true, limit: 1, order: "-created_at" }).catch(() => ({ products: [] })),
+    ]);
+
+    let allNewThumb: string | null = null;
+    if (latestCollection) {
+      try {
+        const res = await listProducts({ tag: latestCollection.id, limit: 1, order: "-created_at" });
+        allNewThumb = res.products[0]?.thumbnail ?? null;
+      } catch {
+        /* fallback to gradient */
+      }
+    }
+    const saleThumb = saleSample.products[0]?.thumbnail ?? null;
+
+    return CATEGORIES.map((c) => {
+      let image: string | null = c.imageOverride ?? null;
+      if (!image && c.categoryHandle) image = thumbsByHandle[c.categoryHandle] ?? null;
+      if (!image && c.label === "All New") image = allNewThumb;
+      if (!image && c.label === "Sale") image = saleThumb;
+      return { ...c, image };
+    });
+  },
+  ["home-category-icons"],
+  { revalidate: 600 },
+);
+
 export async function CategoryIcons() {
   // Fetch real product thumbnails for the category icons. Cheap (6 parallel
   // 1-product queries). For "All New" we use the newest collectionN product;
-  // for "Sale" we use the newest on-sale product. The page sets revalidate=60.
-  const handles = CATEGORIES.map((c) => c.categoryHandle).filter((h): h is string => !!h);
-  const [thumbsByHandle, latestCollection, saleSample] = await Promise.all([
-    getCategoryIconImages(handles).catch(() => ({} as Record<string, string | null>)),
-    getLatestCollectionTag().catch(() => null),
-    listProducts({ onSale: true, limit: 1, order: "-created_at" }).catch(() => ({ products: [] })),
-  ]);
-
-  let allNewThumb: string | null = null;
-  if (latestCollection) {
-    try {
-      const res = await listProducts({ tag: latestCollection.id, limit: 1, order: "-created_at" });
-      allNewThumb = res.products[0]?.thumbnail ?? null;
-    } catch {
-      /* fallback to gradient */
-    }
-  }
-  const saleThumb = saleSample.products[0]?.thumbnail ?? null;
-
-  const items = CATEGORIES.map((c) => {
-    let image: string | null = c.imageOverride ?? null;
-    if (!image && c.categoryHandle) image = thumbsByHandle[c.categoryHandle] ?? null;
-    if (!image && c.label === "All New") image = allNewThumb;
-    if (!image && c.label === "Sale") image = saleThumb;
-    return { ...c, image };
-  });
+  // for "Sale" we use the newest on-sale product. Cached for 10 minutes.
+  const items = await getCachedCategoryIconItems();
 
   return (
     <section className="bg-white py-5 md:py-8">

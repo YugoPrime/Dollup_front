@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { FocusTrapLayer } from "@/components/a11y/FocusTrapLayer";
 import { useCart } from "@/components/cart/CartProvider";
 import { NAV_LINKS } from "@/lib/nav";
 import { logout, useCustomer, type Customer } from "@/lib/auth-client";
@@ -272,13 +273,14 @@ export function Header() {
 
         <form
           onSubmit={onSearch}
-          className="hidden max-w-[320px] flex-1 items-center gap-2 rounded-full border border-blush-300 bg-blush-100 px-4 py-2 md:flex"
+          className="hidden max-w-[320px] flex-1 items-center gap-2 rounded-full border border-blush-300 bg-blush-100 px-4 py-2 focus-within:border-coral-500 focus-within:ring-2 focus-within:ring-coral-500/20 md:flex"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8a7773" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
             <circle cx="11" cy="11" r="8" />
             <path d="m21 21-4.35-4.35" />
           </svg>
           <input
+            aria-label="Search products"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onFocus={() => setFocused(true)}
@@ -323,8 +325,9 @@ export function Header() {
         {/* Mobile-only hamburger pinned right */}
         <button
           onClick={() => setMenuOpen((v) => !v)}
-          className="ml-auto rounded-md p-2 text-ink hover:bg-blush-100 md:hidden"
+          className="ml-auto flex h-11 w-11 items-center justify-center rounded-md text-ink hover:bg-blush-100 md:hidden"
           aria-label="Menu"
+          aria-controls="mobile-menu"
           aria-expanded={menuOpen}
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
@@ -347,13 +350,14 @@ export function Header() {
       {/* Mobile-only persistent search row */}
       <form
         onSubmit={onSearch}
-        className="flex items-center gap-2 border-t border-blush-100 bg-cream px-4 py-2 md:hidden"
+        className="flex items-center gap-2 border-t border-blush-100 bg-cream px-4 py-2 focus-within:ring-2 focus-within:ring-inset focus-within:ring-coral-500/20 md:hidden"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8a7773" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
           <circle cx="11" cy="11" r="8" />
           <path d="m21 21-4.35-4.35" />
         </svg>
         <input
+          aria-label="Search products"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onFocus={() => setFocused(true)}
@@ -365,33 +369,39 @@ export function Header() {
       </form>
 
       {menuOpen && (
-        <nav className="flex flex-col border-t border-blush-400 bg-white md:hidden">
-          {NAV_LINKS.map((link) => (
-            <div key={link.label} className="border-b border-blush-100">
-              <Link
-                href={link.href}
-                onClick={() => setMenuOpen(false)}
-                className="block px-6 py-3.5 font-sans text-sm font-medium text-ink"
-              >
-                {link.label}
-              </Link>
-              {link.children && (
-                <div className="bg-blush-100/40 pl-4">
-                  {link.children.map((c) => (
-                    <Link
-                      key={c.label}
-                      href={c.href}
-                      onClick={() => setMenuOpen(false)}
-                      className="block border-t border-blush-100 px-6 py-2.5 font-sans text-[13px] text-ink-soft"
-                    >
-                      {c.label}
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </nav>
+        <FocusTrapLayer
+          ariaLabel="Mobile menu"
+          className="md:hidden"
+          onDeactivate={() => setMenuOpen(false)}
+        >
+          <nav id="mobile-menu" className="flex flex-col border-t border-blush-400 bg-white">
+            {NAV_LINKS.map((link) => (
+              <div key={link.label} className="border-b border-blush-100">
+                <Link
+                  href={link.href}
+                  onClick={() => setMenuOpen(false)}
+                  className="block px-6 py-3.5 font-sans text-sm font-medium text-ink"
+                >
+                  {link.label}
+                </Link>
+                {link.children && (
+                  <div className="bg-blush-100/40 pl-4">
+                    {link.children.map((c) => (
+                      <Link
+                        key={c.label}
+                        href={c.href}
+                        onClick={() => setMenuOpen(false)}
+                        className="block border-t border-blush-100 px-6 py-2.5 font-sans text-[13px] text-ink-soft"
+                      >
+                        {c.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </nav>
+        </FocusTrapLayer>
       )}
     </header>
   );

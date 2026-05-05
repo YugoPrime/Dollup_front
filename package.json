@@ -9,14 +9,16 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@medusajs/js-sdk": "^2.14.1",
+    "@medusajs/js-sdk": "2.13.1",
+    "focus-trap-react": "^12.0.1",
+    "isomorphic-dompurify": "^3.12.0",
     "lucide-react": "^1.14.0",
     "next": "16.2.4",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
   "devDependencies": {
-    "@medusajs/types": "^2.14.1",
+    "@medusajs/types": "2.13.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

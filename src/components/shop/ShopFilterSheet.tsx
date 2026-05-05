@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { FocusTrapLayer } from "@/components/a11y/FocusTrapLayer";
 
 export type SheetCategory = { id: string; name: string; handle: string; parent_category_id: string | null };
 export type SheetFacets = { sizes: string[]; colors: string[]; priceMin: number; priceMax: number };
@@ -93,12 +94,16 @@ export function ShopFilterSheet({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[120] md:hidden" role="dialog" aria-label="Filters">
+    <FocusTrapLayer
+      ariaLabel="Filters"
+      className="fixed inset-0 z-[120] md:hidden"
+      onDeactivate={onClose}
+    >
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-2xl bg-white p-5">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="font-display text-[20px] text-ink">Filters</h3>
-          <button onClick={onClose} className="font-sans text-[11px] font-semibold uppercase tracking-wider text-coral-500">
+          <button onClick={onClose} className="flex min-h-11 items-center font-sans text-[11px] font-semibold uppercase tracking-wider text-coral-500">
             Done
           </button>
         </div>
@@ -154,7 +159,7 @@ export function ShopFilterSheet({
                 <button
                   key={s}
                   onClick={() => setParam("size", has("size", s) ? null : s)}
-                  className={`rounded-md border py-2 font-sans text-[11px] font-semibold ${
+                  className={`min-h-11 rounded-md border py-2 font-sans text-[11px] font-semibold ${
                     has("size", s) ? "border-ink bg-ink text-white" : "border-blush-400 bg-white text-ink"
                   }`}
                 >
@@ -175,7 +180,7 @@ export function ShopFilterSheet({
                     key={c}
                     onClick={() => setParam("color", has("color", c) ? null : c)}
                     aria-label={c}
-                    className={`h-7 w-7 rounded-full border-2 border-white ${
+                    className={`h-11 w-11 rounded-full border-2 border-white ${
                       has("color", c) ? "ring-2 ring-coral-500" : "ring-1 ring-blush-400"
                     }`}
                     style={{ background: hex }}
@@ -216,7 +221,7 @@ export function ShopFilterSheet({
           </FilterGroup>
         )}
       </div>
-    </div>
+    </FocusTrapLayer>
   );
 }
 

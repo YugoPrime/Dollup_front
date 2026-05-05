@@ -11,9 +11,9 @@ export default function OrdersListPage() {
   return (
     <Suspense
       fallback={
-        <main className="mx-auto max-w-[900px] px-4 py-12 md:px-8">
+        <div className="mx-auto max-w-[900px] px-4 py-12 md:px-8">
           <div className="h-8 w-40 animate-pulse rounded bg-blush-100" />
-        </main>
+        </div>
       }
     >
       <OrdersListClient />

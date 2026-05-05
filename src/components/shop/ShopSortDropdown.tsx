@@ -21,9 +21,14 @@ export function ShopSortDropdown() {
   };
 
   return (
-    <label className="hidden items-center gap-2 rounded-full border border-blush-400 bg-white px-3.5 py-2 font-sans text-[12px] font-semibold text-ink md:flex">
+    <label className="hidden items-center gap-2 rounded-full border border-blush-400 bg-white px-3.5 py-2 font-sans text-[12px] font-semibold text-ink focus-within:border-coral-500 focus-within:ring-2 focus-within:ring-coral-500/20 md:flex">
       <span>Sort:</span>
-      <select value={current} onChange={onChange} className="cursor-pointer bg-transparent outline-none">
+      <select
+        aria-label="Sort products"
+        value={current}
+        onChange={onChange}
+        className="cursor-pointer bg-transparent outline-none focus:ring-0"
+      >
         {OPTIONS.map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}

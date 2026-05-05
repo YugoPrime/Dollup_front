@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { sanitizeRichText } from "@/lib/sanitize-html";
 
 type Section = { key: string; title: string; body: React.ReactNode };
 
@@ -15,10 +16,16 @@ function splitDescription(description: string | null | undefined): {
   if (!description) return { main: "", sizeChart: null };
   const re = /<h3[^>]*>\s*Size Chart\s*<\/h3>/i;
   const match = re.exec(description);
-  if (!match) return { main: cleanHtml(description), sizeChart: null };
+  if (!match) {
+    return { main: sanitizeRichText(cleanHtml(description)), sizeChart: null };
+  }
+  const main = sanitizeRichText(cleanHtml(description.slice(0, match.index)));
+  const sizeChart = sanitizeRichText(
+    cleanHtml(description.slice(match.index + match[0].length)),
+  );
   return {
-    main: cleanHtml(description.slice(0, match.index)),
-    sizeChart: cleanHtml(description.slice(match.index + match[0].length)),
+    main,
+    sizeChart: sizeChart || null,
   };
 }
 

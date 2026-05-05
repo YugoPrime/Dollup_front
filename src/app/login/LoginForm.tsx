@@ -5,11 +5,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { login } from "@/lib/auth-client";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
+import { safeRedirectPath } from "@/lib/safe-redirect";
 
 export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const redirect = params.get("redirect") || "/account";
+  const redirect = safeRedirectPath(params.get("redirect"));
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

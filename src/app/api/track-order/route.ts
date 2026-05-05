@@ -40,8 +40,70 @@ const ORDER_FIELDS = [
   "+fulfillment_status",
 ].join(",");
 
-// TODO: rate-limit per IP if abuse appears (deferred — out of scope for v1).
+const RATE_LIMIT_CAPACITY = 10;
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_REFILL_PER_MS = RATE_LIMIT_CAPACITY / RATE_LIMIT_WINDOW_MS;
+const RATE_LIMIT_RETRY_AFTER_SECONDS = Math.ceil(
+  RATE_LIMIT_WINDOW_MS / RATE_LIMIT_CAPACITY / 1000,
+);
+
+type Bucket = { tokens: number; updatedAt: number };
+
+const buckets = new Map<string, Bucket>();
+let lastPrunedAt = 0;
+
+function clientIp(request: Request): string {
+  const forwardedFor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  return (
+    request.headers.get("cf-connecting-ip")?.trim() ||
+    request.headers.get("x-real-ip")?.trim() ||
+    forwardedFor ||
+    "unknown"
+  );
+}
+
+function consumeRateLimitToken(ip: string, now = Date.now()): boolean {
+  if (now - lastPrunedAt > RATE_LIMIT_WINDOW_MS) {
+    lastPrunedAt = now;
+    for (const [key, bucket] of buckets) {
+      if (now - bucket.updatedAt > RATE_LIMIT_WINDOW_MS * 2) {
+        buckets.delete(key);
+      }
+    }
+  }
+
+  const current = buckets.get(ip) ?? {
+    tokens: RATE_LIMIT_CAPACITY,
+    updatedAt: now,
+  };
+  const elapsed = Math.max(0, now - current.updatedAt);
+  const tokens = Math.min(
+    RATE_LIMIT_CAPACITY,
+    current.tokens + elapsed * RATE_LIMIT_REFILL_PER_MS,
+  );
+
+  if (tokens < 1) {
+    buckets.set(ip, { tokens, updatedAt: now });
+    return false;
+  }
+
+  buckets.set(ip, { tokens: tokens - 1, updatedAt: now });
+  return true;
+}
+
 export async function POST(request: Request) {
+  if (!consumeRateLimitToken(clientIp(request))) {
+    return NextResponse.json(
+      { error: "rate_limited" as const },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(RATE_LIMIT_RETRY_AFTER_SECONDS),
+        },
+      },
+    );
+  }
+
   let body: unknown;
   try {
     body = await request.json();

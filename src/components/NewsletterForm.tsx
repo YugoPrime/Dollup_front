@@ -23,6 +23,7 @@ export function NewsletterForm() {
       className="flex max-w-[440px] items-center gap-1.5 rounded-full bg-white/15 p-1 pl-4"
     >
       <input
+        aria-label="Email address for newsletter"
         type="email"
         required
         value={email}

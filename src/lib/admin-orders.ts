@@ -575,9 +575,9 @@ export async function createDmOrder(
     last_name: input.buyerLastName ?? "",
     phone: input.phone,
     address_1: input.address1,
-    address_2: input.address2 || null,
-    city: input.city || null,
-    province: null,
+    address_2: input.address2 || undefined,
+    city: input.city || undefined,
+    province: undefined,
     country_code: "mu",
   };
 
@@ -816,9 +816,9 @@ export async function updateOrderLight(
       last_name: ship?.last_name ?? "",
       phone: patch.phone ?? ship?.phone ?? "",
       address_1: patch.addressDetails ?? ship?.address_1 ?? "",
-      address_2: ship?.address_2 ?? null,
+      address_2: ship?.address_2 ?? undefined,
       city: patch.city ?? ship?.city ?? "",
-      province: null,
+      province: undefined,
       country_code: ship?.country_code ?? "mu",
     };
     await sdk.admin.order.update(orderId, {

@@ -18,6 +18,8 @@ export const metadata: Metadata = {
   description: "Shop dresses, lingerie, beachwear and accessories.",
 };
 
+export const revalidate = 60;
+
 type SearchParams = Promise<{
   category?: string;
   q?: string;
@@ -117,7 +119,7 @@ export default async function ShopPage({
       : matchedCategory?.name ?? (tagValue ? `${tagValue} edit` : "All products");
 
   return (
-    <main>
+    <div>
       <div className="border-b border-blush-100 bg-white px-4 py-4 md:flex md:items-end md:justify-between md:px-8 md:py-6">
         <div>
           <p className="font-sans text-[10px] font-bold uppercase tracking-[0.14em] text-ink-muted">
@@ -185,7 +187,7 @@ export default async function ShopPage({
           )}
         </div>
       </div>
-    </main>
+    </div>
   );
 }
 
