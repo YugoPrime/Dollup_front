@@ -35,6 +35,14 @@ export const SHIPPING_OPTION_IDS: Record<DmDeliveryMethod, string> = {
 // Compile-time check that the map covers every DmDeliveryMethod.
 void (DM_DELIVERY_METHODS satisfies readonly (keyof typeof SHIPPING_OPTION_IDS)[]);
 
+export type PrepTab = "by_post" | "home_delivery" | "pick_up";
+
+export const WAY_BUCKETS: Record<PrepTab, readonly DmDeliveryMethod[]> = {
+  by_post: ["Postage", "Express Postage", "Rodrigues Postage"],
+  home_delivery: ["Home Delivery"],
+  pick_up: ["Pick Up"],
+};
+
 export type VariantHit = {
   variantId: string;
   productId: string;
@@ -386,6 +394,66 @@ export async function searchOrders(
   );
   const all = (res.orders as HttpTypes.AdminOrder[]).map(mapOrder);
   return all.filter((o) => o.replacedByOrderId == null);
+}
+
+/**
+ * Fetch orders that need prep on `date`. Filters in memory because the Medusa
+ * admin SDK does not support metadata-keyed list filters.
+ *
+ * @param date  yyyy-mm-dd in MU local time (UTC+4, no DST)
+ * @param tab   optional — when provided, returns only orders in that tab's bucket
+ */
+export async function getPrepOrders(
+  date: string,
+  tab?: PrepTab,
+): Promise<OrderRow[]> {
+  const sdk = await getAdminSdk();
+  // 60-day window upstream of `date` covers anything realistically still in prep.
+  const dateObj = new Date(`${date}T12:00:00${MU_OFFSET}`);
+  const fromObj = new Date(dateObj.getTime() - 60 * 24 * 60 * 60 * 1000);
+  const fromIso = fromObj.toISOString().slice(0, 10);
+
+  const params: Record<string, unknown> = {
+    limit: 200,
+    order: "-created_at",
+    fields:
+      "id,display_id,created_at,email,total,payment_status,fulfillment_status,status,metadata,*items,items.thumbnail,items.variant.title,*shipping_address,*shipping_methods",
+    created_at: {
+      $gte: `${fromIso}T00:00:00.000${MU_OFFSET}`,
+      $lte: `${date}T23:59:59.999${MU_OFFSET}`,
+    },
+  };
+  const res = await sdk.admin.order.list(
+    params as Parameters<typeof sdk.admin.order.list>[0],
+  );
+  const all = (res.orders as HttpTypes.AdminOrder[]).map(mapOrder);
+  const allowedWays = tab ? new Set<string>(WAY_BUCKETS[tab]) : null;
+  return all
+    .filter((o) => o.replacedByOrderId == null)
+    .filter((o) => o.status !== "canceled" && o.fulfillmentStatus !== "fulfilled")
+    .filter((o) => o.dmStatus === "preparation")
+    .filter((o) => {
+      // Match the chosen day. Orders with no delivery_date fall through to today's bucket only.
+      if (!o.deliveryDate) return date === todayMauritius();
+      return o.deliveryDate === date;
+    })
+    .filter((o) => {
+      if (!allowedWays) return true;
+      return o.deliveryMethod ? allowedWays.has(o.deliveryMethod) : false;
+    })
+    .sort((a, b) => {
+      const da = a.deliveryDate ?? a.createdAt;
+      const db = b.deliveryDate ?? b.createdAt;
+      if (da !== db) return da.localeCompare(db);
+      return a.createdAt.localeCompare(b.createdAt);
+    });
+}
+
+function todayMauritius(): string {
+  // MU is UTC+4 fixed. Convert now → MU calendar day (yyyy-mm-dd).
+  const now = new Date();
+  const muMs = now.getTime() + 4 * 60 * 60 * 1000;
+  return new Date(muMs).toISOString().slice(0, 10);
 }
 
 export type CreateOrderItemInput =
