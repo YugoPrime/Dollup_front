@@ -609,6 +609,14 @@ export async function createDmOrder(
       console.warn("[createDmOrder] markOrderFulfilled failed:", err);
       warnings.push(`Could not mark delivered: ${msg}`);
     }
+  } else if (input.status === "ready") {
+    try {
+      await markOrderReady(convertedOrder.id);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "unknown error";
+      console.warn("[createDmOrder] markOrderReady failed:", err);
+      warnings.push(`Could not mark ready: ${msg}`);
+    }
   }
 
   return {
@@ -939,7 +947,7 @@ export function classifyOrderEdit(
     patch.status = "delivered";
   } else if (next.status === "ready" && effBefore !== "ready" && effBefore !== "cancelled" && effBefore !== "delivered") {
     patch.status = "ready";
-  } else if ((next.status === "preparation" || !next.status) && effBefore === "ready") {
+  } else if (!next.status && effBefore === "ready") {
     // Demotion from ready → preparation is allowed; cannot reverse cancelled/delivered.
     patch.status = "preparation";
   }

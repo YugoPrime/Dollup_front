@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { formatPrice } from "@/lib/format";
 import type { OrderRow } from "@/lib/admin-orders";
 import { getEffectiveStatus } from "@/lib/admin-orders-shared";
+import { StatusBadge } from "./StatusBadge";
 import { isAutoLine } from "@/lib/admin-order-lines";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
 import { updateOrderAction } from "../actions";
@@ -63,17 +64,6 @@ export function RecentOrdersSheet({
       {!isDesktop && orders.length > 0 && (
         <ul className="mt-3 divide-y divide-blush-300/40">
           {orders.map((o) => {
-            const eff = getEffectiveStatus(o);
-            const statusLabel =
-              eff === "preparation" ? "Preparation" :
-              eff === "ready"       ? "Ready" :
-              eff === "delivered"   ? "Delivered" :
-                                      "Cancelled";
-            const statusTone =
-              eff === "cancelled"   ? "bg-red-100 text-red-700"    :
-              eff === "delivered"   ? "bg-green-100 text-green-700" :
-              eff === "ready"       ? "bg-blue-100 text-blue-700"   :
-                                      "bg-amber-100 text-amber-700";
             return (
               <li key={o.id} className="flex items-center gap-3 py-2">
                 <button
@@ -96,9 +86,7 @@ export function RecentOrdersSheet({
                   <span className="text-sm font-bold text-ink">
                     {formatPrice(o.totalMur, "mur")}
                   </span>
-                  <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${statusTone}`}>
-                    {statusLabel}
-                  </span>
+                  <StatusBadge eff={getEffectiveStatus(o)} />
                 </div>
               </li>
             );
@@ -192,16 +180,6 @@ function ReadOnlyRow({
   // items that don't have a variant_sku.
   const productSkuList = realItems.map((it) => it.sku || it.title);
   const eff = getEffectiveStatus(order);
-  const statusLabel =
-    eff === "preparation" ? "Preparation" :
-    eff === "ready"       ? "Ready" :
-    eff === "delivered"   ? "Delivered" :
-                            "Cancelled";
-  const statusTone =
-    eff === "cancelled"   ? "bg-red-100 text-red-700"    :
-    eff === "delivered"   ? "bg-green-100 text-green-700" :
-    eff === "ready"       ? "bg-blue-100 text-blue-700"   :
-                            "bg-amber-100 text-amber-700";
 
   return (
     <tr className="border-b border-blush-300/40">
@@ -258,9 +236,7 @@ function ReadOnlyRow({
       <td className="px-2 py-2">{order.pointOfSale ?? "—"}</td>
       <td className="px-2 py-2">{order.saleType ?? "—"}</td>
       <td className="px-2 py-2">
-        <span className={`inline-flex items-center rounded px-2 py-0.5 text-xs font-medium ${statusTone}`}>
-          {statusLabel}
-        </span>
+        <StatusBadge eff={eff} />
       </td>
       <td className="px-2 py-2 font-mono text-[11px]">
         {trackingShown ? (order.trackingNumber ?? "—") : ""}
