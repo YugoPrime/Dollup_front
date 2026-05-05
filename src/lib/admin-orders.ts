@@ -14,6 +14,13 @@ import {
   DISCOUNT_TITLE,
   isAutoLine,
 } from "./admin-order-lines";
+import {
+  type DmStatus,
+  type EffectiveStatus,
+  getEffectiveStatus,
+} from "./admin-orders-shared";
+export type { DmStatus, EffectiveStatus };
+export { getEffectiveStatus };
 
 export const REGION_ID = "reg_01KN0AAX4FA592Q3HAY93W1AHV";
 export const SALES_CHANNEL_ID = "sc_01KN07JKHRN9DP25TM5S664C5W";
@@ -117,14 +124,6 @@ export async function searchVariants(
   });
   return hits;
 }
-
-import {
-  type DmStatus,
-  type EffectiveStatus,
-  getEffectiveStatus,
-} from "./admin-orders-shared";
-export type { DmStatus, EffectiveStatus };
-export { getEffectiveStatus };
 
 export type OrderRow = {
   id: string;
