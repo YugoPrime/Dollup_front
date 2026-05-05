@@ -122,6 +122,7 @@ export type OrderRow = {
   items: {
     id: string;
     variantId: string | null;
+    sku: string | null;
     title: string;
     quantity: number;
     unitPriceMur: number;
@@ -171,6 +172,9 @@ function mapOrder(o: HttpTypes.AdminOrder): OrderRow {
     items: (o.items ?? []).map((it) => ({
       id: it.id,
       variantId: it.variant_id ?? null,
+      sku: typeof (it as { variant_sku?: string | null }).variant_sku === "string"
+        ? ((it as { variant_sku?: string | null }).variant_sku ?? null)
+        : null,
       title: it.product_title ?? it.title ?? "Item",
       quantity: it.quantity,
       unitPriceMur: Math.round(Number(it.unit_price ?? 0)),

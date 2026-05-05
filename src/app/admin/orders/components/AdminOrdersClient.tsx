@@ -191,10 +191,15 @@ export function AdminOrdersClient({
         )}
       </div>
 
-      {/* RIGHT COLUMN — desktop sticky stock checker */}
+      {/* RIGHT COLUMN — desktop sticky stock checker. The aside stretches
+          to match the left column's height; the inner div is the actual
+          sticky element so it pins to the viewport while you scroll the
+          orders list. */}
       {isDesktop && (
-        <aside className="sticky top-3 self-start">
-          <StockChecker onPickVariant={handlePick} />
+        <aside>
+          <div className="sticky top-3">
+            <StockChecker onPickVariant={handlePick} />
+          </div>
         </aside>
       )}
 

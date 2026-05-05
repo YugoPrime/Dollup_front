@@ -20,7 +20,7 @@ export default async function AdminOrdersPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1400px] px-4 py-4 sm:py-6">
+    <div className="mx-auto w-full max-w-[1800px] px-3 py-3 sm:px-5 sm:py-4">
       <header className="mb-3 flex items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl text-ink">DM orders</h1>

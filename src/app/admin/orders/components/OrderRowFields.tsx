@@ -297,9 +297,11 @@ export function OrderFormLayout({
 
   return (
     <>
-      {/* 1. Delivery */}
-      <SectionLabel className="mt-3">Delivery</SectionLabel>
-      <div className="mt-1.5 grid gap-2 sm:grid-cols-2">
+      {/* Customer & Delivery — 8 inputs in a 4-col grid (2 rows on lg+,
+          2 cols on sm). Delivery date, Way, Name, Pseudo, City, Address
+          details, Phone, Email. */}
+      <SectionLabel className="mt-2">Customer & delivery</SectionLabel>
+      <div className="mt-1.5 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         <Field
           label="Delivery date"
           type="date"
@@ -312,11 +314,6 @@ export function OrderFormLayout({
           onChange={(v) => set("deliveryMethod", v as DmDeliveryMethod)}
           options={DM_DELIVERY_METHODS.map((m) => ({ value: m, label: m }))}
         />
-      </div>
-
-      {/* 2-3. Buyer */}
-      <SectionLabel className="mt-3">Buyer</SectionLabel>
-      <div className="mt-1.5 grid gap-2 sm:grid-cols-2">
         <Field
           label="Name"
           value={state.buyerName}
@@ -343,11 +340,6 @@ export function OrderFormLayout({
             />
           )}
         </div>
-      </div>
-
-      {/* 4-5. Address */}
-      <SectionLabel className="mt-3">Address</SectionLabel>
-      <div className="mt-1.5 grid gap-2 sm:grid-cols-2">
         <Field
           label="City"
           value={state.city}
@@ -361,11 +353,6 @@ export function OrderFormLayout({
           value={state.address2}
           onChange={(v) => set("address2", v)}
         />
-      </div>
-
-      {/* 6. Contact */}
-      <SectionLabel className="mt-3">Contact</SectionLabel>
-      <div className="mt-1.5 grid gap-2 sm:grid-cols-2">
         <Field
           label="Phone"
           type="tel"
@@ -398,7 +385,7 @@ export function OrderFormLayout({
       </div>
 
       {/* 7-9. Products + Custom Notes */}
-      <SectionLabel className="mt-3">Products</SectionLabel>
+      <SectionLabel className="mt-2">Products</SectionLabel>
       <div className="mt-1.5">
         <ProductPicker onPick={addVariant} />
         {items.length === 0 && (
@@ -475,7 +462,7 @@ export function OrderFormLayout({
       </div>
 
       {/* Manual product (collapsible) */}
-      <SectionLabel className="mt-3">Manual product</SectionLabel>
+      <SectionLabel className="mt-2">Manual product</SectionLabel>
       <div className="mt-1.5">
         {!manualOpen ? (
           <button
@@ -504,9 +491,10 @@ export function OrderFormLayout({
         )}
       </div>
 
-      {/* Money: delivery fee + discount + total override */}
-      <SectionLabel className="mt-3">Money</SectionLabel>
-      <div className="mt-1.5 grid gap-2 sm:grid-cols-3">
+      {/* Money + Payment + Status — 7 inputs in one row at lg+:
+          delivery fee | discount | total override | method | POS | sale type | status */}
+      <SectionLabel className="mt-2">Money & payment</SectionLabel>
+      <div className="mt-1.5 grid gap-2 sm:grid-cols-3 lg:grid-cols-7">
         <label className="block">
           <span className="mb-1 flex items-center justify-between font-sans text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
             <span>Delivery fee</span>
@@ -544,7 +532,43 @@ export function OrderFormLayout({
           value={state.totalOverride}
           onChange={(v) => set("totalOverride", v)}
         />
+        <Select
+          label="Method of payment"
+          value={state.paymentMethod}
+          onChange={(v) => set("paymentMethod", v as FormState["paymentMethod"])}
+          options={PAYMENT_METHODS.map((m) => ({ value: m, label: m }))}
+        />
+        <Select
+          label="Point of sale"
+          value={state.pointOfSale}
+          onChange={(v) => set("pointOfSale", v as FormState["pointOfSale"])}
+          options={POINTS_OF_SALE.map((m) => ({ value: m, label: m }))}
+        />
+        <Select
+          label="Sale type"
+          value={state.saleType}
+          onChange={(v) => set("saleType", v as SaleType)}
+          options={SALE_TYPES.map((s) => ({ value: s.value, label: s.label }))}
+        />
+        <Select
+          label="Status"
+          value={state.status}
+          onChange={(v) => set("status", v as FormState["status"])}
+          options={STATUS_OPTIONS}
+        />
       </div>
+
+      {/* Tracking — only when Postage / Express Postage */}
+      {trackingApplies && (
+        <div className="mt-2 grid gap-2 sm:grid-cols-3 lg:grid-cols-7">
+          <Field
+            label="Tracking #"
+            value={state.trackingNumber}
+            onChange={(v) => set("trackingNumber", v)}
+            className="lg:col-span-2"
+          />
+        </div>
+      )}
 
       {/* Totals summary */}
       <div className="mt-3 flex flex-col gap-3 rounded-xl border border-blush-300/60 bg-cream/60 p-3 text-sm md:flex-row md:items-end md:gap-5">
@@ -576,54 +600,6 @@ export function OrderFormLayout({
           <VatBreakdown total={finalTotal} paymentMethod={state.paymentMethod} />
         </div>
       </div>
-
-      {/* Payment */}
-      <SectionLabel className="mt-3">Payment</SectionLabel>
-      <div className="mt-1.5 grid gap-2 sm:grid-cols-3">
-        <Select
-          label="Method of payment"
-          value={state.paymentMethod}
-          onChange={(v) => set("paymentMethod", v as FormState["paymentMethod"])}
-          options={PAYMENT_METHODS.map((m) => ({ value: m, label: m }))}
-        />
-        <Select
-          label="Point of sale"
-          value={state.pointOfSale}
-          onChange={(v) => set("pointOfSale", v as FormState["pointOfSale"])}
-          options={POINTS_OF_SALE.map((m) => ({ value: m, label: m }))}
-        />
-        <Select
-          label="Sale type"
-          value={state.saleType}
-          onChange={(v) => set("saleType", v as SaleType)}
-          options={SALE_TYPES.map((s) => ({ value: s.value, label: s.label }))}
-        />
-      </div>
-
-      {/* Status */}
-      <SectionLabel className="mt-3">Status</SectionLabel>
-      <div className="mt-1.5 grid gap-2 sm:grid-cols-2">
-        <Select
-          label="Status"
-          value={state.status}
-          onChange={(v) => set("status", v as FormState["status"])}
-          options={STATUS_OPTIONS}
-        />
-      </div>
-
-      {/* Tracking — only when Postage / Express Postage */}
-      {trackingApplies && (
-        <>
-          <SectionLabel className="mt-3">Tracking</SectionLabel>
-          <div className="mt-1.5 grid gap-2 sm:grid-cols-2">
-            <Field
-              label="Tracking #"
-              value={state.trackingNumber}
-              onChange={(v) => set("trackingNumber", v)}
-            />
-          </div>
-        </>
-      )}
     </>
   );
 }

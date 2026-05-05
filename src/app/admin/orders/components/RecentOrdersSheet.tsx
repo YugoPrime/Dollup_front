@@ -182,12 +182,9 @@ function ReadOnlyRow({
     order.deliveryMethod === "Postage" ||
     order.deliveryMethod === "Express Postage";
   const realItems = order.items.filter((it) => !isAutoLine(it.title));
-  const productCell =
-    realItems.length === 0
-      ? "—"
-      : `${realItems.length}× ${realItems[0].title}${
-          realItems.length > 1 ? " +" + (realItems.length - 1) : ""
-        }`;
+  // Show SKUs (one per line). Fall back to title for manual / non-catalog
+  // items that don't have a variant_sku.
+  const productSkuList = realItems.map((it) => it.sku || it.title);
   const statusLabel =
     order.status === "canceled"
       ? "Cancelled"
@@ -229,7 +226,20 @@ function ReadOnlyRow({
       <td className="px-2 py-2 whitespace-nowrap font-mono text-[11px]">
         {order.phone ?? "—"}
       </td>
-      <td className="px-2 py-2 max-w-[200px] truncate">{productCell}</td>
+      <td className="px-2 py-2 font-mono text-[11px]">
+        {productSkuList.length === 0 ? (
+          "—"
+        ) : (
+          <div className="flex flex-col gap-0.5">
+            {productSkuList.map((sku, i) => (
+              <span key={i}>
+                {realItems[i].quantity > 1 ? `${realItems[i].quantity}× ` : ""}
+                {sku}
+              </span>
+            ))}
+          </div>
+        )}
+      </td>
       <td className="px-2 py-2 text-right font-bold">
         {formatPrice(order.totalMur, "mur")}
       </td>
