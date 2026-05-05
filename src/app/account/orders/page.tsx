@@ -5,6 +5,7 @@ import { OrdersListClient } from "./OrdersListClient";
 export const metadata: Metadata = {
   title: "My orders",
   description: "Your full Doll Up Boutique order history.",
+  robots: { index: false, follow: false },
 };
 
 export default function OrdersListPage() {

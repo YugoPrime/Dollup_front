@@ -6,6 +6,12 @@ export const metadata: Metadata = {
   title: "Doll Rewards · Loyalty Programme",
   description:
     "Earn points on every order, unlock perks for your birthday, and get priority support — Doll Rewards is our way of saying thank you.",
+  alternates: { canonical: "/loyalty" },
+  openGraph: {
+    title: "Doll Rewards",
+    description: "Earn points, birthday perks and early access with Doll Rewards.",
+    url: "/loyalty",
+  },
 };
 
 const PERKS = [

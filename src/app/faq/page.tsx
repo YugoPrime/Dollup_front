@@ -5,6 +5,12 @@ export const metadata: Metadata = {
   title: "FAQ",
   description:
     "Answers to the questions our customers ask most — orders, payment, sizing, delivery, returns and more.",
+  alternates: { canonical: "/faq" },
+  openGraph: {
+    title: "FAQ",
+    description: "Answers about Doll Up Boutique orders, payment, sizing, delivery and returns.",
+    url: "/faq",
+  },
 };
 
 type QA = { q: string; a: React.ReactNode };

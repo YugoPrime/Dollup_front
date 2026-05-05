@@ -13,11 +13,6 @@ import { ShopFilterSidebar } from "@/components/shop/ShopFilterSidebar";
 import { ShopSortDropdown } from "@/components/shop/ShopSortDropdown";
 import { ShopMobileClient } from "@/components/shop/ShopMobileClient";
 
-export const metadata: Metadata = {
-  title: "Shop",
-  description: "Shop dresses, lingerie, beachwear and accessories.",
-};
-
 export const revalidate = 60;
 
 type SearchParams = Promise<{
@@ -34,6 +29,34 @@ type SearchParams = Promise<{
 }>;
 
 const PER_PAGE = 24;
+const SITE_URL = "https://dollupboutique.com";
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}): Promise<Metadata> {
+  const sp = await searchParams;
+  const title = sp.q
+    ? `Search results for ${sp.q}`
+    : sp.category
+      ? `${titleCase(sp.category)}`
+      : sp.on_sale === "1"
+        ? "Sale"
+        : "Shop";
+  const canonical = buildShopCanonical(sp);
+
+  return {
+    title,
+    description: "Shop dresses, lingerie, beachwear and accessories at Doll Up Boutique Mauritius.",
+    alternates: { canonical },
+    openGraph: {
+      title,
+      description: "Shop dresses, lingerie, beachwear and accessories at Doll Up Boutique Mauritius.",
+      url: canonical,
+    },
+  };
+}
 
 export default async function ShopPage({
   searchParams,
@@ -120,6 +143,10 @@ export default async function ShopPage({
 
   return (
     <div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLd(shopBreadcrumbJsonLd()) }}
+      />
       <div className="border-b border-blush-100 bg-white px-4 py-4 md:flex md:items-end md:justify-between md:px-8 md:py-6">
         <div>
           <p className="font-sans text-[10px] font-bold uppercase tracking-[0.14em] text-ink-muted">
@@ -189,6 +216,47 @@ export default async function ShopPage({
       </div>
     </div>
   );
+}
+
+function buildShopCanonical(sp: Awaited<SearchParams>) {
+  const params = new URLSearchParams();
+  if (sp.category) params.set("category", sp.category);
+  if (sp.q) params.set("q", sp.q);
+  if (sp.tag) params.set("tag", sp.tag);
+  if (sp.on_sale) params.set("on_sale", sp.on_sale);
+  const query = params.toString();
+  return query ? `/shop?${query}` : "/shop";
+}
+
+function titleCase(value: string) {
+  return value
+    .replace(/[-_]+/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function shopBreadcrumbJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: SITE_URL,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Shop",
+        item: `${SITE_URL}/shop`,
+      },
+    ],
+  };
+}
+
+function jsonLd(data: unknown) {
+  return JSON.stringify(data).replace(/</g, "\\u003c");
 }
 
 function EmptyState() {

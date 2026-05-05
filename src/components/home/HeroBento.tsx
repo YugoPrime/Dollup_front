@@ -1,8 +1,29 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { HttpTypes } from "@medusajs/types";
+import {
+  HERO_TILE_1_BLUR,
+  HERO_TILE_2_BLUR,
+  HERO_TILE_3_BLUR,
+  HERO_TILE_4_BLUR,
+  HERO_TILE_5_BLUR,
+} from "@/lib/blur-data";
 
 type Product = HttpTypes.StoreProduct;
+
+const HERO_TILE_BLURS = [
+  HERO_TILE_1_BLUR,
+  HERO_TILE_2_BLUR,
+  HERO_TILE_3_BLUR,
+  HERO_TILE_4_BLUR,
+  HERO_TILE_5_BLUR,
+];
+
+function tileBlur(key: string) {
+  if (key === "feature") return HERO_TILE_1_BLUR;
+  const index = Number(key.slice(1));
+  return HERO_TILE_BLURS[index + 1] ?? HERO_TILE_1_BLUR;
+}
 
 /**
  * Bento mosaic hero — 5 portrait tiles, varied sizes, synchronized float animation.
@@ -47,6 +68,8 @@ export function HeroBento({ products }: { products: Product[] }) {
             }
             className="object-cover object-top"
             priority={key === "feature"}
+            placeholder="blur"
+            blurDataURL={tileBlur(key)}
           />
         )}
       </Link>
@@ -122,6 +145,8 @@ export function HeroBento({ products }: { products: Product[] }) {
                     sizes="33vw"
                     className="object-cover object-top"
                     priority={i === 0}
+                    placeholder="blur"
+                    blurDataURL={HERO_TILE_BLURS[i] ?? HERO_TILE_1_BLUR}
                   />
                 )}
               </Link>

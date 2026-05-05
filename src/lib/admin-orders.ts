@@ -758,6 +758,17 @@ export async function markOrderReady(orderId: string): Promise<void> {
 export async function markOrderShipped(orderId: string): Promise<void> {
   await markOrderReady(orderId);
   await markOrderFulfilled(orderId);
+  // Fire customer email via backend admin route — dm_status flag + event.
+  // Failure here must not undo the local state change, so swallow + log.
+  try {
+    const sdk = await getAdminSdk();
+    await sdk.client.fetch(`/admin/orders/${orderId}/notify-shipped`, {
+      method: "POST",
+      body: {},
+    });
+  } catch (err) {
+    console.warn("[markOrderShipped] notify-shipped failed:", err);
+  }
 }
 
 export async function cancelOrder(orderId: string): Promise<void> {

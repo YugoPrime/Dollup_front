@@ -5,6 +5,7 @@ import { CheckoutForm } from "./CheckoutForm";
 export const metadata: Metadata = {
   title: "Checkout",
   description: "Complete your order.",
+  robots: { index: false, follow: false },
 };
 
 export default function CheckoutPage() {

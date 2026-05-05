@@ -5,6 +5,12 @@ export const metadata: Metadata = {
   title: "Refund & Returns Policy",
   description:
     "Our return window, what we accept, what we don't, and how to start a return — clearly explained.",
+  alternates: { canonical: "/returns" },
+  openGraph: {
+    title: "Refund & Returns Policy",
+    description: "Return window, accepted items and how to start a Doll Up Boutique return.",
+    url: "/returns",
+  },
 };
 
 export default function ReturnsPage() {

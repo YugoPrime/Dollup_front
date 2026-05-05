@@ -5,6 +5,12 @@ export const metadata: Metadata = {
   title: "Size Guide",
   description:
     "How to measure yourself and find your size on Doll Up Boutique. Each piece has its own chart on the product page — here's a general guide.",
+  alternates: { canonical: "/size-guide" },
+  openGraph: {
+    title: "Size Guide",
+    description: "How to measure yourself and find your size at Doll Up Boutique.",
+    url: "/size-guide",
+  },
 };
 
 type Row = { size: string; bust: string; waist: string; hips: string };

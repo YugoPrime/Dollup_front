@@ -4,6 +4,12 @@ export const metadata: Metadata = {
   title: "Privacy Policy",
   description:
     "How Doll Up Boutique collects, uses, stores and protects your personal data, in line with the Mauritius Data Protection Act 2017.",
+  alternates: { canonical: "/privacy" },
+  openGraph: {
+    title: "Privacy Policy",
+    description: "How Doll Up Boutique handles customer data and privacy.",
+    url: "/privacy",
+  },
 };
 
 export default function PrivacyPage() {

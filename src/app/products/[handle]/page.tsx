@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProductByHandle, listProducts, getLatestCollectionTag } from "@/lib/products";
+import { getDisplayPrice } from "@/lib/format";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { ProductBuy } from "@/components/product/ProductBuy";
 import { ProductAccordion } from "@/components/product/ProductAccordion";
@@ -9,6 +10,7 @@ import { YouMayAlsoLike } from "@/components/product/YouMayAlsoLike";
 import { StickyATC } from "@/components/product/StickyATC";
 
 export const revalidate = 60;
+const SITE_URL = "https://dollupboutique.com";
 
 type RouteParams = Promise<{ handle: string }>;
 
@@ -20,9 +22,27 @@ export async function generateMetadata({
   const { handle } = await params;
   const { product } = await getProductByHandle(handle);
   if (!product) return { title: "Product not found" };
+  const description = plainText(product.description ?? product.subtitle ?? "").slice(0, 155);
+  const image = product.thumbnail ?? product.images?.[0]?.url ?? "/og-default.jpg";
+  const canonical = `/products/${product.handle}`;
+
   return {
     title: product.title,
-    description: product.description ?? product.subtitle ?? undefined,
+    description: description || undefined,
+    alternates: { canonical },
+    openGraph: {
+      type: "website",
+      title: product.title,
+      description: description || undefined,
+      url: canonical,
+      images: [{ url: image, alt: product.title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: product.title,
+      description: description || undefined,
+      images: [image],
+    },
   };
 }
 
@@ -49,6 +69,14 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
 
   return (
     <div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLd(productJsonLd(product)) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLd(productBreadcrumbJsonLd(product)) }}
+      />
       <nav aria-label="Breadcrumb" className="px-4 py-3 font-sans text-[10px] font-bold uppercase tracking-wider text-ink-muted md:px-8 md:py-4">
         <Link href="/" className="hover:text-coral-500">Home</Link>
         <span className="mx-1.5 text-blush-400">/</span>
@@ -83,4 +111,88 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
       <StickyATC product={product} watchElementId="pdp-buy-anchor" />
     </div>
   );
+}
+
+function productJsonLd(product: NonNullable<Awaited<ReturnType<typeof getProductByHandle>>["product"]>) {
+  const price = getDisplayPrice(product);
+  const image = product.thumbnail ?? product.images?.[0]?.url;
+  const inStock = (product.variants ?? []).some(
+    (variant) => !variant.manage_inventory || (variant.inventory_quantity ?? 0) > 0,
+  );
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.title,
+    image: image ? [image] : undefined,
+    description: plainText(product.description ?? product.subtitle ?? ""),
+    sku: product.handle,
+    brand: {
+      "@type": "Brand",
+      name: "Doll Up Boutique",
+    },
+    offers:
+      price.amount != null
+        ? {
+            "@type": "Offer",
+            url: `${SITE_URL}/products/${product.handle}`,
+            priceCurrency: "MUR",
+            price: price.amount,
+            availability: inStock
+              ? "https://schema.org/InStock"
+              : "https://schema.org/OutOfStock",
+            itemCondition: "https://schema.org/NewCondition",
+          }
+        : undefined,
+  };
+}
+
+function productBreadcrumbJsonLd(
+  product: NonNullable<Awaited<ReturnType<typeof getProductByHandle>>["product"]>,
+) {
+  const category = product.categories?.[0];
+  const items = [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "Home",
+      item: SITE_URL,
+    },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "Shop",
+      item: `${SITE_URL}/shop`,
+    },
+  ];
+
+  if (category && category.handle) {
+    items.push({
+      "@type": "ListItem",
+      position: 3,
+      name: category.name,
+      item: `${SITE_URL}/shop?category=${encodeURIComponent(category.handle)}`,
+    });
+  }
+
+  items.push({
+    "@type": "ListItem",
+    position: items.length + 1,
+    name: product.title,
+    item: `${SITE_URL}/products/${product.handle}`,
+  });
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items,
+  };
+}
+
+function plainText(value: string) {
+  return value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function jsonLd(data: unknown) {
+  return JSON.stringify(data).replace(/</g, "\\u003c");
 }

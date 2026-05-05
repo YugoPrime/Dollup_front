@@ -4,6 +4,7 @@ import { ForgotPasswordForm } from "./ForgotPasswordForm";
 export const metadata: Metadata = {
   title: "Reset your password",
   description: "Request a password reset link for your Doll Up Boutique account.",
+  robots: { index: false, follow: false },
 };
 
 export default function ForgotPasswordPage() {

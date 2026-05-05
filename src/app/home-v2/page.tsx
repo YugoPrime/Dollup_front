@@ -12,8 +12,20 @@ import {
 import { formatPrice, getDisplayPrice } from "@/lib/format";
 import { salesOfMonthConfig } from "@/lib/sales-of-month";
 import { ProductCard } from "@/components/ProductCard";
+import {
+  HERO_TILE_1_BLUR,
+  HERO_TILE_2_BLUR,
+  HERO_TILE_3_BLUR,
+  HERO_TILE_4_BLUR,
+} from "@/lib/blur-data";
 
 type Product = HttpTypes.StoreProduct;
+
+const HOME_V2_HERO_BLURS = [
+  HERO_TILE_2_BLUR,
+  HERO_TILE_3_BLUR,
+  HERO_TILE_4_BLUR,
+];
 
 export const revalidate = 60;
 
@@ -218,6 +230,8 @@ function HomeV2Hero({
           sizes="100vw"
           priority
           className="z-[-2] object-cover object-top"
+          placeholder="blur"
+          blurDataURL={HERO_TILE_1_BLUR}
         />
       ) : null}
       <div className="absolute inset-0 z-[-1] bg-[linear-gradient(90deg,rgba(26,18,18,0.88),rgba(26,18,18,0.56)_46%,rgba(26,18,18,0.18))]" />
@@ -272,8 +286,12 @@ function HomeV2Hero({
           ) : null}
 
           <div className="grid grid-cols-3 gap-2">
-            {supporting.map((product) => (
-              <MiniProductLink key={product.id} product={product} />
+            {supporting.map((product, index) => (
+              <MiniProductLink
+                key={product.id}
+                product={product}
+                blurDataURL={HOME_V2_HERO_BLURS[index] ?? HERO_TILE_1_BLUR}
+              />
             ))}
           </div>
         </div>
@@ -282,7 +300,13 @@ function HomeV2Hero({
   );
 }
 
-function MiniProductLink({ product }: { product: Product }) {
+function MiniProductLink({
+  product,
+  blurDataURL,
+}: {
+  product: Product;
+  blurDataURL: string;
+}) {
   const image = product.thumbnail ?? product.images?.[0]?.url ?? null;
   return (
     <Link
@@ -297,6 +321,8 @@ function MiniProductLink({ product }: { product: Product }) {
           fill
           sizes="(max-width: 768px) 30vw, 140px"
           className="object-cover object-top transition-transform duration-300 group-hover:scale-[1.04]"
+          placeholder="blur"
+          blurDataURL={blurDataURL}
         />
       ) : null}
     </Link>

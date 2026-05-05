@@ -7,6 +7,13 @@ export const metadata: Metadata = {
   title: "Our Story",
   description:
     "Doll Up Boutique — a small Mauritian fashion house since 2018, curating dresses, lingerie and beachwear for every season and every festive moment.",
+  alternates: { canonical: "/about" },
+  openGraph: {
+    title: "Our Story",
+    description:
+      "Meet Doll Up Boutique, a Mauritian fashion boutique curating dresses, lingerie and beachwear since 2018.",
+    url: "/about",
+  },
 };
 
 export default function AboutPage() {

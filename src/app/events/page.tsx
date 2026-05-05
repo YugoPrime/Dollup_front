@@ -5,6 +5,12 @@ export const metadata: Metadata = {
   title: "Events & Giveaways",
   description:
     "Doll Up Boutique giveaways, mystery boxes and seasonal happenings — exclusive perks for our community.",
+  alternates: { canonical: "/events" },
+  openGraph: {
+    title: "Events & Giveaways",
+    description: "Doll Up Boutique giveaways, mystery boxes and seasonal happenings.",
+    url: "/events",
+  },
 };
 
 export default function EventsPage() {

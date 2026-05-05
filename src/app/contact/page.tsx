@@ -5,6 +5,12 @@ export const metadata: Metadata = {
   title: "Contact Us",
   description:
     "Get in touch with Doll Up Boutique — WhatsApp, phone, email, opening hours and pickup location in Mauritius.",
+  alternates: { canonical: "/contact" },
+  openGraph: {
+    title: "Contact Us",
+    description: "Get in touch with Doll Up Boutique in Mauritius.",
+    url: "/contact",
+  },
 };
 
 const PHONE = "+230 5941 6359";

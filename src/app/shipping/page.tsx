@@ -11,6 +11,12 @@ export const metadata: Metadata = {
   title: "Shipping & Delivery",
   description:
     "How we deliver across Mauritius and Rodrigues — fees, timeframes, free-delivery threshold and pickup options.",
+  alternates: { canonical: "/shipping" },
+  openGraph: {
+    title: "Shipping & Delivery",
+    description: "Delivery fees, timeframes and pickup options for Doll Up Boutique Mauritius.",
+    url: "/shipping",
+  },
 };
 
 // Revalidate every 5 minutes so Medusa price changes flow through without a redeploy.

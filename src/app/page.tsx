@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import { listFeatured, listProducts, listEssentials, getLatestCollectionTag } from "@/lib/products";
 import { HeroBento } from "@/components/home/HeroBento";
 import { TrendingRail } from "@/components/home/TrendingRail";
@@ -16,6 +17,21 @@ import {
 } from "@/components/home/HomeSkeletons";
 
 export const revalidate = 60;
+
+export function generateMetadata(): Metadata {
+  return {
+    title: "Doll Up Boutique",
+    description:
+      "Shop dresses, lingerie, beachwear and accessories curated in Mauritius, with cash on delivery available island-wide.",
+    alternates: { canonical: "/" },
+    openGraph: {
+      title: "Doll Up Boutique",
+      description:
+        "Shop dresses, lingerie, beachwear and accessories curated in Mauritius.",
+      url: "/",
+    },
+  };
+}
 
 type LatestCollection = Awaited<ReturnType<typeof getLatestCollectionTag>>;
 type LatestCollectionPromise = Promise<LatestCollection>;

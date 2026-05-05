@@ -8,6 +8,12 @@ export const metadata: Metadata = {
   title: "Lookbook",
   description:
     "Editorial shoots of our latest drops, styled and shot in Mauritius. Click through for the full look.",
+  alternates: { canonical: "/lookbook" },
+  openGraph: {
+    title: "Lookbook",
+    description: "Editorial shoots of Doll Up Boutique drops styled and shot in Mauritius.",
+    url: "/lookbook",
+  },
 };
 
 // Lookbook images live in /public/lookbook/.

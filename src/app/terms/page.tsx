@@ -4,6 +4,12 @@ export const metadata: Metadata = {
   title: "Sales Terms & Conditions",
   description:
     "The legal terms governing sales between Doll Up Boutique Limited and customers using shop.dollupboutique.com.",
+  alternates: { canonical: "/terms" },
+  openGraph: {
+    title: "Sales Terms & Conditions",
+    description: "The legal terms governing Doll Up Boutique online sales.",
+    url: "/terms",
+  },
 };
 
 export default function TermsPage() {

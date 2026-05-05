@@ -4,6 +4,7 @@ import { AccountClient } from "./AccountClient";
 export const metadata: Metadata = {
   title: "My account",
   description: "Your Doll Up Boutique account, orders, and saved addresses.",
+  robots: { index: false, follow: false },
 };
 
 export default function AccountPage() {

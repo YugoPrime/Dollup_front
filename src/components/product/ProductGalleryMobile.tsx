@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useRef, useState } from "react";
+import { PDP_FALLBACK_BLUR } from "@/lib/blur-data";
 import { Lightbox } from "./Lightbox";
 
 type Img = { url: string; alt?: string };
@@ -60,6 +61,8 @@ export function ProductGalleryMobile({ images, alt }: { images: Img[]; alt?: str
               sizes="90vw"
               className="object-cover object-top"
               priority={i === 0}
+              placeholder="blur"
+              blurDataURL={PDP_FALLBACK_BLUR}
             />
           </button>
         ))}
