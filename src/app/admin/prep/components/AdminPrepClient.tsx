@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import type { OrderRow, PrepTab } from "@/lib/admin-orders";
 import { reloadPrepOrdersAction } from "../actions";
+import { PrepOrderCard } from "./PrepOrderCard";
 
 const TABS: { id: PrepTab; label: string }[] = [
   { id: "by_post", label: "By Post" },
@@ -83,12 +84,12 @@ export function AdminPrepClient({
       ) : (
         <ul className="grid gap-3 lg:grid-cols-2">
           {visible.map((o) => (
-            <li
-              key={o.id}
-              className="rounded-lg border border-ink-soft/20 bg-white p-4 text-sm"
-            >
-              <div className="font-medium">#{o.displayId} — {o.buyerName}</div>
-              <div className="text-ink-muted">{o.deliveryMethod}</div>
+            <li key={o.id}>
+              <PrepOrderCard
+                order={o}
+                tab={tab}
+                onDone={(id) => setOrders((prev) => prev.filter((x) => x.id !== id))}
+              />
             </li>
           ))}
         </ul>
