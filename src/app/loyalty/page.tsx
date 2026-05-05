@@ -34,11 +34,6 @@ const PERKS = [
     title: "Member-only sales",
     body: "Periodic flash sales we don't advertise publicly — only sent to our list.",
   },
-  {
-    icon: "✱",
-    title: "Free delivery, lower threshold",
-    body: "Free home delivery from Rs 1,000 instead of Rs 1,500 (members only).",
-  },
 ];
 
 const HOW_IT_WORKS = [
@@ -170,8 +165,11 @@ export default function LoyaltyPage() {
               </em>
             </h2>
             <p className="mt-4 font-sans text-[14px] leading-[1.6] text-ink-soft md:text-[15px]">
-              Drop your email and birthday. We&apos;ll add you to the members list, send your welcome perks, and notify you when point-earning launches in your account.
+              Drop your email and birthday below. We&apos;ll add you to the members list, send your welcome perks, and notify you when point-earning launches in your account.
             </p>
+            <div className="mt-5 rounded-xl border border-blush-300 bg-white/60 p-4 font-sans text-[13px] leading-[1.55] text-ink-soft">
+              <strong className="text-ink">Already have an account?</strong> You&apos;re automatically enrolled in Doll Rewards — no separate signup needed. <Link href="/register" className="text-coral-500 hover:underline">Create an account →</Link> or <Link href="/login" className="text-coral-500 hover:underline">sign in</Link>.
+            </div>
             <p className="mt-3 font-sans text-[12px] text-ink-muted">
               No spam — about one email a week, max. Unsubscribe anytime.
             </p>

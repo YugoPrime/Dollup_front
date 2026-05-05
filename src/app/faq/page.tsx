@@ -27,8 +27,7 @@ const SECTIONS: FaqSection[] = [
               <li>Pick the item, choose your colour and size carefully, and add to bag.</li>
               <li>Open your bag and click <strong>Checkout</strong>.</li>
               <li>Fill in your delivery details, accept the terms and place the order.</li>
-              <li>Choose home delivery or pickup at Pereybere.</li>
-              <li>For pre-orders, send your proof of payment (down payment) by email with your order number.</li>
+              <li>Choose how you&apos;d like to receive your order.</li>
               <li>You&apos;ll receive an order confirmation once stock is verified.</li>
             </ol>
           </>
@@ -128,7 +127,7 @@ const SECTIONS: FaqSection[] = [
         q: "How fast is delivery?",
         a: (
           <p>
-            In-stock items: <strong>next-day</strong> if you order before 2pm. Pre-order items: <strong>12 to 18 days</strong> from order date.
+            In-stock items ship <strong>next-day</strong> if you order before 2pm. By post, count <strong>2–4 working days</strong> regular or <strong>1–2 working days</strong> express.
           </p>
         ),
       },
@@ -136,7 +135,7 @@ const SECTIONS: FaqSection[] = [
         q: "Is delivery free?",
         a: (
           <p>
-            Free home/office delivery on orders <strong>above Rs 1,500</strong> in Mauritius. Below that, Rs 150 for home delivery, Rs 60 by post or Rs 90 express post.
+            Free home/office delivery on orders <strong>above Rs 1,500</strong> in Mauritius. Below that, Rs 150 for home delivery, Rs 70 by post or Rs 110 express post.
           </p>
         ),
       },
@@ -150,15 +149,15 @@ const SECTIONS: FaqSection[] = [
         q: "Can I return an item?",
         a: (
           <p>
-            Yes — for in-stock items only. Contact us within <strong>15 days</strong> of receiving your order. For full conditions see our <Link href="/returns" className="text-coral-500 hover:underline">Returns Policy</Link>.
+            Yes. Contact us within <strong>15 days</strong> of receiving your order. For full conditions see our <Link href="/returns" className="text-coral-500 hover:underline">Returns Policy</Link>.
           </p>
         ),
       },
       {
-        q: "What can&apos;t be returned?",
+        q: "What can't be returned?",
         a: (
           <p>
-            For hygiene reasons we cannot accept returns on lingerie, bras, panties, bodysuits, swimwear, bikinis, pre-orders or items marked non-returnable. Free gifts are also non-returnable.
+            For hygiene reasons we cannot accept returns on lingerie, bras, panties, bodysuits, swimwear, bikinis, or items marked non-returnable. Free gifts are also non-returnable.
           </p>
         ),
       },
@@ -248,7 +247,7 @@ export default function FaqPage() {
             Didn&apos;t find your answer?
           </h2>
           <p className="mx-auto mt-3 max-w-[440px] font-sans text-[13px] leading-[1.55] text-ink-soft md:text-[14px]">
-            We&apos;re a real human team — message us on WhatsApp and we&apos;ll get back to you within a few hours.
+            Drop us an email or message us on WhatsApp — we&apos;ll get back to you within a business day.
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <a

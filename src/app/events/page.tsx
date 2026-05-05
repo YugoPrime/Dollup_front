@@ -126,7 +126,7 @@ export default function EventsPage() {
             </ul>
             <div className="mt-7 flex flex-wrap gap-3">
               <span className="rounded-full bg-coral-500/20 px-5 py-2.5 font-sans text-[11px] font-bold uppercase tracking-[0.14em] text-coral-300">
-                Coming soon — DM to pre-order
+                Coming soon — DM to reserve yours
               </span>
               <a
                 href="https://www.instagram.com/dollupboutique/"

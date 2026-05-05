@@ -1,5 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { formatPrice } from "@/lib/format";
+import {
+  getMauritiusRates,
+  getRodriguesRate,
+  type ShippingRate,
+} from "@/lib/shipping-rates";
 
 export const metadata: Metadata = {
   title: "Shipping & Delivery",
@@ -7,7 +13,37 @@ export const metadata: Metadata = {
     "How we deliver across Mauritius and Rodrigues — fees, timeframes, free-delivery threshold and pickup options.",
 };
 
-export default function ShippingPage() {
+// Revalidate every 5 minutes so Medusa price changes flow through without a redeploy.
+export const revalidate = 300;
+
+function renderFee(rate: ShippingRate): React.ReactNode {
+  if (rate.amount == null) return "—";
+  if (rate.amount === 0) {
+    return <strong className="text-coral-500">Free</strong>;
+  }
+  if (rate.freeOver != null) {
+    return (
+      <>
+        <strong className="text-coral-500">
+          Free over {formatPrice(rate.freeOver, rate.currency)}
+        </strong>{" "}
+        · otherwise {formatPrice(rate.amount, rate.currency)}
+      </>
+    );
+  }
+  return formatPrice(rate.amount, rate.currency);
+}
+
+export default async function ShippingPage() {
+  const [muRates, rodriguesRate] = await Promise.all([
+    getMauritiusRates(),
+    getRodriguesRate(),
+  ]);
+  const homeRate = muRates.find((r) => r.key === "home");
+  const freeOverLabel =
+    homeRate?.freeOver != null
+      ? formatPrice(homeRate.freeOver, homeRate.currency)
+      : "Rs 1,500";
   return (
     <div className="bg-cream">
       {/* Hero */}
@@ -23,7 +59,7 @@ export default function ShippingPage() {
             </em>
           </h1>
           <p className="mx-auto mt-5 max-w-[520px] font-sans text-[14px] leading-[1.55] text-ink-soft md:text-[15px]">
-            Free delivery across Mauritius on orders over Rs&nbsp;1,500. Order before 2pm for next-day delivery on in-stock items.
+            Free delivery across Mauritius on orders over {freeOverLabel}. Order before 2pm for next-day delivery.
           </p>
         </div>
       </section>
@@ -51,9 +87,9 @@ export default function ShippingPage() {
                 <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
               </svg>
             </div>
-            <h2 className="mb-1 font-display text-[20px] leading-tight text-ink">Free over Rs&nbsp;1,500</h2>
+            <h2 className="mb-1 font-display text-[20px] leading-tight text-ink">Free over {freeOverLabel}</h2>
             <p className="font-sans text-[13px] leading-[1.5] text-ink-soft">
-              Free home or office delivery in Mauritius once your basket crosses Rs&nbsp;1,500.
+              Free home or office delivery in Mauritius once your basket crosses {freeOverLabel}.
             </p>
           </div>
           <div className="rounded-2xl border border-blush-300 bg-white p-6">
@@ -91,26 +127,20 @@ export default function ShippingPage() {
                 </tr>
               </thead>
               <tbody className="text-ink-soft">
-                <tr className="border-t border-blush-300">
-                  <td className="px-5 py-3 font-semibold text-ink">Home / office delivery</td>
-                  <td className="px-5 py-3"><strong className="text-coral-500">Free over Rs&nbsp;1,500</strong> · otherwise Rs&nbsp;150</td>
-                  <td className="px-5 py-3">Next day if ordered before 2pm</td>
-                </tr>
-                <tr className="border-t border-blush-300 bg-cream">
-                  <td className="px-5 py-3 font-semibold text-ink">Mauritius Post (regular)</td>
-                  <td className="px-5 py-3">Rs&nbsp;60</td>
-                  <td className="px-5 py-3">2–4 working days</td>
-                </tr>
-                <tr className="border-t border-blush-300">
-                  <td className="px-5 py-3 font-semibold text-ink">Mauritius Post (express)</td>
-                  <td className="px-5 py-3">Rs&nbsp;90</td>
-                  <td className="px-5 py-3">1–2 working days</td>
-                </tr>
-                <tr className="border-t border-blush-300 bg-cream">
-                  <td className="px-5 py-3 font-semibold text-ink">Pickup at Pereybere</td>
-                  <td className="px-5 py-3"><strong className="text-coral-500">Free</strong></td>
-                  <td className="px-5 py-3">When ready — we&apos;ll WhatsApp you</td>
-                </tr>
+                {muRates.map((rate, i) => (
+                  <tr
+                    key={rate.key}
+                    className={
+                      i % 2 === 1
+                        ? "border-t border-blush-300 bg-cream"
+                        : "border-t border-blush-300"
+                    }
+                  >
+                    <td className="px-5 py-3 font-semibold text-ink">{rate.label}</td>
+                    <td className="px-5 py-3">{renderFee(rate)}</td>
+                    <td className="px-5 py-3">{rate.timeframe}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -155,42 +185,13 @@ export default function ShippingPage() {
               </thead>
               <tbody className="text-ink-soft">
                 <tr className="border-t border-blush-300">
-                  <td className="px-5 py-3 font-semibold text-ink">Mauritius Post</td>
-                  <td className="px-5 py-3">Rs&nbsp;100</td>
-                  <td className="px-5 py-3">Approx. 2 weeks</td>
+                  <td className="px-5 py-3 font-semibold text-ink">{rodriguesRate.label}</td>
+                  <td className="px-5 py-3">{renderFee(rodriguesRate)}</td>
+                  <td className="px-5 py-3">{rodriguesRate.timeframe}</td>
                 </tr>
               </tbody>
             </table>
           </div>
-        </div>
-      </section>
-
-      {/* Pre-orders */}
-      <section className="bg-ink px-6 py-14 text-white md:px-10 md:py-20">
-        <div className="mx-auto max-w-[900px]">
-          <p className="mb-2 font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-coral-300">
-            ✦ Pre-orders
-          </p>
-          <h2 className="font-display text-[28px] leading-[1.1] md:text-[40px]">
-            How pre-orders work
-          </h2>
-          <div className="mt-6 grid gap-5 md:grid-cols-2">
-            <div className="rounded-2xl bg-white/5 p-6">
-              <h3 className="mb-1 font-display text-[18px] text-white">Lead time</h3>
-              <p className="font-sans text-[13px] leading-[1.55] text-white/80">
-                Pre-order items take <strong className="text-white">12 to 18 days</strong> from the date the order is placed.
-              </p>
-            </div>
-            <div className="rounded-2xl bg-white/5 p-6">
-              <h3 className="mb-1 font-display text-[18px] text-white">Down payment</h3>
-              <p className="font-sans text-[13px] leading-[1.55] text-white/80">
-                Pay a down payment via Juice, bank transfer or myT Money to lock the piece. The balance is due at delivery.
-              </p>
-            </div>
-          </div>
-          <p className="mt-6 font-sans text-[12px] leading-[1.55] text-white/60">
-            Send your proof of payment by email or WhatsApp with your order number — we confirm the order once it&apos;s in.
-          </p>
         </div>
       </section>
 

@@ -74,10 +74,6 @@ export default function ReturnsPage() {
             <ul className="space-y-2.5 font-sans text-[13px] leading-[1.55] text-ink-soft md:text-[14px]">
               <li className="flex items-start gap-2">
                 <span className="mt-[7px] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-coral-500" />
-                In-stock items only (not pre-orders)
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="mt-[7px] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-coral-500" />
                 Unworn and unwashed
               </li>
               <li className="flex items-start gap-2">
@@ -105,7 +101,6 @@ export default function ReturnsPage() {
               <li className="flex items-start gap-2"><span className="mt-[7px] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-ink-muted" />Lingerie, bras and bralettes</li>
               <li className="flex items-start gap-2"><span className="mt-[7px] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-ink-muted" />Panties and bodysuits</li>
               <li className="flex items-start gap-2"><span className="mt-[7px] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-ink-muted" />Swimwear and bikinis</li>
-              <li className="flex items-start gap-2"><span className="mt-[7px] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-ink-muted" />Pre-order items</li>
               <li className="flex items-start gap-2"><span className="mt-[7px] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-ink-muted" />Free gifts and items marked non-returnable</li>
               <li className="flex items-start gap-2"><span className="mt-[7px] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-ink-muted" />Items returned worn, washed or with damaged packaging</li>
             </ul>

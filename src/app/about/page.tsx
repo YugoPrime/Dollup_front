@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { sanitizeRichText } from "@/lib/sanitize-html";
+import { StatCountUp } from "./StatCountUp";
 
 export const metadata: Metadata = {
   title: "Our Story",
@@ -26,7 +27,7 @@ export default function AboutPage() {
             </em>
           </h1>
           <p className="mx-auto mt-6 max-w-[560px] font-sans text-[15px] leading-[1.55] text-ink-soft md:text-[16px]">
-            Doll Up Boutique is a small Mauritian-run fashion house. We&apos;ve been curating dresses, lingerie and beachwear for the women of this island since 2018 — and we&apos;re still here, drop after drop.
+            Doll Up Boutique is a small Mauritian-run fashion house. We&apos;ve been curating dresses, lingerie and beachwear for the women of this island since 2018 — online-only, delivered to your door.
           </p>
         </div>
       </section>
@@ -46,10 +47,13 @@ export default function AboutPage() {
                 We started in 2018 with no shop, no team, and one simple idea: bring carefully chosen pieces — the kind you usually see online but can never actually find here — to the women of Mauritius. No middle-men markups, no waiting weeks for an order to clear customs.
               </p>
               <p>
-                Years later, the formula hasn&apos;t really changed. We curate every season ourselves from suppliers in <strong>China</strong>, <strong>Hong Kong</strong> and <strong>Thailand</strong>, picking what fits the Mauritian climate and our festive moments — beachwear when the heat hits, velvet and sequins for end-of-year parties, light layers for the cooler months.
+                We still operate online only — no physical store, just careful curation, fast delivery and a tight feedback loop with our customers.
               </p>
               <p>
-                We&apos;re still small. That&apos;s on purpose — it&apos;s how we keep the curation tight and the service personal. When you DM us, you&apos;re messaging an actual person, not a chatbot.
+                Every season we curate ourselves from suppliers in <strong>China</strong>, <strong>Hong Kong</strong> and <strong>Thailand</strong>, picking what fits the Mauritian climate and our festive moments — beachwear when the heat hits, velvet and sequins for end-of-year parties, light layers for the cooler months.
+              </p>
+              <p>
+                We&apos;re still small. That&apos;s on purpose — it&apos;s how we keep the curation tight and the service personal.
               </p>
             </div>
           </div>
@@ -82,26 +86,26 @@ export default function AboutPage() {
             {[
               {
                 k: "Curated, not crowded",
-                v: "We don&apos;t carry thousands of styles. Each season we hand-pick a tight edit so you&apos;re never lost in choice.",
+                v: "We don't carry thousands of styles. Each season we hand-pick a tight edit so you're never lost in choice.",
               },
               {
                 k: "Made for our weather",
                 v: "Pieces that breathe in the Mauritian heat, layer for the cooler season, and shine for festive nights.",
               },
               {
-                k: "Service that&apos;s personal",
-                v: "Real humans on WhatsApp and Instagram, sizing advice on demand, and next-day delivery when you order before 2pm.",
+                k: "Personal service",
+                v: "Sizing advice on demand and next-day delivery when you order before 2pm. We reply on WhatsApp, Instagram and email.",
               },
             ].map((c) => (
               <div
                 key={c.k}
                 className="rounded-2xl border border-blush-300 bg-cream p-7"
               >
-                <h3 className="mb-2 font-display text-[20px] leading-tight text-ink">
+                <h3 className="mb-2 font-display text-[22px] leading-[1.2] text-ink md:text-[24px]">
                   {c.k}
                 </h3>
                 <p
-                  className="font-sans text-[13px] leading-[1.6] text-ink-soft"
+                  className="font-sans text-[14px] leading-[1.65] text-ink-soft md:text-[15px]"
                   dangerouslySetInnerHTML={{ __html: sanitizeRichText(c.v) }}
                 />
               </div>
@@ -112,25 +116,31 @@ export default function AboutPage() {
 
       {/* By the numbers / proof */}
       <section className="px-6 py-14 md:px-10 md:py-20">
-        <div className="mx-auto grid max-w-[1100px] gap-5 md:grid-cols-4">
-          {[
-            { n: "8 years", l: "and counting" },
-            { n: "3 sources", l: "China · HK · Thailand" },
-            { n: "1 island", l: "next-day delivered" },
-            { n: "DMs open", l: "we actually reply" },
-          ].map((s) => (
-            <div
-              key={s.n}
-              className="rounded-2xl bg-ink p-7 text-white"
-            >
-              <p className="font-display text-[28px] leading-tight md:text-[36px]">
-                {s.n}
-              </p>
-              <p className="mt-1 font-sans text-[11px] font-bold uppercase tracking-[0.16em] text-coral-300">
-                {s.l}
-              </p>
-            </div>
-          ))}
+        <div className="mx-auto grid max-w-[1100px] gap-5 md:grid-cols-3">
+          <div className="rounded-2xl bg-ink p-8 text-white md:p-10">
+            <p className="font-display text-[44px] leading-none md:text-[60px]">
+              <StatCountUp end={8} />
+            </p>
+            <p className="mt-3 font-sans text-[11px] font-bold uppercase tracking-[0.16em] text-coral-300">
+              Years and counting
+            </p>
+          </div>
+          <div className="rounded-2xl bg-ink p-8 text-white md:p-10">
+            <p className="font-display text-[44px] leading-none md:text-[60px]">
+              <StatCountUp end={20000} prefix="+" format="comma" />
+            </p>
+            <p className="mt-3 font-sans text-[11px] font-bold uppercase tracking-[0.16em] text-coral-300">
+              Orders fulfilled
+            </p>
+          </div>
+          <div className="rounded-2xl bg-ink p-8 text-white md:p-10">
+            <p className="font-display text-[44px] leading-none md:text-[60px]">
+              <StatCountUp end={10000} prefix="+" format="comma" />
+            </p>
+            <p className="mt-3 font-sans text-[11px] font-bold uppercase tracking-[0.16em] text-coral-300">
+              Happy customers
+            </p>
+          </div>
         </div>
       </section>
 
@@ -141,7 +151,7 @@ export default function AboutPage() {
             Come see what we&apos;ve picked this season.
           </h2>
           <p className="mx-auto mt-3 max-w-[520px] font-sans text-[14px] leading-[1.55] text-white/90">
-            New drops weekly. Free delivery on orders over Rs 1,500.
+            Free delivery on orders over Rs 1,500.
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Link

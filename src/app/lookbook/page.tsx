@@ -11,16 +11,34 @@ export const metadata: Metadata = {
 };
 
 // Lookbook images live in /public/lookbook/.
-// Naming convention: <NN>-<slug>.<ext> e.g. 01-summer-rooftop.jpg
+// Naming convention: <NN>-<model-slug>.<ext> e.g. 01-eva-stone.webp
 // The first segment (before the first dash) is the order; the rest becomes
-// the alt text. Drop new files in the folder, they appear automatically.
+// the model name shown on hover. Drop new files there and they appear automatically.
 type LookImage = {
   src: string;
   alt: string;
+  model: string;
   span?: "wide" | "tall" | "square";
 };
 
-const SPAN_CYCLE: Array<LookImage["span"]> = ["square", "tall", "wide", "square", "wide", "tall"];
+const SPAN_CYCLE: Array<LookImage["span"]> = [
+  "tall",
+  "square",
+  "square",
+  "wide",
+  "square",
+  "tall",
+  "square",
+  "square",
+];
+
+function titleCase(slug: string): string {
+  return slug
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((w) => w[0].toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ");
+}
 
 function loadLookbook(): LookImage[] {
   try {
@@ -32,9 +50,11 @@ function loadLookbook(): LookImage[] {
       .sort()
       .map((f, i) => {
         const slug = f.replace(/^\d+[-_]?/, "").replace(/\.[a-z]+$/i, "");
+        const model = slug ? titleCase(slug) : "Doll Up Boutique";
         return {
           src: `/lookbook/${f}`,
-          alt: slug ? slug.replace(/[-_]/g, " ") : "Doll Up Boutique lookbook image",
+          alt: `Doll Up Boutique lookbook — ${model}`,
+          model,
           span: SPAN_CYCLE[i % SPAN_CYCLE.length],
         };
       });
@@ -67,10 +87,10 @@ export default function LookbookPage() {
       </section>
 
       {hasImages ? (
-        // ─── Real lookbook grid ────────────────────────────────────────────
-        <section className="px-3 py-10 md:px-6 md:py-16">
-          <div className="mx-auto max-w-[1280px]">
-            <div className="grid auto-rows-[260px] grid-cols-2 gap-2 md:auto-rows-[320px] md:grid-cols-4 md:gap-3 lg:auto-rows-[360px]">
+        // ─── Bento grid, no gaps. Hover reveals model name. ───────────────
+        <section className="py-0">
+          <div className="mx-auto max-w-[1600px]">
+            <div className="grid auto-rows-[180px] grid-cols-2 gap-0 sm:auto-rows-[220px] md:auto-rows-[280px] md:grid-cols-4 lg:auto-rows-[320px]">
               {images.map((img, i) => {
                 const cls =
                   img.span === "wide"
@@ -81,26 +101,26 @@ export default function LookbookPage() {
                 return (
                   <figure
                     key={img.src}
-                    className={`group relative overflow-hidden rounded-xl bg-blush-100 ${cls}`}
+                    className={`group relative overflow-hidden bg-blush-100 ${cls}`}
                   >
                     <Image
                       src={img.src}
                       alt={img.alt}
                       fill
                       sizes="(max-width: 768px) 50vw, 25vw"
-                      className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                      className="object-cover transition-transform duration-500 group-hover:scale-[1.05]"
                       priority={i < 2}
                     />
-                    <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent p-4 opacity-0 transition-opacity group-hover:opacity-100">
-                      <p className="font-sans text-[11px] font-bold uppercase tracking-[0.18em] text-white capitalize">
-                        {img.alt}
+                    <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 translate-y-1 bg-gradient-to-t from-black/65 via-black/20 to-transparent px-3 py-2 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+                      <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.18em] text-white">
+                        {img.model}
                       </p>
                     </figcaption>
                   </figure>
                 );
               })}
             </div>
-            <p className="mt-6 text-center font-sans text-[12px] text-ink-muted">
+            <p className="px-6 py-8 text-center font-sans text-[12px] text-ink-muted">
               Photography by our team in collaboration with local Mauritian models.
             </p>
           </div>

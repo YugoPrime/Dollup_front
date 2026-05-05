@@ -29,7 +29,7 @@ export default function PrivacyPage() {
 
           <Section number="1" title="Who we are">
             <p>
-              This Privacy Policy applies to <strong>shop.dollupboutique.com</strong> (the &ldquo;Site&rdquo;), operated by <strong>Doll Up Boutique Limited</strong>, BRN C18159019, VAT 27646277, registered in Quatre Bornes, Mauritius. We are the &ldquo;data controller&rdquo; of the personal information described below.
+              This Privacy Policy applies to <strong>dollupboutique.com</strong> (the &ldquo;Site&rdquo;), operated by <strong>Doll Up Boutique Limited</strong>, BRN C18159019, VAT 27646277, registered in Quatre Bornes, Mauritius. We are the &ldquo;data controller&rdquo; of the personal information described below.
             </p>
             <p>
               For any privacy-related question, contact us at{" "}
