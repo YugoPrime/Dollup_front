@@ -1,4 +1,4 @@
-import DOMPurify from "isomorphic-dompurify";
+import sanitizeHtml from "sanitize-html";
 
 const ALLOWED_TAGS = [
   "a",
@@ -42,12 +42,11 @@ const ALLOWED_ATTR = [
 export function sanitizeRichText(html: string | null | undefined): string {
   if (!html) return "";
 
-  return DOMPurify.sanitize(html, {
-    ALLOWED_ATTR,
-    ALLOWED_TAGS,
-    ALLOW_DATA_ATTR: false,
-    ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|tel):|\/(?!\/)|#)/i,
-    FORBID_ATTR: ["class", "id", "style"],
-    FORBID_TAGS: ["button", "embed", "form", "iframe", "input", "object", "script", "style"],
+  return sanitizeHtml(html, {
+    allowedTags: ALLOWED_TAGS,
+    allowedAttributes: { "*": ALLOWED_ATTR },
+    allowedSchemes: ["http", "https", "mailto", "tel"],
+    allowedSchemesByTag: {},
+    allowProtocolRelative: false,
   });
 }
