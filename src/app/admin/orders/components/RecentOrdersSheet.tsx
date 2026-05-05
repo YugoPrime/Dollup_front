@@ -12,6 +12,52 @@ import { hydrateOrderToForm, rid, useOrderForm } from "./useOrderForm";
 import { OrderFormLayout } from "./OrderRowFields";
 import { OrderEditDrawer } from "./OrderEditDrawer";
 
+// Compact date format matching the existing "Date" column (DD MMM, e.g. "05 May").
+// Falls back to en-GB locale's day-and-short-month rendering. Accepts both ISO
+// timestamps (createdAt) and yyyy-mm-dd strings (deliveryDate metadata).
+function formatShortDate(value: string | null | undefined): string {
+  if (!value) return "";
+  // For yyyy-mm-dd strings we anchor to noon UTC to dodge timezone slippage
+  // when the user is east of UTC (e.g. MU at +04:00 still lands on the same
+  // calendar day at noon UTC).
+  const d =
+    /^\d{4}-\d{2}-\d{2}$/.test(value)
+      ? new Date(`${value}T12:00:00Z`)
+      : new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+}
+
+// Detailed format for tooltips — shows both date and time so the operator can
+// distinguish two entries on the same day.
+function formatLongDate(value: string | null | undefined): string {
+  if (!value) return "";
+  const d =
+    /^\d{4}-\d{2}-\d{2}$/.test(value)
+      ? new Date(`${value}T12:00:00Z`)
+      : new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+// Build the city-cell tooltip. OrderRow only carries `addressDetails`
+// (shipping_address.address_1) — there's no separate address2 in the row
+// shape. If address1 is empty (e.g. manual COD with only a city), return
+// "" so the caller can skip rendering a `title` attribute entirely.
+function fullAddress(o: OrderRow): string {
+  const parts = [o.addressDetails, o.city].filter(
+    (s): s is string => !!s && s.trim() !== "",
+  );
+  if (!o.addressDetails || !o.addressDetails.trim()) return "";
+  return parts.join(", ");
+}
+
 export function RecentOrdersSheet({
   orders,
   onChanged,
@@ -79,6 +125,16 @@ export function RecentOrdersSheet({
                     #{o.displayId} · {o.buyerName || "—"}
                   </p>
                   <p className="truncate text-[11px] text-ink-muted">
+                    <span
+                      title={
+                        o.deliveryDate
+                          ? `Entry: ${formatLongDate(o.createdAt)}`
+                          : `No delivery date · Entry: ${formatLongDate(o.createdAt)}`
+                      }
+                    >
+                      {o.deliveryDate ? formatShortDate(o.deliveryDate) : "—"}
+                    </span>
+                    {" · "}
                     {o.phone ?? "—"} · {o.deliveryMethod ?? "—"}
                   </p>
                 </div>
@@ -201,17 +257,26 @@ function ReadOnlyRow({
           </span>
         )}
       </td>
-      <td className="px-2 py-2 whitespace-nowrap">
-        {new Date(order.createdAt).toLocaleDateString("en-GB", {
-          day: "2-digit",
-          month: "short",
-        })}
+      <td
+        className="px-2 py-2 whitespace-nowrap"
+        title={
+          order.deliveryDate
+            ? `Entry: ${formatLongDate(order.createdAt)}`
+            : `No delivery date · Entry: ${formatLongDate(order.createdAt)}`
+        }
+      >
+        {order.deliveryDate ? formatShortDate(order.deliveryDate) : "—"}
       </td>
       <td className="px-2 py-2">{order.deliveryMethod ?? "—"}</td>
       <td className="px-2 py-2 max-w-[180px] truncate">
         {order.buyerName || "—"}
       </td>
-      <td className="px-2 py-2 max-w-[140px] truncate">{order.city ?? "—"}</td>
+      <td
+        className="px-2 py-2 max-w-[140px] truncate"
+        title={fullAddress(order) || undefined}
+      >
+        {order.city ?? "—"}
+      </td>
       <td className="px-2 py-2 whitespace-nowrap font-mono text-[11px]">
         {order.phone ?? "—"}
       </td>

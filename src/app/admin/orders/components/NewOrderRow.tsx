@@ -86,14 +86,11 @@ export const NewOrderRow = forwardRef<
   }
 
   return (
-    <section className="rounded-2xl border border-blush-400 bg-white p-3 shadow-sm sm:p-4">
-      <div className="flex items-center justify-between">
-        <h2 className="font-display text-lg text-ink">New order</h2>
-      </div>
+    <div className="p-3 sm:p-4">
       {successBanner && (
         <p
           role="status"
-          className="mt-2 rounded-lg border border-blush-300 bg-blush-100/60 px-3 py-1.5 text-sm text-ink"
+          className="mb-2 rounded-lg border border-blush-300 bg-blush-100/60 px-3 py-1.5 text-sm text-ink"
         >
           {successBanner}
         </p>
@@ -101,7 +98,7 @@ export const NewOrderRow = forwardRef<
       {errorBanner && (
         <p
           role="alert"
-          className="mt-2 rounded-lg border border-coral-500 bg-coral-300/30 px-3 py-1.5 text-sm text-coral-700"
+          className="mb-2 rounded-lg border border-coral-500 bg-coral-300/30 px-3 py-1.5 text-sm text-coral-700"
         >
           {errorBanner}
         </p>
@@ -128,6 +125,6 @@ export const NewOrderRow = forwardRef<
           {submitting ? "Saving…" : "Save order"}
         </button>
       </div>
-    </section>
+    </div>
   );
 });

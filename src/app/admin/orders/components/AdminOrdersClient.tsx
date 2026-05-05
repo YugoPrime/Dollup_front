@@ -5,14 +5,55 @@ import { NewOrderRow, type NewOrderRowRef } from "./NewOrderRow";
 import { StockChecker, type SelectedVariant } from "./StockChecker";
 import { RecentOrdersSheet } from "./RecentOrdersSheet";
 import { CustomerSearch } from "./CustomerSearch";
+import { dateFilterToQuery, type DateFilterValue } from "./DateFilter";
 import {
-  DateFilter,
-  dateFilterToQuery,
-  type DateFilterValue,
-} from "./DateFilter";
+  CollapsibleNewOrder,
+  type CollapsibleNewOrderRef,
+} from "./CollapsibleNewOrder";
+import { OrderListFilterBar } from "./OrderListFilterBar";
 import { searchOrdersAction } from "../actions";
 import type { CustomerHit, OrderRow } from "@/lib/admin-orders";
+import { getEffectiveStatus } from "@/lib/admin-orders-shared";
 import { useMediaQuery } from "@/lib/hooks/useMediaQuery";
+
+const PERIOD_STORAGE_KEY = "dub_admin_recent_period";
+const HIDE_CANCELLED_STORAGE_KEY = "dub_admin_hide_cancelled";
+
+function readStoredDateFilter(): DateFilterValue {
+  if (typeof window === "undefined") return { kind: "all" };
+  try {
+    const raw = window.localStorage.getItem(PERIOD_STORAGE_KEY);
+    if (!raw) return { kind: "all" };
+    const parsed = JSON.parse(raw) as DateFilterValue;
+    // Light shape validation — discard anything we don't recognise so a
+    // stale/malformed value can't crash the page.
+    if (parsed && typeof parsed === "object" && "kind" in parsed) {
+      if (
+        parsed.kind === "all" ||
+        parsed.kind === "preset" ||
+        parsed.kind === "custom"
+      ) {
+        return parsed;
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return { kind: "all" };
+}
+
+function writeStoredDateFilter(v: DateFilterValue) {
+  if (typeof window === "undefined") return;
+  try {
+    if (v.kind === "all") {
+      window.localStorage.removeItem(PERIOD_STORAGE_KEY);
+    } else {
+      window.localStorage.setItem(PERIOD_STORAGE_KEY, JSON.stringify(v));
+    }
+  } catch {
+    /* ignore */
+  }
+}
 
 export function AdminOrdersClient({
   initialOrders,
@@ -20,13 +61,44 @@ export function AdminOrdersClient({
   initialOrders: OrderRow[];
 }) {
   const formRef = useRef<NewOrderRowRef | null>(null);
+  const collapsibleRef = useRef<CollapsibleNewOrderRef | null>(null);
   const [orders, setOrders] = useState<OrderRow[]>(initialOrders);
   const [customerFilter, setCustomerFilter] = useState<CustomerHit | null>(
     null,
   );
+  // Server renders with default ({ kind: "all" }) to avoid SSR mismatch.
+  // After hydration we read the persisted value, which triggers a refetch
+  // via the existing `[dateFilter]` effect.
   const [dateFilter, setDateFilter] = useState<DateFilterValue>({
     kind: "all",
   });
+  const [hideCancelled, setHideCancelled] = useState(false);
+  // Hydrate persisted filter prefs once on mount.
+  useEffect(() => {
+    const stored = readStoredDateFilter();
+    if (stored.kind !== "all") setDateFilter(stored);
+    try {
+      if (window.localStorage.getItem(HIDE_CANCELLED_STORAGE_KEY) === "1") {
+        setHideCancelled(true);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  function updateDateFilter(v: DateFilterValue) {
+    setDateFilter(v);
+    writeStoredDateFilter(v);
+  }
+  function updateHideCancelled(v: boolean) {
+    setHideCancelled(v);
+    try {
+      if (v) window.localStorage.setItem(HIDE_CANCELLED_STORAGE_KEY, "1");
+      else window.localStorage.removeItem(HIDE_CANCELLED_STORAGE_KEY);
+    } catch {
+      /* ignore */
+    }
+  }
   const PAGE_SIZE = 50;
   // Offset advances by PAGE_SIZE per server fetch — the server pages by
   // raw rows, so we must mirror that. Don't advance by visible-row count;
@@ -40,10 +112,29 @@ export function AdminOrdersClient({
   const [stockOpen, setStockOpen] = useState(false);
 
   function handlePick(v: SelectedVariant) {
-    formRef.current?.addVariant(v);
+    // Force the form open BEFORE reaching for the inner ref. When the
+    // collapsible body is unmounted (collapsed), `formRef.current` is null
+    // and the addVariant() call would be a silent no-op. We expand first,
+    // then defer the addVariant() to the next tick so React has a chance
+    // to mount NewOrderRow and populate the ref.
+    collapsibleRef.current?.expand();
+    if (formRef.current) {
+      formRef.current.addVariant(v);
+    } else {
+      // Form was just expanded — wait one frame for it to mount.
+      setTimeout(() => formRef.current?.addVariant(v), 0);
+    }
     if (typeof window !== "undefined") {
       const el = document.getElementById("dm-order-form");
       el?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+  function handleApplyCustomer(c: CustomerHit) {
+    collapsibleRef.current?.expand();
+    if (formRef.current) {
+      formRef.current.applyCustomer(c);
+    } else {
+      setTimeout(() => formRef.current?.applyCustomer(c), 0);
     }
   }
 
@@ -109,11 +200,14 @@ export function AdminOrdersClient({
     };
   }, [stockOpen]);
 
-  const visibleOrders = customerFilter
+  const customerScoped = customerFilter
     ? orders.filter(
         (o) => (o.phone ?? "").replace(/\D/g, "") === customerFilter.phone,
       )
     : orders;
+  const visibleOrders = hideCancelled
+    ? customerScoped.filter((o) => getEffectiveStatus(o) !== "cancelled")
+    : customerScoped;
 
   return (
     <div className="lg:grid lg:grid-cols-[1fr_300px] lg:gap-4">
@@ -123,7 +217,6 @@ export function AdminOrdersClient({
           <div className="flex-1">
             <CustomerSearch onSelect={setCustomerFilter} />
           </div>
-          <DateFilter value={dateFilter} onChange={setDateFilter} />
           {!isDesktop && (
             <button
               type="button"
@@ -154,7 +247,7 @@ export function AdminOrdersClient({
             </span>
             <button
               type="button"
-              onClick={() => formRef.current?.applyCustomer(customerFilter)}
+              onClick={() => handleApplyCustomer(customerFilter)}
               className="rounded-md bg-coral-500 px-2 py-1 font-semibold uppercase tracking-wider text-white hover:bg-coral-700"
             >
               📋 Use customer in new entry
@@ -170,15 +263,27 @@ export function AdminOrdersClient({
           </div>
         )}
         <div id="dm-order-form">
-          <NewOrderRow
-            ref={formRef}
-            onSaved={() => reloadOrders({ reset: true })}
-          />
+          <CollapsibleNewOrder ref={collapsibleRef}>
+            <NewOrderRow
+              ref={formRef}
+              onSaved={() => reloadOrders({ reset: true })}
+            />
+          </CollapsibleNewOrder>
         </div>
+        <OrderListFilterBar
+          dateFilter={dateFilter}
+          onDateFilterChange={updateDateFilter}
+          hideCancelled={hideCancelled}
+          onHideCancelledChange={updateHideCancelled}
+        />
         <RecentOrdersSheet
           orders={visibleOrders}
           onChanged={() => reloadOrders({ reset: true })}
-          isFilterActive={customerFilter != null || dateFilter.kind !== "all"}
+          isFilterActive={
+            customerFilter != null ||
+            dateFilter.kind !== "all" ||
+            hideCancelled
+          }
         />
         {!customerFilter && visibleOrders.length > 0 && (
           <button
