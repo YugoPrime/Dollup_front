@@ -46,6 +46,17 @@ function getColorOptions(product: Product) {
   return (colorOption.values ?? []).map((v) => v.value).filter(Boolean) as string[];
 }
 
+function getVariantPickerLabel(product: Product): string {
+  const titles = (product.options ?? [])
+    .map((o) => (o.title ?? "").toLowerCase())
+    .filter(Boolean);
+  const hasSize = titles.some((t) => t === "size");
+  const hasColor = titles.some((t) => t === "color");
+  if (hasSize) return "Select size";
+  if (hasColor) return "Select color";
+  return "Select options";
+}
+
 // Best-effort hex mapping for common color names. Unknown values fall back to neutral grey.
 function colorNameToHex(name: string): string {
   const map: Record<string, string> = {
@@ -184,7 +195,7 @@ export function ProductCard({
               disabled={busy || loading}
               className="min-h-11 w-full rounded-md bg-white py-2 font-sans text-[10px] font-bold uppercase tracking-wider text-ink shadow-sm hover:bg-blush-100 disabled:opacity-60"
             >
-              {busy ? "Adding…" : isMultiVariant ? "Select size" : "+ Quick Add"}
+              {busy ? "Adding…" : isMultiVariant ? getVariantPickerLabel(product) : "+ Quick Add"}
             </button>
           </div>
         )}
