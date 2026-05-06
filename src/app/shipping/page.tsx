@@ -6,6 +6,7 @@ import {
   getRodriguesRate,
   type ShippingRate,
 } from "@/lib/shipping-rates";
+import { getStoreConfig } from "@/lib/store-config";
 
 export const metadata: Metadata = {
   title: "Shipping & Delivery",
@@ -41,15 +42,19 @@ function renderFee(rate: ShippingRate): React.ReactNode {
 }
 
 export default async function ShippingPage() {
-  const [muRates, rodriguesRate] = await Promise.all([
+  const [muRates, rodriguesRate, cfg] = await Promise.all([
     getMauritiusRates(),
     getRodriguesRate(),
+    getStoreConfig(),
   ]);
   const homeRate = muRates.find((r) => r.key === "home");
+  const freeThreshold = cfg.shipping.free_shipping_threshold_mur;
   const freeOverLabel =
-    homeRate?.freeOver != null
+    freeThreshold > 0
+      ? formatPrice(freeThreshold, homeRate?.currency ?? "MUR")
+      : homeRate?.freeOver != null
       ? formatPrice(homeRate.freeOver, homeRate.currency)
-      : "Rs 1,500";
+      : "selected orders";
   return (
     <div className="bg-cream">
       {/* Hero */}
@@ -65,7 +70,7 @@ export default async function ShippingPage() {
             </em>
           </h1>
           <p className="mx-auto mt-5 max-w-[520px] font-sans text-[14px] leading-[1.55] text-ink-soft md:text-[15px]">
-            Free delivery across Mauritius on orders over {freeOverLabel}. Order before 2pm for next-day delivery.
+            Free delivery across Mauritius on orders over {freeOverLabel}. {cfg.shipping.preorder_eta_copy}
           </p>
         </div>
       </section>
@@ -84,7 +89,7 @@ export default async function ShippingPage() {
             </div>
             <h2 className="mb-1 font-display text-[20px] leading-tight text-ink">Next-day in Mauritius</h2>
             <p className="font-sans text-[13px] leading-[1.5] text-ink-soft">
-              Order before 2pm and we ship the same day. Driver calls about an hour before arriving.
+              {cfg.shipping.preorder_eta_copy} Driver calls about an hour before arriving.
             </p>
           </div>
           <div className="rounded-2xl border border-blush-300 bg-white p-6">
@@ -218,7 +223,7 @@ export default async function ShippingPage() {
               Track an order →
             </Link>
             <a
-              href="https://wa.me/23059416359"
+              href={cfg.store.whatsapp_url}
               target="_blank"
               rel="noreferrer"
               className="rounded-full border border-ink bg-white px-6 py-3 font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-ink transition-colors hover:bg-ink hover:text-white"

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getStoreConfig } from "@/lib/store-config";
 
 export const metadata: Metadata = {
   title: "Contact Us",
@@ -13,14 +14,10 @@ export const metadata: Metadata = {
   },
 };
 
-const PHONE = "+230 5941 6359";
-const PHONE_TEL = "+23059416359";
-const WHATSAPP_URL = "https://wa.me/23059416359";
-const EMAIL = "hello@dollupboutique.com";
-const INSTAGRAM_URL = "https://www.instagram.com/dollupboutique/";
-const FACEBOOK_URL = "https://www.facebook.com/dollupboutique/";
+export default async function ContactPage() {
+  const cfg = await getStoreConfig();
+  const phoneTel = cfg.store.contact_phone.replace(/[^\d+]/g, "");
 
-export default function ContactPage() {
   return (
     <div className="bg-cream">
       {/* Hero */}
@@ -45,7 +42,7 @@ export default function ContactPage() {
       <section className="px-6 py-12 md:px-10 md:py-16">
         <div className="mx-auto grid max-w-[1100px] gap-5 md:grid-cols-3">
           <a
-            href={`mailto:${EMAIL}`}
+            href={`mailto:${cfg.store.contact_email}`}
             className="group relative rounded-2xl border-2 border-coral-500 bg-white p-7 transition-shadow hover:shadow-[0_6px_20px_rgba(229,96,74,0.18)]"
           >
             <span className="absolute -top-3 left-7 rounded-full bg-coral-500 px-3 py-1 font-sans text-[10px] font-bold uppercase tracking-[0.14em] text-white">
@@ -63,14 +60,16 @@ export default function ContactPage() {
             <h2 className="mb-1 font-display text-[20px] leading-tight text-ink">
               Write to us
             </h2>
-            <p className="font-sans text-[13px] text-ink-soft">{EMAIL}</p>
+            <p className="font-sans text-[13px] text-ink-soft">
+              {cfg.store.contact_email}
+            </p>
             <p className="mt-3 font-sans text-[12px] text-coral-500 group-hover:underline">
               Send an email →
             </p>
           </a>
 
           <a
-            href={WHATSAPP_URL}
+            href={cfg.store.whatsapp_url}
             target="_blank"
             rel="noreferrer"
             className="group rounded-2xl border border-blush-300 bg-white p-7 transition-shadow hover:shadow-[0_4px_16px_rgba(229,96,74,0.10)]"
@@ -86,14 +85,16 @@ export default function ContactPage() {
             <h2 className="mb-1 font-display text-[20px] leading-tight text-ink">
               Quick chat
             </h2>
-            <p className="font-sans text-[13px] text-ink-soft">{PHONE}</p>
+            <p className="font-sans text-[13px] text-ink-soft">
+              {cfg.store.contact_phone}
+            </p>
             <p className="mt-3 font-sans text-[12px] text-coral-500 group-hover:underline">
               Open in WhatsApp →
             </p>
           </a>
 
           <a
-            href={`tel:${PHONE_TEL}`}
+            href={`tel:${phoneTel}`}
             className="group rounded-2xl border border-blush-300 bg-white p-7 transition-shadow hover:shadow-[0_4px_16px_rgba(229,96,74,0.10)]"
           >
             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-ink text-white">
@@ -107,7 +108,9 @@ export default function ContactPage() {
             <h2 className="mb-1 font-display text-[20px] leading-tight text-ink">
               Call us
             </h2>
-            <p className="font-sans text-[13px] text-ink-soft">{PHONE}</p>
+            <p className="font-sans text-[13px] text-ink-soft">
+              {cfg.store.contact_phone}
+            </p>
             <p className="mt-3 font-sans text-[12px] text-coral-500 group-hover:underline">
               Tap to call →
             </p>
@@ -135,20 +138,9 @@ export default function ContactPage() {
             <h2 className="font-display text-[28px] leading-[1.1] text-ink md:text-[36px]">
               When we&apos;re online
             </h2>
-            <dl className="mt-6 space-y-2.5 font-sans text-[14px] text-ink-soft">
-              <div className="flex justify-between border-b border-blush-100 pb-2">
-                <dt className="font-semibold text-ink">Monday – Friday</dt>
-                <dd>9:00 – 17:00</dd>
-              </div>
-              <div className="flex justify-between border-b border-blush-100 pb-2">
-                <dt className="font-semibold text-ink">Saturday</dt>
-                <dd>By appointment</dd>
-              </div>
-              <div className="flex justify-between border-b border-blush-100 pb-2">
-                <dt className="font-semibold text-ink">Sunday</dt>
-                <dd>Closed</dd>
-              </div>
-            </dl>
+            <p className="mt-6 rounded-2xl border border-blush-100 bg-cream p-5 font-sans text-[14px] leading-[1.55] text-ink-soft">
+              {cfg.store.contact_hours}
+            </p>
             <p className="mt-5 font-sans text-[13px] leading-[1.55] text-ink-soft">
               Outside office hours? Drop us a WhatsApp anyway — we reply first thing the next morning.
             </p>
@@ -228,7 +220,7 @@ export default function ContactPage() {
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <a
-              href={INSTAGRAM_URL}
+              href={cfg.store.instagram_url}
               target="_blank"
               rel="noreferrer"
               className="rounded-full bg-coral-500 px-6 py-3 font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-coral-700"
@@ -236,7 +228,7 @@ export default function ContactPage() {
               Instagram
             </a>
             <a
-              href={FACEBOOK_URL}
+              href={cfg.store.facebook_url}
               target="_blank"
               rel="noreferrer"
               className="rounded-full border border-white/40 bg-white/5 px-6 py-3 font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-white hover:text-ink"

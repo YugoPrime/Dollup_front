@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getStoreConfig } from "@/lib/store-config";
 
 export const metadata: Metadata = {
   title: "Refund & Returns Policy",
@@ -13,7 +14,11 @@ export const metadata: Metadata = {
   },
 };
 
-export default function ReturnsPage() {
+export default async function ReturnsPage() {
+  const cfg = await getStoreConfig();
+  const returnFee = cfg.shipping.return_fee_mur;
+  const returnFeeLabel = returnFee === 0 ? "Free" : `Rs ${returnFee}`;
+
   return (
     <div className="bg-cream">
       {/* Hero */}
@@ -57,11 +62,13 @@ export default function ReturnsPage() {
           </div>
           <div className="rounded-2xl border border-blush-300 bg-white p-7">
             <div className="mb-3 inline-flex h-10 items-center justify-center rounded-full bg-coral-500 px-4 font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-white">
-              Rs 70
+              {returnFeeLabel}
             </div>
             <h2 className="mb-1 font-display text-[20px] leading-tight text-ink">Return shipping</h2>
             <p className="font-sans text-[13px] leading-[1.5] text-ink-soft">
-              Flat Rs 70 by Mauritius Post — paid by you. Original delivery fees are non-refundable.
+              {returnFee === 0
+                ? "Return postage is free when your return is approved. Original delivery fees are non-refundable."
+                : `Flat ${returnFeeLabel} by Mauritius Post - paid by you. Original delivery fees are non-refundable.`}
             </p>
           </div>
         </div>
@@ -131,12 +138,12 @@ export default function ReturnsPage() {
                 d: (
                   <>
                     Message us on{" "}
-                    <a href="https://wa.me/23059416359" target="_blank" rel="noreferrer" className="text-coral-500 hover:underline">
+                    <a href={cfg.store.whatsapp_url} target="_blank" rel="noreferrer" className="text-coral-500 hover:underline">
                       WhatsApp
                     </a>{" "}
                     or email{" "}
-                    <a href="mailto:hello@dollupboutique.com" className="text-coral-500 hover:underline">
-                      hello@dollupboutique.com
+                    <a href={`mailto:${cfg.store.contact_email}`} className="text-coral-500 hover:underline">
+                      {cfg.store.contact_email}
                     </a>{" "}
                     with your order number, the item, and the reason. We&apos;ll confirm the return is eligible and tell you what to do next.
                   </>
@@ -148,7 +155,10 @@ export default function ReturnsPage() {
               },
               {
                 t: "Send it via Mauritius Post",
-                d: "Flat-rate Rs 70 by Mauritius Post. Keep the tracking receipt — we'll need it if anything goes missing in transit.",
+                d:
+                  returnFee === 0
+                    ? "Use the return method we confirm with you. Keep the tracking receipt - we'll need it if anything goes missing in transit."
+                    : `Flat-rate ${returnFeeLabel} by Mauritius Post. Keep the tracking receipt - we'll need it if anything goes missing in transit.`,
               },
               {
                 t: "We process the refund",
@@ -195,7 +205,7 @@ export default function ReturnsPage() {
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <a
-              href="https://wa.me/23059416359"
+              href={cfg.store.whatsapp_url}
               target="_blank"
               rel="noreferrer"
               className="rounded-full bg-coral-500 px-6 py-3 font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-coral-700"

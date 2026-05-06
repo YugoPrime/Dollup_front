@@ -9,7 +9,13 @@ import { toggleWishlist, useIsInWishlist } from "@/lib/wishlist-client";
 type Product = HttpTypes.StoreProduct;
 const LOW_STOCK_THRESHOLD = 5;
 
-export function ProductBuy({ product }: { product: Product }) {
+export function ProductBuy({
+  product,
+  freeShippingThreshold,
+}: {
+  product: Product;
+  freeShippingThreshold: number;
+}) {
   const { addItem, loading } = useCart();
   const wished = useIsInWishlist(product.id);
   const options = useMemo(() => product.options ?? [], [product.options]);
@@ -157,7 +163,7 @@ export function ProductBuy({ product }: { product: Product }) {
 
       <div className="grid grid-cols-2 gap-2 border-y border-blush-100 py-4 font-sans text-[10px] font-semibold uppercase tracking-wider text-ink">
         {[
-          { ico: "⌖", line1: "Free delivery", line2: "Rs 1500+" },
+          { ico: "⌖", line1: "Free delivery", line2: freeShippingThreshold > 0 ? `${formatPrice(freeShippingThreshold, "MUR")}+` : "available" },
           { ico: "✦", line1: "Cash on", line2: "delivery" },
         ].map((t) => (
           <div key={t.line1} className="flex flex-col items-center gap-1.5 text-center">

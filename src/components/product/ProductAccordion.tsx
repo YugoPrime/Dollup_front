@@ -47,7 +47,15 @@ function cleanHtml(s: string): string {
   return out.trim();
 }
 
-export function ProductAccordion({ description }: { description?: string | null }) {
+export function ProductAccordion({
+  description,
+  preorderEtaCopy,
+  freeShippingLabel,
+}: {
+  description?: string | null;
+  preorderEtaCopy: string;
+  freeShippingLabel: string;
+}) {
   const { main, sizeChart } = splitDescription(description);
 
   const sections: Section[] = [
@@ -88,9 +96,12 @@ export function ProductAccordion({ description }: { description?: string | null 
       body: (
         <div className="font-sans text-[13px] leading-[1.6] text-ink-soft">
           <p>
-            <strong className="text-ink">Confirm before noon</strong> to receive your order the next day across Mauritius.
+            <strong className="text-ink">{preorderEtaCopy}</strong>
           </p>
-          <p className="mt-1.5">Free delivery on orders Rs 1,500+. Cash on delivery available island-wide.</p>
+          <p className="mt-1.5">
+            Free delivery on orders {freeShippingLabel}+. Cash on delivery
+            available island-wide.
+          </p>
         </div>
       ),
     },

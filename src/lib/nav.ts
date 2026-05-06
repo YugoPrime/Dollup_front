@@ -56,9 +56,3 @@ export const FOOTER_LEGAL = [
   { label: "Returns Policy", href: "/returns" },
 ];
 
-export const SOCIAL_LINKS = {
-  instagram: "https://www.instagram.com/dollupboutique/",
-  facebook: "https://www.facebook.com/dollupboutique/",
-  tiktok: "https://www.tiktok.com/@dollupboutique",
-  whatsapp: "https://wa.me/23059416359",
-};

@@ -1,9 +1,12 @@
 import Link from "next/link";
 import Image from "next/image";
-import { FOOTER_SHOP, FOOTER_HELP, FOOTER_ABOUT, FOOTER_LEGAL, SOCIAL_LINKS } from "@/lib/nav";
+import { FOOTER_SHOP, FOOTER_HELP, FOOTER_ABOUT, FOOTER_LEGAL } from "@/lib/nav";
+import { getStoreConfig } from "@/lib/store-config";
 import { NewsletterForm } from "./NewsletterForm";
 
-export function Footer() {
+export async function Footer() {
+  const cfg = await getStoreConfig();
+
   return (
     <footer className="bg-cream text-ink">
       <section className="bg-coral-500 px-6 py-10 md:px-8">
@@ -34,7 +37,7 @@ export function Footer() {
           </p>
           <div className="mb-4 flex gap-3">
             <a
-              href={SOCIAL_LINKS.facebook}
+              href={cfg.store.facebook_url}
               target="_blank"
               rel="noreferrer"
               aria-label="Doll Up Boutique on Facebook"
@@ -43,7 +46,7 @@ export function Footer() {
               Facebook
             </a>
             <a
-              href={SOCIAL_LINKS.instagram}
+              href={cfg.store.instagram_url}
               target="_blank"
               rel="noreferrer"
               aria-label="Doll Up Boutique on Instagram"
@@ -52,7 +55,7 @@ export function Footer() {
               Instagram
             </a>
             <a
-              href={SOCIAL_LINKS.tiktok}
+              href={cfg.store.tiktok_url}
               target="_blank"
               rel="noreferrer"
               aria-label="Doll Up Boutique on TikTok"
@@ -61,7 +64,7 @@ export function Footer() {
               TikTok
             </a>
             <a
-              href={SOCIAL_LINKS.whatsapp}
+              href={cfg.store.whatsapp_url}
               target="_blank"
               rel="noreferrer"
               aria-label="Doll Up Boutique on WhatsApp"
@@ -69,6 +72,23 @@ export function Footer() {
             >
               WhatsApp
             </a>
+          </div>
+          <div className="mb-4 space-y-1 font-sans text-[12px] text-ink-soft">
+            <a
+              href={`mailto:${cfg.store.contact_email}`}
+              className="block transition-colors hover:text-coral-500"
+            >
+              {cfg.store.contact_email}
+            </a>
+            <a
+              href={cfg.store.whatsapp_url}
+              target="_blank"
+              rel="noreferrer"
+              className="block transition-colors hover:text-coral-500"
+            >
+              {cfg.store.contact_phone}
+            </a>
+            <p>{cfg.store.contact_hours}</p>
           </div>
           <Link
             href="/loyalty"
@@ -90,7 +110,7 @@ export function Footer() {
       </div>
 
       <div className="mx-auto flex max-w-[1100px] flex-col gap-3 border-t border-blush-300 px-6 py-5 font-sans text-[11px] text-ink-muted md:flex-row md:flex-wrap md:items-center md:justify-between md:px-8">
-        <span>© {new Date().getFullYear()} Doll Up Boutique Limited. BRN C18159019 · VAT 27646277.</span>
+        <span>© {new Date().getFullYear()} {cfg.store.footer_copyright}</span>
         <div className="flex flex-wrap gap-2">
           {["Juice", "Bank Transfer", "myT Money", "Cash on Delivery"].map((p) => (
             <span

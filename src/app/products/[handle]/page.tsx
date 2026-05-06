@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProductByHandle, listProducts, getLatestCollectionTag } from "@/lib/products";
-import { getDisplayPrice } from "@/lib/format";
+import { formatPrice, getDisplayPrice } from "@/lib/format";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { ProductBuy } from "@/components/product/ProductBuy";
 import { ProductAccordion } from "@/components/product/ProductAccordion";
 import { YouMayAlsoLike } from "@/components/product/YouMayAlsoLike";
 import { StickyATC } from "@/components/product/StickyATC";
+import { getStoreConfig } from "@/lib/store-config";
 
 export const revalidate = 60;
 const SITE_URL = "https://dollupboutique.com";
@@ -48,8 +49,16 @@ export async function generateMetadata({
 
 export default async function ProductPage({ params }: { params: RouteParams }) {
   const { handle } = await params;
-  const { product } = await getProductByHandle(handle);
+  const [{ product }, cfg] = await Promise.all([
+    getProductByHandle(handle),
+    getStoreConfig(),
+  ]);
   if (!product) notFound();
+  const freeShippingThreshold = cfg.shipping.free_shipping_threshold_mur;
+  const freeShippingLabel =
+    freeShippingThreshold > 0
+      ? formatPrice(freeShippingThreshold, "MUR")
+      : "eligible orders";
 
   // "You may also like" pulls a light sample from recent catalog items.
   let related: Awaited<ReturnType<typeof listProducts>>["products"] = [];
@@ -99,9 +108,16 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
       <div className="mx-auto grid max-w-[1280px] gap-6 px-0 pb-8 md:grid-cols-[1fr_480px] md:gap-8 md:px-8 md:pb-12">
         <ProductGallery product={product} />
         <div className="px-4 md:sticky md:top-6 md:px-0" id="pdp-buy-anchor">
-          <ProductBuy product={product} />
+          <ProductBuy
+            product={product}
+            freeShippingThreshold={freeShippingThreshold}
+          />
           <div className="mt-6">
-            <ProductAccordion description={product.description ?? null} />
+            <ProductAccordion
+              description={product.description ?? null}
+              preorderEtaCopy={cfg.shipping.preorder_eta_copy}
+              freeShippingLabel={freeShippingLabel}
+            />
           </div>
         </div>
       </div>

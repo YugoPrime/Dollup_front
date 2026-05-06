@@ -1,6 +1,7 @@
 import "server-only";
 import { unstable_cache } from "next/cache";
 import { getAdminSdk } from "./medusa-admin";
+import { getStoreConfig } from "./store-config";
 
 export type ShippingRate = {
   key: string;
@@ -12,7 +13,7 @@ export type ShippingRate = {
 };
 
 const FALLBACKS: Record<string, { amount: number; freeOver?: number }> = {
-  home: { amount: 150, freeOver: 1500 },
+  home: { amount: 150 },
   postRegular: { amount: 70 },
   postExpress: { amount: 110 },
   pickup: { amount: 0 },
@@ -71,7 +72,11 @@ const fetchRatesFromMedusa = unstable_cache(
 );
 
 export async function getMauritiusRates(): Promise<ShippingRate[]> {
-  const live = await fetchRatesFromMedusa();
+  const [live, cfg] = await Promise.all([
+    fetchRatesFromMedusa(),
+    getStoreConfig(),
+  ]);
+  const freeOver = cfg.shipping.free_shipping_threshold_mur;
   return DISPLAY.map((d) => {
     const fallback = FALLBACKS[d.key];
     const liveRow = live?.[d.key];
@@ -81,7 +86,7 @@ export async function getMauritiusRates(): Promise<ShippingRate[]> {
       timeframe: d.timeframe,
       amount: liveRow?.amount ?? fallback?.amount ?? null,
       currency: liveRow?.currency ?? "MUR",
-      freeOver: fallback?.freeOver,
+      freeOver: d.key === "home" && freeOver > 0 ? freeOver : undefined,
     };
   });
 }
