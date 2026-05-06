@@ -12,6 +12,22 @@ export type DmDeliveryMethod = (typeof DM_DELIVERY_METHODS)[number];
 
 export const HOME_DELIVERY_FREE_THRESHOLD_MUR = 1500;
 
+// Free-over-Rs.1500 applies to the Home/Office Delivery tier. Match by name
+// substring so it works for "Home/Office Delivery", "Home Delivery",
+// "Livraison", or any future rename.
+export function qualifiesForFreeHomeDelivery(
+  optionName: string,
+  subtotalMur: number,
+): boolean {
+  if (subtotalMur < HOME_DELIVERY_FREE_THRESHOLD_MUR) return false;
+  const n = optionName.toLowerCase();
+  return (
+    n.includes("home") ||
+    n.includes("office") ||
+    n.includes("livraison")
+  );
+}
+
 export const VAT_RATE_PERCENT = 15;
 
 export function computeVatAmount(totalMur: number): number {
@@ -32,7 +48,7 @@ export function computeDeliveryCost(
     case "Express Postage":
       return 110;
     case "Rodrigues Postage":
-      return 120;
+      return 100;
   }
 }
 

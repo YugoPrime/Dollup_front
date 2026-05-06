@@ -35,7 +35,7 @@ type CartContextValue = {
 const CartContext = createContext<CartContextValue | null>(null);
 
 const CART_FIELDS =
-  "*items,*items.variant,*items.variant.product,*items.variant.options,*items.thumbnail,*region,metadata,+subtotal,+total,+item_total,+shipping_total,+tax_total,+discount_total";
+  "*items,*items.variant,*items.variant.product,*items.variant.options,*items.thumbnail,*region,*shipping_methods,metadata,+subtotal,+total,+item_total,+shipping_total,+tax_total,+discount_total";
 
 async function ensureCart(regionId: string | undefined): Promise<Cart> {
   const existing = getStoredCartId();

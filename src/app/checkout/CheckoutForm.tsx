@@ -13,6 +13,7 @@ import { OrderSummary } from "./OrderSummary";
 import {
   EMPTY_CHECKOUT_STATE,
   MU_DISTRICTS,
+  qualifiesForFreeHomeDelivery,
   validateCheckout,
   toMedusaAddress,
   type CheckoutFormState,
@@ -518,38 +519,47 @@ export function CheckoutForm() {
             </p>
           ) : (
             <div className="space-y-2">
-              {shippingOptions.map((opt) => (
-                <label
-                  key={opt.id}
-                  className={`flex cursor-pointer items-center justify-between rounded-md border-[1.5px] px-4 py-3 transition-colors ${
-                    state.shippingOptionId === opt.id
-                      ? "border-coral-500 bg-blush-100"
-                      : "border-blush-400 bg-white hover:border-coral-500"
-                  }`}
-                >
-                  <span className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      name="shippingOption"
-                      checked={state.shippingOptionId === opt.id}
-                      onChange={() => set("shippingOptionId", opt.id)}
-                      className="h-4 w-4 accent-coral-500"
-                    />
-                    <span className="font-sans text-sm font-medium text-ink">
-                      {opt.name}
+              {shippingOptions.map((opt) => {
+                const label = opt.name ?? "";
+                const free =
+                  opt.amount === 0 ||
+                  qualifiesForFreeHomeDelivery(
+                    opt.name ?? "",
+                    cart.item_total ?? cart.subtotal ?? 0,
+                  );
+                return (
+                  <label
+                    key={opt.id}
+                    className={`flex cursor-pointer items-center justify-between rounded-md border-[1.5px] px-4 py-3 transition-colors ${
+                      state.shippingOptionId === opt.id
+                        ? "border-coral-500 bg-blush-100"
+                        : "border-blush-400 bg-white hover:border-coral-500"
+                    }`}
+                  >
+                    <span className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        name="shippingOption"
+                        checked={state.shippingOptionId === opt.id}
+                        onChange={() => set("shippingOptionId", opt.id)}
+                        className="h-4 w-4 accent-coral-500"
+                      />
+                      <span className="font-sans text-sm font-medium text-ink">
+                        {label}
+                      </span>
                     </span>
-                  </span>
-                  <span className="font-sans text-sm font-semibold text-ink">
-                    {opt.amount === 0
-                      ? "Free"
-                      : new Intl.NumberFormat("en-MU", {
-                          style: "currency",
-                          currency: cart.currency_code ?? "MUR",
-                          minimumFractionDigits: 0,
-                        }).format(opt.amount ?? 0)}
-                  </span>
-                </label>
-              ))}
+                    <span className="font-sans text-sm font-semibold text-ink">
+                      {free
+                        ? "Free"
+                        : new Intl.NumberFormat("en-MU", {
+                            style: "currency",
+                            currency: cart.currency_code ?? "MUR",
+                            minimumFractionDigits: 0,
+                          }).format(opt.amount ?? 0)}
+                    </span>
+                  </label>
+                );
+              })}
             </div>
           )}
         </section>
@@ -616,6 +626,9 @@ export function CheckoutForm() {
         onSubmit={handleSubmit}
         errorBanner={errorBanner}
         loyaltySlot={<div className="hidden lg:block">{loyaltyBox}</div>}
+        selectedShippingOption={
+          shippingOptions.find((o) => o.id === state.shippingOptionId) ?? null
+        }
       />
     </div>
   );

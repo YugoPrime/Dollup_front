@@ -5,6 +5,7 @@ import Image from "next/image";
 import type { HttpTypes } from "@medusajs/types";
 import { formatPrice } from "@/lib/format";
 import { readLoyaltyRedeemMetadata } from "@/lib/loyalty-client";
+import { qualifiesForFreeHomeDelivery } from "@/lib/checkout";
 
 type Cart = HttpTypes.StoreCart;
 
@@ -14,6 +15,7 @@ type Props = {
   onSubmit: () => void;
   errorBanner?: string | null;
   loyaltySlot?: React.ReactNode;
+  selectedShippingOption?: HttpTypes.StoreCartShippingOption | null;
 };
 
 export function OrderSummary({
@@ -22,12 +24,25 @@ export function OrderSummary({
   onSubmit,
   errorBanner,
   loyaltySlot,
+  selectedShippingOption,
 }: Props) {
   const items = cart.items ?? [];
   const currency = cart.currency_code ?? "MUR";
-  const subtotal = cart.subtotal ?? 0;
-  const shipping = cart.shipping_total ?? 0;
-  const total = cart.total ?? 0;
+  const itemSubtotal = cart.item_total ?? cart.subtotal ?? 0;
+  const cartHasShippingMethod = (cart.shipping_methods?.length ?? 0) > 0;
+  const fallbackShipping = selectedShippingOption?.amount ?? 0;
+  const homeDeliveryFree = qualifiesForFreeHomeDelivery(
+    selectedShippingOption?.name ?? "",
+    itemSubtotal,
+  );
+  const shipping = cartHasShippingMethod
+    ? (cart.shipping_total ?? 0)
+    : homeDeliveryFree
+      ? 0
+      : fallbackShipping;
+  const total = cartHasShippingMethod
+    ? (cart.total ?? 0)
+    : itemSubtotal + shipping;
   const redeemMeta = readLoyaltyRedeemMetadata(
     cart.metadata as Record<string, unknown> | null | undefined,
   );
@@ -81,13 +96,15 @@ export function OrderSummary({
         <dl className="space-y-1.5 font-sans text-sm">
           <div className="flex justify-between text-ink-soft">
             <dt>Subtotal</dt>
-            <dd>{formatPrice(subtotal, currency)}</dd>
+            <dd>{formatPrice(itemSubtotal, currency)}</dd>
           </div>
           <div className="flex justify-between text-ink-soft">
             <dt>Shipping</dt>
             <dd>
-              {cart.shipping_methods?.length
-                ? formatPrice(shipping, currency)
+              {cartHasShippingMethod || selectedShippingOption
+                ? shipping === 0
+                  ? "Free"
+                  : formatPrice(shipping, currency)
                 : "—"}
             </dd>
           </div>
@@ -128,10 +145,6 @@ export function OrderSummary({
         >
           {submitting ? "Placing order…" : "Place Order"}
         </button>
-
-        <p className="mt-3 font-sans text-[11px] text-ink-muted">
-          Cash on delivery. We&apos;ll call you to confirm before dispatching.
-        </p>
       </div>
     </aside>
   );
