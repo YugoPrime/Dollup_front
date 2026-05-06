@@ -2,9 +2,27 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 import type { HttpTypes } from "@medusajs/types";
-import { clientSdk, MEDUSA_JWT_KEY } from "@/lib/cart-client";
+import {
+  clearStoredCartId,
+  clientSdk,
+  getStoredCartId,
+  MEDUSA_JWT_KEY,
+} from "@/lib/cart-client";
 import { safeRedirectPath } from "@/lib/safe-redirect";
 import { clearWishlist } from "@/lib/wishlist-client";
+
+// Bind any guest/stale cart in localStorage to the just-authenticated customer.
+// Without this, a cart whose customer_id was stamped in a prior session keeps
+// that id forever, and routes that check ownership (e.g. loyalty redeem) 403.
+async function attachStoredCartToCustomer(): Promise<void> {
+  const cartId = getStoredCartId();
+  if (!cartId) return;
+  try {
+    await clientSdk.store.cart.transferCart(cartId);
+  } catch {
+    clearStoredCartId();
+  }
+}
 
 export type Customer = HttpTypes.StoreCustomer;
 export type AuthState = {
@@ -61,6 +79,7 @@ export async function login(email: string, password: string): Promise<Customer> 
   if (!customer) {
     throw new Error("Logged in, but customer profile could not be loaded.");
   }
+  await attachStoredCartToCustomer();
   publish({ status: "ready", customer });
   return customer;
 }
@@ -82,6 +101,7 @@ export async function register(args: {
     last_name: args.lastName,
     phone: args.phone,
   });
+  await attachStoredCartToCustomer();
   publish({ status: "ready", customer: customer ?? null });
   if (!customer) {
     throw new Error("Account created, but profile could not be loaded.");
@@ -126,6 +146,7 @@ export async function completeGoogleCallback(
     customer = created ?? null;
   }
 
+  await attachStoredCartToCustomer();
   publish({ status: "ready", customer });
 
   let redirect = "/account";
@@ -172,6 +193,7 @@ export async function logout(): Promise<void> {
   if (typeof window !== "undefined") {
     window.localStorage.removeItem(MEDUSA_JWT_KEY);
   }
+  clearStoredCartId();
   clearWishlist();
   publish({ status: "ready", customer: null });
 }
