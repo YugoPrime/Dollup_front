@@ -12,6 +12,46 @@ type Group = {
   variants: VariantHit[];
 };
 
+const SIZE_RANK: Record<string, number> = {
+  xxs: 0,
+  xs: 1,
+  s: 2,
+  small: 2,
+  m: 3,
+  medium: 3,
+  l: 4,
+  large: 4,
+  xl: 5,
+  xxl: 6,
+  "2xl": 6,
+  xxxl: 7,
+  "3xl": 7,
+  "4xl": 8,
+  "one size": 90,
+  onesize: 90,
+  os: 90,
+  default: 91,
+};
+
+// Splits a Medusa variant title (e.g. "Pink / S") into a non-size grouping key
+// (color/material/etc) and a canonical size rank so variants sort:
+//   Beige S, Beige M, Beige L, Beige XL, Pink S, Pink M, ...
+function variantSortKey(title: string | null): { color: string; sizeRank: number } {
+  if (!title) return { color: "", sizeRank: 999 };
+  const parts = title.split("/").map((p) => p.trim()).filter(Boolean);
+  let sizeRank = 999;
+  const nonSize: string[] = [];
+  for (const p of parts) {
+    const rank = SIZE_RANK[p.toLowerCase()];
+    if (rank !== undefined && sizeRank === 999) {
+      sizeRank = rank;
+    } else {
+      nonSize.push(p);
+    }
+  }
+  return { color: nonSize.join(" / ").toLowerCase(), sizeRank };
+}
+
 function groupByProduct(hits: VariantHit[]): Group[] {
   const map = new Map<string, Group>();
   for (const h of hits) {
@@ -26,6 +66,16 @@ function groupByProduct(hits: VariantHit[]): Group[] {
       map.set(h.productId, g);
     }
     g.variants.push(h);
+  }
+  for (const g of map.values()) {
+    g.variants.sort((a, b) => {
+      const ka = variantSortKey(a.variantTitle);
+      const kb = variantSortKey(b.variantTitle);
+      const c = ka.color.localeCompare(kb.color);
+      if (c !== 0) return c;
+      if (ka.sizeRank !== kb.sizeRank) return ka.sizeRank - kb.sizeRank;
+      return (a.variantTitle ?? "").localeCompare(b.variantTitle ?? "");
+    });
   }
   return [...map.values()];
 }
