@@ -4,6 +4,7 @@ import { useEffect, useSyncExternalStore } from "react";
 import type { HttpTypes } from "@medusajs/types";
 import { clientSdk, MEDUSA_JWT_KEY } from "@/lib/cart-client";
 import { safeRedirectPath } from "@/lib/safe-redirect";
+import { clearWishlist } from "@/lib/wishlist-client";
 
 export type Customer = HttpTypes.StoreCustomer;
 export type AuthState = {
@@ -171,6 +172,7 @@ export async function logout(): Promise<void> {
   if (typeof window !== "undefined") {
     window.localStorage.removeItem(MEDUSA_JWT_KEY);
   }
+  clearWishlist();
   publish({ status: "ready", customer: null });
 }
 

@@ -3,8 +3,10 @@
 import { useEffect, useRef } from "react";
 import { useCustomer } from "@/lib/auth-client";
 import {
+  getLinkedCustomerId,
   getWishlist,
   replaceWishlist,
+  setLinkedCustomerId,
   useWishlist,
 } from "@/lib/wishlist-client";
 import { clientSdk } from "@/lib/cart-client";
@@ -13,10 +15,15 @@ import { clientSdk } from "@/lib/cart-client";
 // metadata.wishlist. Mounted once in the root layout. Renders nothing.
 //
 // Behaviour:
-//   - On guest → logged-in transition: merges local + remote (deduped, local wins
-//     order), writes to localStorage, pushes merged to server.
+//   - First login from a fresh device (no link, guest had built up a wishlist):
+//     merges local + remote (deduped) so signup-after-browsing is preserved.
+//   - Login when localStorage was last linked to a different customer.id:
+//     REPLACES local with remote — prevents the previous user's picks from
+//     polluting the new user's account on shared browsers.
+//   - Same customer re-logs: merges local + remote (no-op for already-synced
+//     items, picks up any offline additions).
 //   - While logged in: pushes local changes to server (debounced).
-//   - On logout: leaves localStorage intact (so the user keeps their picks).
+//   - On logout: lib/auth-client clears the wishlist + link.
 export function WishlistAuthSync() {
   const { status, customer } = useCustomer();
   const list = useWishlist();
@@ -39,18 +46,23 @@ export function WishlistAuthSync() {
       ? rawRemote.filter((x): x is string => typeof x === "string")
       : [];
     const local = getWishlist();
-    const merged = Array.from(new Set([...local, ...remote]));
+    const linkedTo = getLinkedCustomerId();
+    const isDifferentUser = linkedTo !== null && linkedTo !== customer.id;
+    const next = isDifferentUser
+      ? remote
+      : Array.from(new Set([...local, ...remote]));
 
-    replaceWishlist(merged);
+    replaceWishlist(next);
+    setLinkedCustomerId(customer.id);
 
     const remoteSerialized = JSON.stringify(remote);
-    const mergedSerialized = JSON.stringify(merged);
+    const nextSerialized = JSON.stringify(next);
     lastPushedRef.current = remoteSerialized;
-    if (mergedSerialized !== remoteSerialized) {
+    if (nextSerialized !== remoteSerialized) {
       clientSdk.store.customer
-        .update({ metadata: { ...customer.metadata, wishlist: merged } })
+        .update({ metadata: { ...customer.metadata, wishlist: next } })
         .then(() => {
-          lastPushedRef.current = mergedSerialized;
+          lastPushedRef.current = nextSerialized;
         })
         .catch(() => {
           // best-effort — local stays correct, server will catch up on next change

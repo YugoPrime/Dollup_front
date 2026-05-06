@@ -6,6 +6,7 @@
 import { useEffect, useSyncExternalStore } from "react";
 
 const KEY = "dub_wishlist";
+const LINK_KEY = "dub_wishlist_linked_to";
 const EVENT = "dub:wishlist-change";
 
 // Cache the parsed snapshot so useSyncExternalStore sees a stable reference
@@ -64,7 +65,20 @@ export function removeFromWishlist(id: string) {
 }
 
 export function clearWishlist() {
+  if (typeof window !== "undefined") {
+    window.localStorage.removeItem(LINK_KEY);
+  }
   write([]);
+}
+
+export function getLinkedCustomerId(): string | null {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem(LINK_KEY);
+}
+
+export function setLinkedCustomerId(customerId: string) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(LINK_KEY, customerId);
 }
 
 // Bulk-replace the wishlist (used by auth sync to merge server + local on login).
