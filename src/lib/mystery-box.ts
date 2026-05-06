@@ -35,24 +35,32 @@ export function selectRandomBox(
   pool: MysteryBoxSlot[],
   count: number = MYSTERY_BOX_SLOT_COUNT,
 ): MysteryBoxSlot[] {
-  const expandedPool = pool.flatMap((slot) => {
-    const maxUses = Math.min(slot.available_quantity ?? count, count);
-    return Array.from({ length: Math.max(0, maxUses) }, () => slot);
-  });
+  // Group eligible variants by parent productId — a box must contain `count`
+  // distinct parents (no two variants of the same product, e.g. IS1160-Blue
+  // and IS1160-Green can't both land in the same box).
+  const variantsByProduct = new Map<string, MysteryBoxSlot[]>();
+  for (const slot of pool) {
+    const arr = variantsByProduct.get(slot.productId);
+    if (arr) arr.push(slot);
+    else variantsByProduct.set(slot.productId, [slot]);
+  }
 
-  if (expandedPool.length < count) {
+  const productIds = [...variantsByProduct.keys()];
+  if (productIds.length < count) {
     throw new Error(
-      `Not enough products in pool: have ${expandedPool.length}, need ${count}`,
+      `Not enough distinct products in pool: have ${productIds.length}, need ${count}`,
     );
   }
 
-  const copy = [...expandedPool];
-  for (let i = copy.length - 1; i > 0; i--) {
+  for (let i = productIds.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
+    [productIds[i], productIds[j]] = [productIds[j], productIds[i]];
   }
 
-  return copy.slice(0, count);
+  return productIds.slice(0, count).map((productId) => {
+    const variants = variantsByProduct.get(productId)!;
+    return variants[Math.floor(Math.random() * variants.length)];
+  });
 }
 
 export function generateBoxId(now: Date = new Date()): string {
@@ -68,11 +76,12 @@ export function sumBoxValue(slots: MysteryBoxSlot[]): number {
 }
 
 export function countSelectableSlots(pool: MysteryBoxSlot[]): number {
-  return pool.reduce((sum, slot) => {
-    const maxUses = Math.min(
-      slot.available_quantity ?? MYSTERY_BOX_SLOT_COUNT,
-      MYSTERY_BOX_SLOT_COUNT,
-    );
-    return sum + Math.max(0, maxUses);
-  }, 0);
+  // Counts distinct parent products in the pool, since a box now allows at
+  // most one variant per parent. The size is selectable when this >= 5.
+  const productIds = new Set<string>();
+  for (const slot of pool) {
+    if (slot.available_quantity != null && slot.available_quantity < 1) continue;
+    productIds.add(slot.productId);
+  }
+  return productIds.size;
 }

@@ -560,9 +560,10 @@ export async function listInStockProductsForSize(
     region_id: regionId,
     limit: MYSTERY_BOX_POOL_LIMIT,
     fields:
-      "id,title,thumbnail,discountable," +
+      "id,title,handle,thumbnail,discountable," +
       "variants.id,variants.sku,variants.title,+variants.inventory_quantity," +
-      "+variants.manage_inventory,variants.calculated_price.calculated_amount," +
+      "+variants.manage_inventory,variants.metadata," +
+      "variants.calculated_price.calculated_amount," +
       "variants.options.value",
   });
 
@@ -597,7 +598,7 @@ export async function listInStockProductsForSize(
         sku: variant.sku ?? product.handle ?? product.id,
         title: product.title ?? "Untitled",
         size,
-        thumbnail: product.thumbnail ?? null,
+        thumbnail: pickVariantThumbnail(variant.metadata) ?? product.thumbnail ?? null,
         price_mur: Math.floor(price),
         available_quantity: variant.manage_inventory
           ? Math.max(0, Math.floor(Number(variant.inventory_quantity ?? 0)))
@@ -607,4 +608,18 @@ export async function listInStockProductsForSize(
   }
 
   return pool;
+}
+
+// Variants are imported with `metadata.image_urls` (see
+// inventory-audit/scripts/import-medusa.ts) — the first entry is the cover.
+// Falling back to product.thumbnail makes every variant of IS1160 look like
+// the white version, so prefer the variant image when present.
+function pickVariantThumbnail(metadata: unknown): string | null {
+  const urls = (metadata as { image_urls?: unknown } | null | undefined)
+    ?.image_urls;
+  if (!Array.isArray(urls)) return null;
+  const first = urls.find(
+    (u): u is string => typeof u === "string" && u.length > 0,
+  );
+  return first ?? null;
 }

@@ -18,7 +18,10 @@ export const metadata: Metadata = {
 
 const SIZES: CanonicalSize[] = ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL"];
 
-export const revalidate = 600;
+// Stock moves under us. A cached pool means the SSR-rendered slots can already
+// be sold by the time the user spins, and the backend's live inventory check
+// rejects the box ("Some items are out of stock"). Render fresh on every load.
+export const dynamic = "force-dynamic";
 
 export default async function MysteryBoxPage() {
   let region: Awaited<ReturnType<typeof getRegion>>;
