@@ -5,8 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { HttpTypes } from "@medusajs/types";
 import { useCart } from "@/components/cart/CartProvider";
+import { LoyaltyRedeemBox } from "@/components/checkout/LoyaltyRedeemBox";
 import { clientSdk } from "@/lib/cart-client";
 import { refreshCustomer } from "@/lib/auth-client";
+import { readLoyaltyRedeemMetadata } from "@/lib/loyalty-client";
 import { OrderSummary } from "./OrderSummary";
 import {
   EMPTY_CHECKOUT_STATE,
@@ -66,7 +68,7 @@ function Field({
 
 export function CheckoutForm() {
   const router = useRouter();
-  const { cart, clearCart } = useCart();
+  const { cart, clearCart, refreshCart } = useCart();
   const [state, setState] = useState<CheckoutFormState>(EMPTY_CHECKOUT_STATE);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [touched, setTouched] = useState<Set<string>>(new Set());
@@ -135,7 +137,7 @@ export function CheckoutForm() {
         shipping_address: toMedusaAddress(state, "shipping"),
         billing_address: toMedusaAddress(state, "billing"),
         ...(state.notes.trim()
-          ? { metadata: { notes: state.notes.trim() } }
+          ? { metadata: { ...(cart.metadata ?? {}), notes: state.notes.trim() } }
           : {}),
       });
 
@@ -215,6 +217,19 @@ export function CheckoutForm() {
       </div>
     );
   }
+
+  const redeemMeta = readLoyaltyRedeemMetadata(
+    cart.metadata as Record<string, unknown> | null | undefined,
+  );
+
+  const loyaltyBox = cart.id ? (
+    <LoyaltyRedeemBox
+      cartId={cart.id}
+      alreadyApplied={!!redeemMeta}
+      applied={redeemMeta}
+      onApplied={refreshCart}
+    />
+  ) : null;
 
   return (
     <div className="grid gap-10 lg:grid-cols-[1fr_380px]">
@@ -536,6 +551,8 @@ export function CheckoutForm() {
           )}
         </section>
 
+        <div className="lg:hidden">{loyaltyBox}</div>
+
         <button
           type="button"
           onClick={handleSubmit}
@@ -551,6 +568,7 @@ export function CheckoutForm() {
         submitting={submitting}
         onSubmit={handleSubmit}
         errorBanner={errorBanner}
+        loyaltySlot={<div className="hidden lg:block">{loyaltyBox}</div>}
       />
     </div>
   );

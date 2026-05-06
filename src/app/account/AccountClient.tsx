@@ -10,6 +10,7 @@ import {
   useCustomer,
   type Customer,
 } from "@/lib/auth-client";
+import { LoyaltyCard } from "@/components/account/LoyaltyCard";
 import { clientSdk } from "@/lib/cart-client";
 import { formatPrice } from "@/lib/format";
 
@@ -70,6 +71,10 @@ export function AccountClient() {
           Sign out
         </button>
       </header>
+
+      <div className="mb-6">
+        <LoyaltyCard />
+      </div>
 
       <div className="grid gap-6 md:grid-cols-[2fr_3fr]">
         <ProfileCard customer={customer} />

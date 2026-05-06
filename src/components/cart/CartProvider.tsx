@@ -28,13 +28,14 @@ type CartContextValue = {
   addItem: (variantId: string, quantity?: number) => Promise<void>;
   updateItem: (lineId: string, quantity: number) => Promise<void>;
   removeItem: (lineId: string) => Promise<void>;
+  refreshCart: () => Promise<void>;
   clearCart: () => void;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
 
 const CART_FIELDS =
-  "*items,*items.variant,*items.variant.product,*items.variant.options,*items.thumbnail,*region,+subtotal,+total,+item_total,+shipping_total,+tax_total,+discount_total";
+  "*items,*items.variant,*items.variant.product,*items.variant.options,*items.thumbnail,*region,metadata,+subtotal,+total,+item_total,+shipping_total,+tax_total,+discount_total";
 
 async function ensureCart(regionId: string | undefined): Promise<Cart> {
   const existing = getStoredCartId();
@@ -163,6 +164,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     addItem,
     updateItem,
     removeItem,
+    refreshCart: refresh,
     clearCart,
   };
 

@@ -4,6 +4,7 @@
 import Image from "next/image";
 import type { HttpTypes } from "@medusajs/types";
 import { formatPrice } from "@/lib/format";
+import { readLoyaltyRedeemMetadata } from "@/lib/loyalty-client";
 
 type Cart = HttpTypes.StoreCart;
 
@@ -12,6 +13,7 @@ type Props = {
   submitting: boolean;
   onSubmit: () => void;
   errorBanner?: string | null;
+  loyaltySlot?: React.ReactNode;
 };
 
 export function OrderSummary({
@@ -19,15 +21,23 @@ export function OrderSummary({
   submitting,
   onSubmit,
   errorBanner,
+  loyaltySlot,
 }: Props) {
   const items = cart.items ?? [];
   const currency = cart.currency_code ?? "MUR";
   const subtotal = cart.subtotal ?? 0;
   const shipping = cart.shipping_total ?? 0;
   const total = cart.total ?? 0;
+  const redeemMeta = readLoyaltyRedeemMetadata(
+    cart.metadata as Record<string, unknown> | null | undefined,
+  );
+  const mysteryBox = readMysteryBoxMetadata(
+    cart.metadata as Record<string, unknown> | null | undefined,
+  );
 
   return (
     <aside className="lg:sticky lg:top-24 lg:self-start">
+      {loyaltySlot ? <div className="mb-4">{loyaltySlot}</div> : null}
       <div className="rounded-xl border border-blush-400 bg-white p-6">
         <h2 className="mb-4 font-display text-lg font-semibold text-ink">
           Your order
@@ -81,6 +91,23 @@ export function OrderSummary({
                 : "—"}
             </dd>
           </div>
+          {mysteryBox ? (
+            <div className="rounded-lg border border-coral-500/40 bg-coral-50 p-3 text-coral-700">
+              <dt className="font-sans text-[10px] font-bold uppercase tracking-[0.14em]">
+                Mystery Box
+              </dt>
+              <dd className="mt-1 font-sans text-[12px] text-ink">
+                Box <strong>{mysteryBox.id}</strong> - size {mysteryBox.size} -
+                flat {formatPrice(mysteryBox.flat_price_mur, currency)}
+              </dd>
+            </div>
+          ) : null}
+          {redeemMeta ? (
+            <div className="flex justify-between text-coral-500">
+              <dt>Doll Rewards</dt>
+              <dd>-Rs {redeemMeta.discount_mur.toLocaleString("en-MU")}</dd>
+            </div>
+          ) : null}
           <div className="mt-2 flex justify-between border-t border-blush-100 pt-3 font-display text-base font-semibold text-ink">
             <dt>Total</dt>
             <dd>{formatPrice(total, currency)}</dd>
@@ -108,4 +135,26 @@ export function OrderSummary({
       </div>
     </aside>
   );
+}
+
+function readMysteryBoxMetadata(
+  metadata: Record<string, unknown> | null | undefined,
+): { id: string; size: string; flat_price_mur: number } | null {
+  const raw = metadata?.mystery_box;
+  if (!raw || typeof raw !== "object") return null;
+
+  const record = raw as Record<string, unknown>;
+  const id = typeof record.id === "string" ? record.id : "";
+  const size = typeof record.size === "string" ? record.size : "";
+  const flatPrice = Number(record.flat_price_mur);
+
+  if (!id || !size || !Number.isFinite(flatPrice) || flatPrice <= 0) {
+    return null;
+  }
+
+  return {
+    id,
+    size,
+    flat_price_mur: Math.floor(flatPrice),
+  };
 }

@@ -1,6 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useCustomer } from "@/lib/auth-client";
+import { getMyLoyalty, type LoyaltyAccount } from "@/lib/loyalty-client";
 
 type Status = "idle" | "submitting" | "ok" | "err";
 
@@ -13,11 +16,33 @@ const MONTHS = [
 // migrate to a backend table once the loyalty engine is wired. No PII leaves
 // the browser yet — this is a pre-launch holding form.
 export function LoyaltySignup() {
+  const { status: authStatus, customer } = useCustomer();
+  const [account, setAccount] = useState<LoyaltyAccount | null>(null);
+  const [accountLoaded, setAccountLoaded] = useState(false);
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
   const [birthMonth, setBirthMonth] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (authStatus !== "ready" || !customer) return;
+    let cancelled = false;
+    setAccountLoaded(false);
+    getMyLoyalty()
+      .then((loyalty) => {
+        if (!cancelled) setAccount(loyalty);
+      })
+      .catch(() => {
+        if (!cancelled) setAccount(null);
+      })
+      .finally(() => {
+        if (!cancelled) setAccountLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [authStatus, customer]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,6 +88,41 @@ export function LoyaltySignup() {
         <p className="font-sans text-[14px] leading-[1.6] text-white/90">
           We&apos;ve saved your details. Watch your inbox — we&apos;ll email you the moment point-earning goes live in your account, with a welcome bonus to thank you for being early.
         </p>
+      </div>
+    );
+  }
+
+  if (customer && !accountLoaded) {
+    return (
+      <div className="rounded-2xl border border-blush-300 bg-white p-7 md:p-8">
+        <div className="h-4 w-28 animate-pulse rounded bg-blush-100" />
+        <div className="mt-4 h-10 w-40 animate-pulse rounded bg-blush-100" />
+      </div>
+    );
+  }
+
+  if (customer && account) {
+    return (
+      <div className="rounded-2xl border border-coral-500 bg-gradient-to-br from-[#FCE9E4] to-white p-7 md:p-10">
+        <p className="mb-2 font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-coral-500">
+          You&apos;re a member
+        </p>
+        <p className="font-display text-[40px] leading-none text-ink">
+          {account.points_balance.toLocaleString("en-MU")}
+          <span className="ml-2 font-sans text-[12px] font-bold uppercase tracking-[0.16em] text-ink-soft">
+            points
+          </span>
+        </p>
+        <p className="mt-4 font-sans text-[14px] leading-[1.55] text-ink-soft">
+          Lifetime earned: {account.lifetime_earned.toLocaleString("en-MU")} |
+          redeemed: {account.lifetime_redeemed.toLocaleString("en-MU")}
+        </p>
+        <Link
+          href="/account/loyalty"
+          className="mt-5 inline-block rounded-full bg-ink px-6 py-3 font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-white"
+        >
+          See history
+        </Link>
       </div>
     );
   }

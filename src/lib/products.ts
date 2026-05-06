@@ -2,6 +2,7 @@ import "server-only";
 import { sdk } from "./medusa";
 import { getRegion } from "./region";
 import type { HttpTypes } from "@medusajs/types";
+import type { CanonicalSize, MysteryBoxSlot } from "@/lib/mystery-box";
 
 const PRODUCT_FIELDS =
   "*variants,*variants.calculated_price,*variants.options,+variants.inventory_quantity,+variants.manage_inventory,*options,*options.values,*images,*tags,*collection,*categories";
@@ -547,4 +548,63 @@ export async function listEssentials(): Promise<HttpTypes.StoreProduct[]> {
     ),
   );
   return results.filter((p): p is HttpTypes.StoreProduct => p != null);
+}
+
+const MYSTERY_BOX_POOL_LIMIT = 200;
+
+export async function listInStockProductsForSize(
+  size: CanonicalSize,
+  regionId: string,
+): Promise<MysteryBoxSlot[]> {
+  const { products } = await sdk.store.product.list({
+    region_id: regionId,
+    limit: MYSTERY_BOX_POOL_LIMIT,
+    fields:
+      "id,title,thumbnail,discountable," +
+      "variants.id,variants.sku,variants.title,+variants.inventory_quantity," +
+      "+variants.manage_inventory,variants.calculated_price.calculated_amount," +
+      "variants.options.value",
+  });
+
+  const pool: MysteryBoxSlot[] = [];
+
+  for (const product of products) {
+    if (product.discountable === false) continue;
+
+    for (const rawVariant of product.variants ?? []) {
+      const variant = rawVariant as HttpTypes.StoreProductVariant & {
+        inventory_quantity?: number | null;
+      };
+
+      if (variant.manage_inventory) {
+        const qty = Number(variant.inventory_quantity ?? 0);
+        if (!Number.isFinite(qty) || qty < 1) continue;
+      }
+
+      const matchesSize = (variant.options ?? []).some((option) => {
+        return canonicalSize(option.value ?? "") === size;
+      });
+      if (!matchesSize) continue;
+
+      const price = Number(
+        variant.calculated_price?.calculated_amount ?? 0,
+      );
+      if (!Number.isFinite(price) || price <= 0) continue;
+
+      pool.push({
+        productId: product.id,
+        variantId: variant.id,
+        sku: variant.sku ?? product.handle ?? product.id,
+        title: product.title ?? "Untitled",
+        size,
+        thumbnail: product.thumbnail ?? null,
+        price_mur: Math.floor(price),
+        available_quantity: variant.manage_inventory
+          ? Math.max(0, Math.floor(Number(variant.inventory_quantity ?? 0)))
+          : null,
+      });
+    }
+  }
+
+  return pool;
 }
