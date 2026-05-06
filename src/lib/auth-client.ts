@@ -149,6 +149,9 @@ function extractEmailFromJwt(token: string): string | null {
         ? Buffer.from(padded, "base64").toString("utf8")
         : atob(padded),
     );
+    if (typeof decoded?.user_metadata?.email === "string") {
+      return decoded.user_metadata.email;
+    }
     if (typeof decoded?.email === "string") return decoded.email;
     if (typeof decoded?.app_metadata?.email === "string") {
       return decoded.app_metadata.email;
