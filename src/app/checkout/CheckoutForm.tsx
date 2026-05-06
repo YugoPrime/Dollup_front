@@ -7,7 +7,7 @@ import type { HttpTypes } from "@medusajs/types";
 import { useCart } from "@/components/cart/CartProvider";
 import { LoyaltyRedeemBox } from "@/components/checkout/LoyaltyRedeemBox";
 import { clientSdk } from "@/lib/cart-client";
-import { refreshCustomer } from "@/lib/auth-client";
+import { refreshCustomer, useCustomer } from "@/lib/auth-client";
 import { readLoyaltyRedeemMetadata } from "@/lib/loyalty-client";
 import { OrderSummary } from "./OrderSummary";
 import {
@@ -69,6 +69,7 @@ function Field({
 export function CheckoutForm() {
   const router = useRouter();
   const { cart, clearCart, refreshCart } = useCart();
+  const { status: authStatus, customer } = useCustomer();
   const [state, setState] = useState<CheckoutFormState>(EMPTY_CHECKOUT_STATE);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [touched, setTouched] = useState<Set<string>>(new Set());
@@ -77,6 +78,7 @@ export function CheckoutForm() {
   >([]);
   const [submitting, setSubmitting] = useState(false);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
+  const [prefilledFromCustomer, setPrefilledFromCustomer] = useState(false);
 
   const set = <K extends keyof CheckoutFormState>(
     key: K,
@@ -118,6 +120,49 @@ export function CheckoutForm() {
       cancelled = true;
     };
   }, [cart?.id]);
+
+  // Push the selected shipping method to the cart so the order summary reflects
+  // the live shipping cost and total. Skips if the cart already has it.
+  useEffect(() => {
+    if (!cart?.id || !state.shippingOptionId) return;
+    const already = cart.shipping_methods?.some(
+      (m) => m.shipping_option_id === state.shippingOptionId,
+    );
+    if (already) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        await clientSdk.store.cart.addShippingMethod(cart.id, {
+          option_id: state.shippingOptionId!,
+        });
+        if (!cancelled) await refreshCart();
+      } catch {
+        // best-effort — handleSubmit will retry before completing the order
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [cart?.id, cart?.shipping_methods, state.shippingOptionId, refreshCart]);
+
+  // Prefill once when a logged-in customer's profile + saved address loads.
+  useEffect(() => {
+    if (prefilledFromCustomer || authStatus !== "ready" || !customer) return;
+    const addr = customer.addresses?.[0];
+    setState((s) => ({
+      ...s,
+      email: s.email || customer.email || "",
+      phone: s.phone || customer.phone || addr?.phone || "",
+      firstName: s.firstName || customer.first_name || addr?.first_name || "",
+      lastName: s.lastName || customer.last_name || addr?.last_name || "",
+      address1: s.address1 || addr?.address_1 || "",
+      address2: s.address2 || addr?.address_2 || "",
+      city: s.city || addr?.city || "",
+      province: s.province || addr?.province || "",
+      postalCode: s.postalCode || addr?.postal_code || "",
+    }));
+    setPrefilledFromCustomer(true);
+  }, [authStatus, customer, prefilledFromCustomer]);
 
   async function handleSubmit() {
     const validation = validateCheckout(state);
@@ -523,33 +568,35 @@ export function CheckoutForm() {
           />
         </section>
 
-        <section className="space-y-3">
-          <label className="flex items-start gap-2 font-sans text-sm text-ink">
-            <input
-              type="checkbox"
-              checked={state.createAccount}
-              onChange={(e) => set("createAccount", e.target.checked)}
-              className="mt-0.5 h-4 w-4 accent-coral-500"
-            />
-            <span>
-              Create an account so I can track this order and check out faster
-              next time.
-            </span>
-          </label>
-          {state.createAccount && (
-            <Field
-              label="Choose a password"
-              name="password"
-              type="password"
-              required
-              autoComplete="new-password"
-              value={state.password}
-              onChange={(v) => set("password", v)}
-              onBlur={() => markTouched("password")}
-              error={showError("password")}
-            />
-          )}
-        </section>
+        {!customer && (
+          <section className="space-y-3">
+            <label className="flex items-start gap-2 font-sans text-sm text-ink">
+              <input
+                type="checkbox"
+                checked={state.createAccount}
+                onChange={(e) => set("createAccount", e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-coral-500"
+              />
+              <span>
+                Create an account so I can track this order and check out
+                faster next time.
+              </span>
+            </label>
+            {state.createAccount && (
+              <Field
+                label="Choose a password"
+                name="password"
+                type="password"
+                required
+                autoComplete="new-password"
+                value={state.password}
+                onChange={(v) => set("password", v)}
+                onBlur={() => markTouched("password")}
+                error={showError("password")}
+              />
+            )}
+          </section>
+        )}
 
         <div className="lg:hidden">{loyaltyBox}</div>
 

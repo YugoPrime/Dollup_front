@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 import type { HttpTypes } from "@medusajs/types";
 import { refreshCustomer, useCustomer } from "@/lib/auth-client";
 import { clientSdk } from "@/lib/cart-client";
-import { MU_DISTRICTS } from "@/lib/checkout";
 
 type FormState = {
   first_name: string;
@@ -62,7 +61,6 @@ function validate(f: FormState): string | null {
   if (!f.last_name.trim()) return "Last name is required.";
   if (!f.address_1.trim()) return "Address is required.";
   if (!f.city.trim()) return "City is required.";
-  if (!f.province.trim()) return "District is required.";
   return null;
 }
 
@@ -346,26 +344,12 @@ function AddressForm({
         placeholder="Apartment, suite, landmark (optional)"
         className="mt-3 w-full rounded-md border-[1.5px] border-blush-400 bg-white px-3 py-2 font-sans text-sm text-ink outline-none focus:border-coral-500"
       />
-      <div className="mt-3 grid gap-3 sm:grid-cols-2">
-        <input
-          value={form.city}
-          onChange={(e) => set("city", e.target.value)}
-          placeholder="City"
-          className="rounded-md border-[1.5px] border-blush-400 bg-white px-3 py-2 font-sans text-sm text-ink outline-none focus:border-coral-500"
-        />
-        <select
-          value={form.province}
-          onChange={(e) => set("province", e.target.value)}
-          className="rounded-md border-[1.5px] border-blush-400 bg-white px-3 py-2 font-sans text-sm text-ink outline-none focus:border-coral-500"
-        >
-          <option value="">Select a district</option>
-          {MU_DISTRICTS.map((d) => (
-            <option key={d} value={d}>
-              {d}
-            </option>
-          ))}
-        </select>
-      </div>
+      <input
+        value={form.city}
+        onChange={(e) => set("city", e.target.value)}
+        placeholder="City"
+        className="mt-3 w-full rounded-md border-[1.5px] border-blush-400 bg-white px-3 py-2 font-sans text-sm text-ink outline-none focus:border-coral-500"
+      />
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <input
           value={form.postal_code}
