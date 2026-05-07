@@ -130,7 +130,6 @@ export function validateCheckout(state: CheckoutFormState): FieldErrors {
     ["lastName", "Last name is required"],
     ["address1", "Address is required"],
     ["city", "City is required"],
-    ["province", "District is required"],
   ];
   for (const [key, msg] of required) {
     if (!String(state[key] ?? "").trim()) errors[key as string] = msg;
@@ -154,7 +153,6 @@ export function validateCheckout(state: CheckoutFormState): FieldErrors {
       ["lastName", "Last name is required"],
       ["address1", "Address is required"],
       ["city", "City is required"],
-      ["province", "District is required"],
     ];
     for (const [key, msg] of billingRequired) {
       if (!String(b[key] ?? "").trim()) errors[`billing.${key}`] = msg;
@@ -187,7 +185,9 @@ export function toMedusaAddress(
     address_1: src.address1,
     address_2: src.address2 || undefined,
     city: src.city,
-    province: src.province,
+    // District field removed from checkout UI; send "N/A" so any backend
+    // workflow that still reads `province` gets a non-empty value.
+    province: src.province || "N/A",
     postal_code: src.postalCode || undefined,
     country_code: "mu",
     phone: kind === "shipping" ? state.phone : undefined,

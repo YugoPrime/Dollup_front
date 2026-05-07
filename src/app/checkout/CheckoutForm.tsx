@@ -12,7 +12,6 @@ import { readLoyaltyRedeemMetadata } from "@/lib/loyalty-client";
 import { OrderSummary } from "./OrderSummary";
 import {
   EMPTY_CHECKOUT_STATE,
-  MU_DISTRICTS,
   qualifiesForFreeHomeDelivery,
   validateCheckout,
   toMedusaAddress,
@@ -362,34 +361,6 @@ export function CheckoutForm() {
               onBlur={() => markTouched("city")}
               error={showError("city")}
             />
-            <label className="block">
-              <span className="mb-1.5 block font-sans text-xs font-semibold text-ink">
-                District<span className="ml-1 text-coral-500">*</span>
-              </span>
-              <select
-                name="province"
-                value={state.province}
-                onChange={(e) => set("province", e.target.value)}
-                onBlur={() => markTouched("province")}
-                className={`w-full rounded-md border-[1.5px] bg-white px-3 py-2.5 font-sans text-sm text-ink outline-none transition-colors focus:border-coral-500 ${
-                  showError("province") ? "border-coral-500" : "border-blush-400"
-                }`}
-              >
-                <option value="">Select a district</option>
-                {MU_DISTRICTS.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
-              </select>
-              {showError("province") && (
-                <span className="mt-1 block font-sans text-[11px] text-coral-700">
-                  {showError("province")}
-                </span>
-              )}
-            </label>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
             <Field
               label="Postal code (optional)"
               name="postalCode"
@@ -397,18 +368,18 @@ export function CheckoutForm() {
               value={state.postalCode}
               onChange={(v) => set("postalCode", v)}
             />
-            <label className="block">
-              <span className="mb-1.5 block font-sans text-xs font-semibold text-ink">
-                Country
-              </span>
-              <input
-                type="text"
-                value="Mauritius"
-                readOnly
-                className="w-full rounded-md border-[1.5px] border-blush-400 bg-blush-100 px-3 py-2.5 font-sans text-sm text-ink-muted"
-              />
-            </label>
           </div>
+          <label className="block">
+            <span className="mb-1.5 block font-sans text-xs font-semibold text-ink">
+              Country
+            </span>
+            <input
+              type="text"
+              value="Mauritius"
+              readOnly
+              className="w-full rounded-md border-[1.5px] border-blush-400 bg-blush-100 px-3 py-2.5 font-sans text-sm text-ink-muted"
+            />
+          </label>
         </section>
 
         <section className="space-y-3">
@@ -471,40 +442,13 @@ export function CheckoutForm() {
                   onBlur={() => markTouched("billing.city")}
                   error={showError("billing.city")}
                 />
-                <label className="block">
-                  <span className="mb-1.5 block font-sans text-xs font-semibold text-ink">
-                    District<span className="ml-1 text-coral-500">*</span>
-                  </span>
-                  <select
-                    value={state.billing.province}
-                    onChange={(e) => setBilling("province", e.target.value)}
-                    onBlur={() => markTouched("billing.province")}
-                    className={`w-full rounded-md border-[1.5px] bg-white px-3 py-2.5 font-sans text-sm text-ink outline-none focus:border-coral-500 ${
-                      showError("billing.province")
-                        ? "border-coral-500"
-                        : "border-blush-400"
-                    }`}
-                  >
-                    <option value="">Select a district</option>
-                    {MU_DISTRICTS.map((d) => (
-                      <option key={d} value={d}>
-                        {d}
-                      </option>
-                    ))}
-                  </select>
-                  {showError("billing.province") && (
-                    <span className="mt-1 block font-sans text-[11px] text-coral-700">
-                      {showError("billing.province")}
-                    </span>
-                  )}
-                </label>
+                <Field
+                  label="Postal code (optional)"
+                  name="billing.postalCode"
+                  value={state.billing.postalCode}
+                  onChange={(v) => setBilling("postalCode", v)}
+                />
               </div>
-              <Field
-                label="Postal code (optional)"
-                name="billing.postalCode"
-                value={state.billing.postalCode}
-                onChange={(v) => setBilling("postalCode", v)}
-              />
             </div>
           )}
         </section>
