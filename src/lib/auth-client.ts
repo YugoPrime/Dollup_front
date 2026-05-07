@@ -64,6 +64,13 @@ async function init() {
     return;
   }
   const customer = await fetchCustomer();
+  if (customer) {
+    // Cart in localStorage may have been stamped by a prior session (different
+    // account, or stale id). Re-bind on every restored session, not just at
+    // login/register, otherwise loyalty redeem 403s with "cart does not belong
+    // to you". transferCart is a no-op when cart already belongs to this user.
+    await attachStoredCartToCustomer();
+  }
   publish({ status: "ready", customer });
 }
 
