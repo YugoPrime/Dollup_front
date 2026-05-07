@@ -17,7 +17,7 @@ import {
 } from "@/lib/checkout";
 
 const ORDER_FIELDS =
-  "*items,*items.variant,*shipping_address,*billing_address,*shipping_methods,+subtotal,+total,+shipping_total,+tax_total,metadata";
+  "*items,*items.variant,*shipping_address,*billing_address,*shipping_methods,+display_id,+subtotal,+total,+shipping_total,+tax_total,metadata";
 
 function readPaymentMethod(meta: Record<string, unknown> | null | undefined): PaymentMethod {
   const v = meta?.payment_method;
@@ -117,11 +117,6 @@ function CheckoutSuccessInner() {
           <p className="mt-2 font-sans text-sm text-ink-muted">
             Order <span className="font-semibold text-ink">#{order.display_id}</span>
           </p>
-          <p className="mt-3 font-sans text-sm text-ink-soft">
-            We&apos;ll call you on{" "}
-            <span className="font-semibold">{ship?.phone}</span> to confirm
-            delivery — typically within 1–2 business days.
-          </p>
         </div>
 
         <PaymentInstructions
@@ -129,6 +124,7 @@ function CheckoutSuccessInner() {
           deliveryMethod={deliveryMethod}
           displayId={order.display_id ?? order.id}
           totalLabel={totalLabel}
+          totalRaw={order.total ?? 0}
         />
 
         <div className="mb-8 border-y border-blush-100 py-6">

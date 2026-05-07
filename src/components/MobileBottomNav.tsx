@@ -18,7 +18,9 @@ export function MobileBottomNav() {
   const pathname = usePathname();
   const { itemCount, setOpen } = useCart();
 
-  if (pathname.startsWith("/admin")) return null;
+  if (pathname.startsWith("/admin") || pathname.startsWith("/checkout")) {
+    return null;
+  }
 
   // Cart sits in the middle (3rd of 5) and is rendered as a raised pill.
   const sideItems: { left: NavItem[]; right: NavItem[] } = {

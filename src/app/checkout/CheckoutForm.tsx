@@ -3,11 +3,20 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import {
+  Banknote,
+  Building2,
+  Mail,
+  Smartphone,
+  Store,
+  Truck,
+} from "lucide-react";
 import type { HttpTypes } from "@medusajs/types";
 import { useCart } from "@/components/cart/CartProvider";
 import { LoyaltyRedeemBox } from "@/components/checkout/LoyaltyRedeemBox";
 import { clientSdk } from "@/lib/cart-client";
 import { refreshCustomer, useCustomer } from "@/lib/auth-client";
+import { formatPrice } from "@/lib/format";
 import { readLoyaltyRedeemMetadata } from "@/lib/loyalty-client";
 import { OrderSummary } from "./OrderSummary";
 import {
@@ -144,7 +153,10 @@ export function CheckoutForm() {
   // date-eligible (e.g., user switched to Postage).
   useEffect(() => {
     if (!showDeliveryDate && state.deliveryDate) {
-      setState((s) => ({ ...s, deliveryDate: "" }));
+      const timeout = window.setTimeout(() => {
+        setState((s) => ({ ...s, deliveryDate: "" }));
+      }, 0);
+      return () => window.clearTimeout(timeout);
     }
   }, [showDeliveryDate, state.deliveryDate]);
 
@@ -153,7 +165,10 @@ export function CheckoutForm() {
   // selected — Cash isn't offered for courier methods).
   useEffect(() => {
     if (!allowedPayments.includes(state.paymentMethod)) {
-      setState((s) => ({ ...s, paymentMethod: allowedPayments[0] }));
+      const timeout = window.setTimeout(() => {
+        setState((s) => ({ ...s, paymentMethod: allowedPayments[0] }));
+      }, 0);
+      return () => window.clearTimeout(timeout);
     }
   }, [allowedPayments, state.paymentMethod]);
 
@@ -184,20 +199,23 @@ export function CheckoutForm() {
   // Prefill once when a logged-in customer's profile + saved address loads.
   useEffect(() => {
     if (prefilledFromCustomer || authStatus !== "ready" || !customer) return;
-    const addr = customer.addresses?.[0];
-    setState((s) => ({
-      ...s,
-      email: s.email || customer.email || "",
-      phone: s.phone || customer.phone || addr?.phone || "",
-      firstName: s.firstName || customer.first_name || addr?.first_name || "",
-      lastName: s.lastName || customer.last_name || addr?.last_name || "",
-      address1: s.address1 || addr?.address_1 || "",
-      address2: s.address2 || addr?.address_2 || "",
-      city: s.city || addr?.city || "",
-      province: s.province || addr?.province || "",
-      postalCode: s.postalCode || addr?.postal_code || "",
-    }));
-    setPrefilledFromCustomer(true);
+    const timeout = window.setTimeout(() => {
+      const addr = customer.addresses?.[0];
+      setState((s) => ({
+        ...s,
+        email: s.email || customer.email || "",
+        phone: s.phone || customer.phone || addr?.phone || "",
+        firstName: s.firstName || customer.first_name || addr?.first_name || "",
+        lastName: s.lastName || customer.last_name || addr?.last_name || "",
+        address1: s.address1 || addr?.address_1 || "",
+        address2: s.address2 || addr?.address_2 || "",
+        city: s.city || addr?.city || "",
+        province: s.province || addr?.province || "",
+        postalCode: s.postalCode || addr?.postal_code || "",
+      }));
+      setPrefilledFromCustomer(true);
+    }, 0);
+    return () => window.clearTimeout(timeout);
   }, [authStatus, customer, prefilledFromCustomer]);
 
   async function handleSubmit() {
@@ -345,9 +363,35 @@ export function CheckoutForm() {
       onApplied={refreshCart}
     />
   ) : null;
+  const currency = cart.currency_code ?? "MUR";
+  const itemSubtotal = cart.item_total ?? cart.subtotal ?? 0;
+  const cartHasShippingMethod = (cart.shipping_methods?.length ?? 0) > 0;
+  const selectedShippingFree =
+    selectedOption &&
+    (selectedOption.amount === 0 ||
+      qualifiesForFreeHomeDelivery(selectedOption.name ?? "", itemSubtotal));
+  const ctaShipping = cartHasShippingMethod
+    ? (cart.shipping_total ?? 0)
+    : selectedShippingFree
+      ? 0
+      : (selectedOption?.amount ?? 0);
+  const ctaTotal = cartHasShippingMethod
+    ? (cart.total ?? 0)
+    : Math.max(0, itemSubtotal + ctaShipping - (cart.discount_total ?? 0));
+  const ctaTotalLabel = formatPrice(ctaTotal, currency);
 
   return (
-    <div className="grid gap-10 lg:grid-cols-[1fr_380px]">
+    <>
+      {errorBanner ? (
+        <div
+          role="alert"
+          className="mb-5 rounded-lg border border-coral-300 bg-coral-50 px-4 py-3 font-sans text-sm text-coral-700"
+        >
+          {errorBanner}
+        </div>
+      ) : null}
+
+      <div className="grid gap-8 lg:grid-cols-[1fr_380px] lg:gap-10">
       <form className="space-y-8" onSubmit={(e) => e.preventDefault()}>
         <section className="space-y-4">
           <h2 className="font-display text-lg font-semibold text-ink">
@@ -535,6 +579,25 @@ export function CheckoutForm() {
             <div className="space-y-2">
               {shippingOptions.map((opt) => {
                 const label = opt.name ?? "";
+                const method = shippingOptionToDeliveryMethod(label);
+                const ShippingIcon =
+                  method === "Pick Up"
+                    ? Store
+                    : method === "Postage" ||
+                        method === "Express Postage" ||
+                        method === "Rodrigues Postage"
+                      ? Mail
+                      : Truck;
+                const hint =
+                  method === "Pick Up"
+                    ? "Collect from Doll Up Boutique."
+                    : method === "Postage"
+                      ? "Registered post across Mauritius."
+                      : method === "Express Postage"
+                        ? "Faster courier dispatch."
+                        : method === "Rodrigues Postage"
+                          ? "Postal delivery to Rodrigues."
+                          : "Door-to-door delivery in Mauritius.";
                 const free =
                   opt.amount === 0 ||
                   qualifiesForFreeHomeDelivery(
@@ -544,25 +607,33 @@ export function CheckoutForm() {
                 return (
                   <label
                     key={opt.id}
-                    className={`flex cursor-pointer items-center justify-between rounded-md border-[1.5px] px-4 py-3 transition-colors ${
+                    className={`flex cursor-pointer items-start justify-between gap-3 rounded-md border-[1.5px] px-4 py-3 transition-colors ${
                       state.shippingOptionId === opt.id
                         ? "border-coral-500 bg-blush-100"
                         : "border-blush-400 bg-white hover:border-coral-500"
                     }`}
                   >
-                    <span className="flex items-center gap-3">
+                    <span className="flex min-w-0 items-start gap-3">
+                      <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-coral-500/10 text-coral-700">
+                        <ShippingIcon aria-hidden className="h-4 w-4" />
+                      </span>
                       <input
                         type="radio"
                         name="shippingOption"
                         checked={state.shippingOptionId === opt.id}
                         onChange={() => set("shippingOptionId", opt.id)}
-                        className="h-4 w-4 accent-coral-500"
+                        className="mt-2 h-4 w-4 accent-coral-500"
                       />
-                      <span className="font-sans text-sm font-medium text-ink">
-                        {label}
+                      <span className="min-w-0">
+                        <span className="block break-words font-sans text-sm font-medium text-ink">
+                          {label}
+                        </span>
+                        <span className="mt-0.5 block font-sans text-[11px] text-ink-muted">
+                          {hint}
+                        </span>
                       </span>
                     </span>
-                    <span className="font-sans text-sm font-semibold text-ink">
+                    <span className="shrink-0 pt-2 font-sans text-sm font-semibold text-ink">
                       {free
                         ? "Free"
                         : new Intl.NumberFormat("en-MU", {
@@ -585,8 +656,8 @@ export function CheckoutForm() {
             </h2>
             <p className="font-sans text-xs text-ink-muted">
               {selectedMethod === "Pick Up"
-                ? "Choose when you'd like to pick up your order."
-                : "Choose when you'd like to receive your order."}{" "}
+                ? "Choose your pickup date."
+                : "Choose your delivery date."}{" "}
               No deliveries on Sundays. Same-day requests close at 1pm.
             </p>
             <input
@@ -600,8 +671,8 @@ export function CheckoutForm() {
             {state.deliveryDate &&
               !isValidDeliveryDate(state.deliveryDate) && (
                 <p className="font-sans text-[11px] text-coral-700">
-                  That date isn't available — please pick another (no Sundays,
-                  same-day cutoff is 1pm).
+                  That date is not available. Please pick another date: no
+                  Sundays, and same-day cutoff is 1pm.
                 </p>
               )}
           </section>
@@ -616,10 +687,23 @@ export function CheckoutForm() {
               const checked = state.paymentMethod === m;
               const label =
                 m === "Cash"
-                  ? { main: "Cash on Delivery", sub: "Pay with cash when your order arrives." }
+                  ? {
+                      main: "Cash on Delivery",
+                      sub: "Pay with cash when your order arrives.",
+                      Icon: Banknote,
+                    }
                   : m === "MCB Juice"
-                  ? { main: "MCB Juice", sub: "Mobile transfer to our MCB account." }
-                  : { main: "Bank Transfer", sub: "Transfer to our MCB business account." };
+                    ? {
+                        main: "MCB Juice",
+                        sub: "Mobile transfer to our MCB account.",
+                        Icon: Smartphone,
+                      }
+                    : {
+                        main: "Bank Transfer",
+                        sub: "Transfer to our MCB business account.",
+                        Icon: Building2,
+                      };
+              const PaymentIcon = label.Icon;
               return (
                 <label
                   key={m}
@@ -629,14 +713,17 @@ export function CheckoutForm() {
                       : "border-blush-400 bg-white hover:border-coral-500"
                   }`}
                 >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-coral-500/10 text-coral-700">
+                    <PaymentIcon aria-hidden className="h-4 w-4" />
+                  </span>
                   <input
                     type="radio"
                     name="paymentMethod"
                     checked={checked}
                     onChange={() => set("paymentMethod", m as PaymentMethod)}
-                    className="mt-0.5 h-4 w-4 accent-coral-500"
+                    className="mt-2 h-4 w-4 accent-coral-500"
                   />
-                  <span className="flex flex-col">
+                  <span className="flex min-w-0 flex-col">
                     <span className="font-sans text-sm font-medium text-ink">
                       {label.main}
                     </span>
@@ -700,27 +787,30 @@ export function CheckoutForm() {
         )}
 
         <div className="lg:hidden">{loyaltyBox}</div>
-
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={submitting}
-          className="sticky bottom-4 flex w-full items-center justify-center rounded-md bg-coral-500 px-4 py-3 font-sans text-sm font-semibold text-white shadow-lg disabled:opacity-60 lg:hidden"
-        >
-          {submitting ? "Placing order…" : "Place Order"}
-        </button>
+        <div aria-hidden className="h-24 lg:hidden" />
+        <div className="fixed inset-x-0 bottom-0 z-[90] border-t border-blush-300 bg-white/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(26,18,18,0.08)] backdrop-blur lg:hidden">
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="flex w-full items-center justify-between gap-3 rounded-md bg-coral-500 px-4 py-3 font-sans text-sm font-semibold text-white shadow-lg transition-colors hover:bg-coral-700 disabled:opacity-60"
+          >
+            {submitting ? "Placing order..." : "Place Order"}
+            <span className="shrink-0">{ctaTotalLabel}</span>
+          </button>
+        </div>
       </form>
 
       <OrderSummary
         cart={cart}
         submitting={submitting}
         onSubmit={handleSubmit}
-        errorBanner={errorBanner}
         loyaltySlot={<div className="hidden lg:block">{loyaltyBox}</div>}
         selectedShippingOption={
           shippingOptions.find((o) => o.id === state.shippingOptionId) ?? null
         }
       />
-    </div>
+      </div>
+    </>
   );
 }

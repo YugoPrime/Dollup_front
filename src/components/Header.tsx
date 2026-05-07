@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { LockKeyhole, MessageCircle, ShoppingBag } from "lucide-react";
 import { FocusTrapLayer } from "@/components/a11y/FocusTrapLayer";
 import { useCart } from "@/components/cart/CartProvider";
 import { NAV_LINKS } from "@/lib/nav";
@@ -227,6 +228,7 @@ function NavItem({ link, onClick }: { link: (typeof NAV_LINKS)[number]; onClick?
 
 export function Header() {
   const router = useRouter();
+  const pathname = usePathname();
   const { itemCount, setOpen } = useCart();
   const [menuOpen, setMenuOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -239,6 +241,59 @@ export function Header() {
     if (!q.trim()) return;
     router.push(`/shop?q=${encodeURIComponent(q.trim())}`);
   };
+
+  if (pathname.startsWith("/checkout")) {
+    return (
+      <header className="sticky top-0 z-[100] border-b border-blush-400 bg-white">
+        <div className="mx-auto flex min-h-[72px] max-w-6xl items-center justify-between gap-3 px-4">
+          <Link
+            href="/"
+            aria-label="Doll Up Boutique"
+            className="flex shrink-0 items-center"
+          >
+            <Image
+              src="/logo.png"
+              alt="Doll Up Boutique"
+              width={96}
+              height={83}
+              priority
+              className="h-14 w-auto"
+            />
+          </Link>
+
+          <div className="hidden min-w-0 items-center gap-2 font-sans text-xs font-semibold text-ink-soft sm:flex">
+            <LockKeyhole aria-hidden className="h-4 w-4 text-coral-500" />
+            Secure checkout
+          </div>
+
+          <div className="flex shrink-0 items-center gap-2">
+            <a
+              href="https://wa.me/23059416359"
+              target="_blank"
+              rel="noreferrer"
+              className="flex h-10 items-center gap-2 rounded-md border border-blush-300 px-3 font-sans text-xs font-semibold text-ink transition-colors hover:border-coral-500 hover:text-coral-700"
+            >
+              <MessageCircle aria-hidden className="h-4 w-4" />
+              <span className="hidden sm:inline">Help</span>
+            </a>
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              className="flex h-10 items-center gap-2 rounded-md bg-ink px-3 font-sans text-xs font-semibold text-white transition-colors hover:bg-coral-700"
+            >
+              <ShoppingBag aria-hidden className="h-4 w-4" />
+              <span>Bag</span>
+              {itemCount > 0 ? (
+                <span className="rounded-full bg-white px-1.5 py-0.5 text-[10px] text-ink">
+                  {itemCount}
+                </span>
+              ) : null}
+            </button>
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className="sticky top-0 z-[100] border-b border-blush-400 bg-white">

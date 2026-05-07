@@ -9,14 +9,15 @@ export async function Footer() {
 
   return (
     <footer className="bg-cream text-ink">
-      <section className="bg-coral-500 px-6 py-10 md:px-8">
-        <div className="mx-auto flex max-w-[1100px] flex-wrap items-center justify-between gap-8">
-          <div>
+      <section className="bg-coral-500 px-5 py-10 md:px-8">
+        <div className="mx-auto flex max-w-[1100px] min-w-0 flex-col gap-8 md:flex-row md:flex-wrap md:items-center md:justify-between">
+          <div className="min-w-0 md:flex-1">
             <p className="mb-1.5 font-sans text-[11px] font-bold uppercase tracking-[0.14em] text-white/70">
               Stay in the loop
             </p>
-            <h3 className="font-display text-[22px] font-semibold leading-snug text-white">
-              Get early access to new drops &amp; exclusive offers
+            <h3 className="max-w-2xl break-words font-display text-[22px] font-semibold leading-snug text-white">
+              Get early access to new drops{" "}
+              <span className="block sm:inline">&amp; exclusive offers</span>
             </h3>
           </div>
           <NewsletterForm />
@@ -35,7 +36,7 @@ export async function Footer() {
           <p className="mb-4 max-w-[220px] font-sans text-[13px] leading-relaxed text-ink-soft">
             Your go-to for fashion, lingerie &amp; beachwear since 2018.
           </p>
-          <div className="mb-4 flex gap-3">
+          <div className="mb-4 flex flex-wrap gap-x-3 gap-y-2">
             <a
               href={cfg.store.facebook_url}
               target="_blank"
@@ -109,7 +110,7 @@ export async function Footer() {
         <FooterCol title="About" links={FOOTER_ABOUT} />
       </div>
 
-      <div className="mx-auto flex max-w-[1100px] flex-col gap-3 border-t border-blush-300 px-6 py-5 font-sans text-[11px] text-ink-muted md:flex-row md:flex-wrap md:items-center md:justify-between md:px-8">
+      <div className="mx-auto flex max-w-[1100px] min-w-0 flex-col gap-3 border-t border-blush-300 px-6 py-5 font-sans text-[11px] text-ink-muted md:flex-row md:flex-wrap md:items-center md:justify-between md:px-8">
         <span>© {new Date().getFullYear()} {cfg.store.footer_copyright}</span>
         <div className="flex flex-wrap gap-2">
           {["Juice", "Bank Transfer", "myT Money", "Cash on Delivery"].map((p) => (

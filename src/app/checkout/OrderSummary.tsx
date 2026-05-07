@@ -3,6 +3,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { Tag } from "lucide-react";
 import type { HttpTypes } from "@medusajs/types";
 import { formatPrice } from "@/lib/format";
 import { readLoyaltyRedeemMetadata } from "@/lib/loyalty-client";
@@ -16,7 +17,6 @@ type Props = {
   cart: Cart;
   submitting: boolean;
   onSubmit: () => void;
-  errorBanner?: string | null;
   loyaltySlot?: React.ReactNode;
   selectedShippingOption?: HttpTypes.StoreCartShippingOption | null;
 };
@@ -80,8 +80,9 @@ function PromoCodeBox({ cart }: { cart: Cart }) {
 
   return (
     <div className="mb-5 border-b border-blush-100 pb-5">
-      <p className="mb-2 font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-coral-500">
-        Promo code
+      <p className="mb-2 flex items-center gap-1.5 font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-coral-500">
+        <Tag aria-hidden className="h-3 w-3" />
+        Promo
       </p>
       <div className="flex items-center gap-2">
         <input
@@ -97,7 +98,7 @@ function PromoCodeBox({ cart }: { cart: Cart }) {
           placeholder="Enter code"
           autoComplete="off"
           autoCapitalize="characters"
-          className="w-full rounded-full border border-blush-300 px-4 py-2 font-sans text-[13px] text-ink outline-none focus:border-coral-500"
+          className="min-w-0 flex-1 rounded-full border border-blush-300 px-4 py-2 font-sans text-[13px] text-ink outline-none focus:border-coral-500"
         />
         <button
           type="button"
@@ -142,11 +143,11 @@ export function OrderSummary({
   cart,
   submitting,
   onSubmit,
-  errorBanner,
   loyaltySlot,
   selectedShippingOption,
 }: Props) {
   const items = cart.items ?? [];
+  const itemCount = items.reduce((sum, item) => sum + (item.quantity ?? 0), 0);
   const currency = cart.currency_code ?? "MUR";
   const itemSubtotal = cart.item_total ?? cart.subtotal ?? 0;
   const cartHasShippingMethod = (cart.shipping_methods?.length ?? 0) > 0;
@@ -160,9 +161,10 @@ export function OrderSummary({
     : homeDeliveryFree
       ? 0
       : fallbackShipping;
+  const fallbackDiscount = cart.discount_total ?? 0;
   const total = cartHasShippingMethod
     ? (cart.total ?? 0)
-    : itemSubtotal + shipping;
+    : Math.max(0, itemSubtotal + shipping - fallbackDiscount);
   const redeemMeta = readLoyaltyRedeemMetadata(
     cart.metadata as Record<string, unknown> | null | undefined,
   );
@@ -178,12 +180,15 @@ export function OrderSummary({
   );
 
   return (
-    <aside className="lg:sticky lg:top-24 lg:self-start">
+    <aside className="order-first lg:sticky lg:top-24 lg:order-none lg:self-start">
       {loyaltySlot ? <div className="mb-4">{loyaltySlot}</div> : null}
       <div className="rounded-xl border border-blush-400 bg-white p-6">
-        <h2 className="mb-4 font-display text-lg font-semibold text-ink">
+        <h2 className="font-display text-lg font-semibold text-ink">
           Your order
         </h2>
+        <p className="mb-4 font-sans text-xs text-ink-muted">
+          {itemCount} {itemCount === 1 ? "item" : "items"} ready for checkout
+        </p>
 
         <ul className="mb-5 space-y-4 border-b border-blush-100 pb-5">
           {items.map((item) => (
@@ -202,8 +207,8 @@ export function OrderSummary({
                   {item.quantity}
                 </span>
               </div>
-              <div className="flex flex-1 flex-col">
-                <span className="font-display text-[13px] font-medium text-ink">
+              <div className="flex min-w-0 flex-1 flex-col">
+                <span className="break-words font-display text-[13px] font-medium leading-snug text-ink">
                   {item.product_title}
                 </span>
                 <span className="font-sans text-[11px] text-ink-muted">
@@ -265,12 +270,6 @@ export function OrderSummary({
             <dd>{formatPrice(total, currency)}</dd>
           </div>
         </dl>
-
-        {errorBanner ? (
-          <div className="mt-4 rounded-md border border-coral-300 bg-coral-50 p-3 font-sans text-xs text-coral-700">
-            {errorBanner}
-          </div>
-        ) : null}
 
         <button
           type="button"

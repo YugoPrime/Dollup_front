@@ -14,8 +14,17 @@ import {
   type PaymentMethod,
 } from "@/lib/checkout";
 
-function CopyableField({ label, value }: { label: string; value: string }) {
+function CopyableField({
+  label,
+  value,
+  copyValue,
+}: {
+  label: string;
+  value: string;
+  copyValue?: string;
+}) {
   const [copied, setCopied] = useState(false);
+  const toCopy = copyValue ?? value;
   return (
     <div className="flex items-center justify-between gap-3 rounded-md border border-blush-300 bg-cream/40 px-3 py-2">
       <div className="min-w-0">
@@ -30,7 +39,7 @@ function CopyableField({ label, value }: { label: string; value: string }) {
         type="button"
         onClick={async () => {
           try {
-            await navigator.clipboard.writeText(value);
+            await navigator.clipboard.writeText(toCopy);
             setCopied(true);
             setTimeout(() => setCopied(false), 1500);
           } catch {
@@ -50,11 +59,13 @@ export function PaymentInstructions({
   deliveryMethod,
   displayId,
   totalLabel,
+  totalRaw,
 }: {
   paymentMethod: PaymentMethod;
   deliveryMethod: DmDeliveryMethod | null;
   displayId: string | number;
   totalLabel: string;
+  totalRaw: number;
 }) {
   if (paymentMethod === "Cash") {
     return (
@@ -102,7 +113,11 @@ export function PaymentInstructions({
           label="Account number"
           value={PAYMENT_INFO.account_number}
         />
-        <CopyableField label="Amount" value={totalLabel} />
+        <CopyableField
+          label="Amount"
+          value={totalLabel}
+          copyValue={String(Math.round(totalRaw))}
+        />
         <CopyableField label="Reference" value={reference} />
       </div>
 
