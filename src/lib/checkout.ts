@@ -28,6 +28,87 @@ export function qualifiesForFreeHomeDelivery(
   );
 }
 
+// Map a Medusa shipping-option name to the canonical DmDeliveryMethod the
+// admin reads from order.metadata.delivery_method. Substring-based so renames
+// in Medusa admin don't break the link. Order matters: "Express Postage" must
+// be checked before plain "Postage".
+export function shippingOptionToDeliveryMethod(
+  optionName: string | null | undefined,
+): DmDeliveryMethod | null {
+  if (!optionName) return null;
+  const n = optionName.toLowerCase();
+  if (n.includes("rodrigues")) return "Rodrigues Postage";
+  if (n.includes("express")) return "Express Postage";
+  if (n.includes("home") || n.includes("office") || n.includes("livraison")) {
+    return "Home Delivery";
+  }
+  if (n.includes("pick")) return "Pick Up";
+  if (n.includes("post") || n.includes("registered")) return "Postage";
+  return null;
+}
+
+// Delivery date applies to local methods only (in-person handoff or pickup).
+// Postage methods ship via courier on Medusa's schedule, so the date input is
+// hidden for those.
+export function deliveryDateApplies(method: DmDeliveryMethod | null): boolean {
+  return method === "Home Delivery" || method === "Pick Up";
+}
+
+// MU is UTC+4 fixed (no DST). Build today's MU calendar day from a JS Date.
+function muDateParts(d: Date): { year: number; month: number; day: number; hour: number; dow: number } {
+  const muMs = d.getTime() + 4 * 60 * 60 * 1000;
+  const mu = new Date(muMs);
+  return {
+    year: mu.getUTCFullYear(),
+    month: mu.getUTCMonth(),
+    day: mu.getUTCDate(),
+    hour: mu.getUTCHours(),
+    // 0 = Sunday … 6 = Saturday
+    dow: mu.getUTCDay(),
+  };
+}
+
+function fmtYmd(y: number, m: number, d: number): string {
+  const mm = String(m + 1).padStart(2, "0");
+  const dd = String(d).padStart(2, "0");
+  return `${y}-${mm}-${dd}`;
+}
+
+function dowOfYmd(ymd: string): number {
+  const [y, m, d] = ymd.split("-").map(Number);
+  // UTC math is fine — same calendar day, just need day-of-week.
+  return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+}
+
+function addDaysYmd(ymd: string, days: number): string {
+  const [y, m, d] = ymd.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d + days));
+  return fmtYmd(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate());
+}
+
+// Earliest delivery date the customer can pick. Rules:
+//  - No Sundays (dow === 0). Push to Monday.
+//  - Cutoff 13:00 MU time: before 1pm → today is allowed; from 1pm on → start
+//    at tomorrow.
+// If the resulting earliest date lands on Sunday, advance to Monday.
+export function earliestDeliveryDate(now: Date = new Date()): string {
+  const { year, month, day, hour } = muDateParts(now);
+  const todayYmd = fmtYmd(year, month, day);
+  let candidate = hour < 13 ? todayYmd : addDaysYmd(todayYmd, 1);
+  if (dowOfYmd(candidate) === 0) candidate = addDaysYmd(candidate, 1);
+  return candidate;
+}
+
+// True when the given yyyy-mm-dd is a valid delivery date right now.
+export function isValidDeliveryDate(
+  ymd: string,
+  now: Date = new Date(),
+): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return false;
+  if (dowOfYmd(ymd) === 0) return false;
+  return ymd >= earliestDeliveryDate(now);
+}
+
 export const VAT_RATE_PERCENT = 15;
 
 export function computeVatAmount(totalMur: number): number {
@@ -88,6 +169,9 @@ export type CheckoutFormState = {
     postalCode: string;
   };
   shippingOptionId: string | null;
+  // yyyy-mm-dd. Optional. Only collected when the selected shipping option is
+  // Home Delivery or Pick Up; cleared on switch to a Postage method.
+  deliveryDate: string;
   notes: string;
   createAccount: boolean;
   password: string;
@@ -114,6 +198,7 @@ export const EMPTY_CHECKOUT_STATE: CheckoutFormState = {
     postalCode: "",
   },
   shippingOptionId: null,
+  deliveryDate: "",
   notes: "",
   createAccount: false,
   password: "",

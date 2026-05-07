@@ -11,8 +11,12 @@ import { refreshCustomer, useCustomer } from "@/lib/auth-client";
 import { readLoyaltyRedeemMetadata } from "@/lib/loyalty-client";
 import { OrderSummary } from "./OrderSummary";
 import {
+  deliveryDateApplies,
+  earliestDeliveryDate,
   EMPTY_CHECKOUT_STATE,
+  isValidDeliveryDate,
   qualifiesForFreeHomeDelivery,
+  shippingOptionToDeliveryMethod,
   validateCheckout,
   toMedusaAddress,
   type CheckoutFormState,
@@ -121,6 +125,26 @@ export function CheckoutForm() {
     };
   }, [cart?.id]);
 
+  // Resolve the selected option + canonical DM delivery method. The method
+  // drives both the conditional date input and what we write to
+  // cart.metadata.delivery_method (which the admin reads).
+  const selectedOption = state.shippingOptionId
+    ? (shippingOptions.find((o) => o.id === state.shippingOptionId) ?? null)
+    : null;
+  const selectedMethod = shippingOptionToDeliveryMethod(
+    selectedOption?.name ?? null,
+  );
+  const showDeliveryDate = deliveryDateApplies(selectedMethod);
+  const minDeliveryDate = earliestDeliveryDate();
+
+  // Clear the delivery date when the selected shipping option is not
+  // date-eligible (e.g., user switched to Postage).
+  useEffect(() => {
+    if (!showDeliveryDate && state.deliveryDate) {
+      setState((s) => ({ ...s, deliveryDate: "" }));
+    }
+  }, [showDeliveryDate, state.deliveryDate]);
+
   // Push the selected shipping method to the cart so the order summary reflects
   // the live shipping cost and total. Skips if the cart already has it.
   useEffect(() => {
@@ -174,6 +198,22 @@ export function CheckoutForm() {
       return;
     }
     if (!cart) return;
+    // If a date was entered but is no longer valid (Sunday, past, before
+    // cutoff window), drop it silently — the field is optional and we'd rather
+    // place the order than block the customer over a stale picker value.
+    const dateToSend =
+      showDeliveryDate &&
+      state.deliveryDate &&
+      isValidDeliveryDate(state.deliveryDate)
+        ? state.deliveryDate
+        : null;
+    const metadataPatch: Record<string, unknown> = {
+      ...(cart.metadata ?? {}),
+    };
+    if (selectedMethod) metadataPatch.delivery_method = selectedMethod;
+    if (state.notes.trim()) metadataPatch.notes = state.notes.trim();
+    if (dateToSend) metadataPatch.delivery_date = dateToSend;
+    else delete metadataPatch.delivery_date;
     setErrorBanner(null);
     setSubmitting(true);
     try {
@@ -181,9 +221,7 @@ export function CheckoutForm() {
         email: state.email,
         shipping_address: toMedusaAddress(state, "shipping"),
         billing_address: toMedusaAddress(state, "billing"),
-        ...(state.notes.trim()
-          ? { metadata: { ...(cart.metadata ?? {}), notes: state.notes.trim() } }
-          : {}),
+        metadata: metadataPatch,
       });
 
       await clientSdk.store.cart.addShippingMethod(cart.id, {
@@ -507,6 +545,35 @@ export function CheckoutForm() {
             </div>
           )}
         </section>
+
+        {showDeliveryDate && (
+          <section className="space-y-3">
+            <h2 className="font-display text-lg font-semibold text-ink">
+              Preferred delivery date (optional)
+            </h2>
+            <p className="font-sans text-xs text-ink-muted">
+              {selectedMethod === "Pick Up"
+                ? "Choose when you'd like to pick up your order."
+                : "Choose when you'd like to receive your order."}{" "}
+              No deliveries on Sundays. Same-day requests close at 1pm.
+            </p>
+            <input
+              type="date"
+              name="deliveryDate"
+              value={state.deliveryDate}
+              min={minDeliveryDate}
+              onChange={(e) => set("deliveryDate", e.target.value)}
+              className="w-full rounded-md border-[1.5px] border-blush-400 bg-white px-3 py-2.5 font-sans text-sm text-ink outline-none focus:border-coral-500 sm:w-auto"
+            />
+            {state.deliveryDate &&
+              !isValidDeliveryDate(state.deliveryDate) && (
+                <p className="font-sans text-[11px] text-coral-700">
+                  That date isn't available — please pick another (no Sundays,
+                  same-day cutoff is 1pm).
+                </p>
+              )}
+          </section>
+        )}
 
         <section className="space-y-3">
           <h2 className="font-display text-lg font-semibold text-ink">
