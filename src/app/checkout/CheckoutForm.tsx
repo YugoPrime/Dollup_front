@@ -11,6 +11,7 @@ import { refreshCustomer, useCustomer } from "@/lib/auth-client";
 import { readLoyaltyRedeemMetadata } from "@/lib/loyalty-client";
 import { OrderSummary } from "./OrderSummary";
 import {
+  allowedPaymentMethods,
   deliveryDateApplies,
   earliestDeliveryDate,
   EMPTY_CHECKOUT_STATE,
@@ -21,6 +22,7 @@ import {
   toMedusaAddress,
   type CheckoutFormState,
   type FieldErrors,
+  type PaymentMethod,
 } from "@/lib/checkout";
 
 function Field({
@@ -136,6 +138,7 @@ export function CheckoutForm() {
   );
   const showDeliveryDate = deliveryDateApplies(selectedMethod);
   const minDeliveryDate = earliestDeliveryDate();
+  const allowedPayments = allowedPaymentMethods(selectedMethod);
 
   // Clear the delivery date when the selected shipping option is not
   // date-eligible (e.g., user switched to Postage).
@@ -144,6 +147,15 @@ export function CheckoutForm() {
       setState((s) => ({ ...s, deliveryDate: "" }));
     }
   }, [showDeliveryDate, state.deliveryDate]);
+
+  // Auto-reset payment method when the current one is no longer allowed for
+  // the chosen delivery method (e.g. customer picks Postage while Cash is
+  // selected — Cash isn't offered for courier methods).
+  useEffect(() => {
+    if (!allowedPayments.includes(state.paymentMethod)) {
+      setState((s) => ({ ...s, paymentMethod: allowedPayments[0] }));
+    }
+  }, [allowedPayments, state.paymentMethod]);
 
   // Push the selected shipping method to the cart so the order summary reflects
   // the live shipping cost and total. Skips if the cart already has it.
@@ -214,6 +226,7 @@ export function CheckoutForm() {
     if (state.notes.trim()) metadataPatch.notes = state.notes.trim();
     if (dateToSend) metadataPatch.delivery_date = dateToSend;
     else delete metadataPatch.delivery_date;
+    metadataPatch.payment_method = state.paymentMethod;
     setErrorBanner(null);
     setSubmitting(true);
     try {
@@ -574,6 +587,54 @@ export function CheckoutForm() {
               )}
           </section>
         )}
+
+        <section className="space-y-3">
+          <h2 className="font-display text-lg font-semibold text-ink">
+            Payment method
+          </h2>
+          <div className="space-y-2">
+            {allowedPayments.map((m) => {
+              const checked = state.paymentMethod === m;
+              const label =
+                m === "Cash"
+                  ? { main: "Cash on Delivery", sub: "Pay with cash when your order arrives." }
+                  : m === "MCB Juice"
+                  ? { main: "MCB Juice", sub: "Mobile transfer to our MCB account." }
+                  : { main: "Bank Transfer", sub: "Transfer to our MCB business account." };
+              return (
+                <label
+                  key={m}
+                  className={`flex cursor-pointer items-start gap-3 rounded-md border-[1.5px] px-4 py-3 transition-colors ${
+                    checked
+                      ? "border-coral-500 bg-blush-100"
+                      : "border-blush-400 bg-white hover:border-coral-500"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    checked={checked}
+                    onChange={() => set("paymentMethod", m as PaymentMethod)}
+                    className="mt-0.5 h-4 w-4 accent-coral-500"
+                  />
+                  <span className="flex flex-col">
+                    <span className="font-sans text-sm font-medium text-ink">
+                      {label.main}
+                    </span>
+                    <span className="font-sans text-[11px] text-ink-muted">
+                      {label.sub}
+                    </span>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+          {state.paymentMethod !== "Cash" && (
+            <p className="font-sans text-[11px] text-ink-muted">
+              Payment instructions will be shown after you place your order.
+            </p>
+          )}
+        </section>
 
         <section className="space-y-3">
           <h2 className="font-display text-lg font-semibold text-ink">

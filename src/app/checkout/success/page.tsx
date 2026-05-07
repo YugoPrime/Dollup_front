@@ -8,9 +8,28 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { HttpTypes } from "@medusajs/types";
 import { clientSdk } from "@/lib/cart-client";
 import { formatPrice } from "@/lib/format";
+import { PaymentInstructions } from "@/components/checkout/PaymentInstructions";
+import {
+  PAYMENT_METHODS,
+  DM_DELIVERY_METHODS,
+  type DmDeliveryMethod,
+  type PaymentMethod,
+} from "@/lib/checkout";
 
 const ORDER_FIELDS =
-  "*items,*items.variant,*shipping_address,*billing_address,*shipping_methods,+subtotal,+total,+shipping_total,+tax_total";
+  "*items,*items.variant,*shipping_address,*billing_address,*shipping_methods,+subtotal,+total,+shipping_total,+tax_total,metadata";
+
+function readPaymentMethod(meta: Record<string, unknown> | null | undefined): PaymentMethod {
+  const v = meta?.payment_method;
+  return PAYMENT_METHODS.find((m) => m === v) ?? "Cash";
+}
+
+function readDeliveryMethod(
+  meta: Record<string, unknown> | null | undefined,
+): DmDeliveryMethod | null {
+  const v = meta?.delivery_method;
+  return (DM_DELIVERY_METHODS.find((m) => m === v) ?? null) as DmDeliveryMethod | null;
+}
 
 function CheckoutSuccessInner() {
   const params = useSearchParams();
@@ -69,6 +88,10 @@ function CheckoutSuccessInner() {
 
   const currency = order.currency_code ?? "MUR";
   const ship = order.shipping_address;
+  const meta = (order.metadata ?? null) as Record<string, unknown> | null;
+  const paymentMethod = readPaymentMethod(meta);
+  const deliveryMethod = readDeliveryMethod(meta);
+  const totalLabel = formatPrice(order.total ?? 0, currency);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12 lg:py-20">
@@ -100,6 +123,13 @@ function CheckoutSuccessInner() {
             delivery — typically within 1–2 business days.
           </p>
         </div>
+
+        <PaymentInstructions
+          paymentMethod={paymentMethod}
+          deliveryMethod={deliveryMethod}
+          displayId={order.display_id ?? order.id}
+          totalLabel={totalLabel}
+        />
 
         <div className="mb-8 border-y border-blush-100 py-6">
           <h2 className="mb-4 font-display text-base font-semibold text-ink">

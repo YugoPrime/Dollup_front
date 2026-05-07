@@ -54,6 +54,39 @@ export function deliveryDateApplies(method: DmDeliveryMethod | null): boolean {
   return method === "Home Delivery" || method === "Pick Up";
 }
 
+// Payment methods. Strings match dollup-admin's PAYMENT_METHODS exactly so
+// the existing admin order form select renders storefront-placed orders
+// correctly without a translation layer.
+export const PAYMENT_METHODS = ["Cash", "MCB Juice", "Bank Transfer"] as const;
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+
+// Cash on delivery is only offered for in-person handoff (Home Delivery or
+// Pick Up). Courier methods (Postage / Express / Rodrigues) require non-cash
+// since the courier handles the package and the customer never meets us.
+export function allowedPaymentMethods(
+  method: DmDeliveryMethod | null,
+): readonly PaymentMethod[] {
+  if (method === "Home Delivery" || method === "Pick Up") {
+    return PAYMENT_METHODS;
+  }
+  return ["MCB Juice", "Bank Transfer"];
+}
+
+// Postage / Express / Rodrigues with non-cash payment must wait for the funds
+// to clear before the order is dispatched. The success page surfaces this as
+// a prominent callout.
+export function paymentClearedBeforeShipApplies(
+  payment: PaymentMethod,
+  delivery: DmDeliveryMethod | null,
+): boolean {
+  if (payment === "Cash") return false;
+  return (
+    delivery === "Postage" ||
+    delivery === "Express Postage" ||
+    delivery === "Rodrigues Postage"
+  );
+}
+
 // MU is UTC+4 fixed (no DST). Build today's MU calendar day from a JS Date.
 function muDateParts(d: Date): { year: number; month: number; day: number; hour: number; dow: number } {
   const muMs = d.getTime() + 4 * 60 * 60 * 1000;
@@ -172,6 +205,9 @@ export type CheckoutFormState = {
   // yyyy-mm-dd. Optional. Only collected when the selected shipping option is
   // Home Delivery or Pick Up; cleared on switch to a Postage method.
   deliveryDate: string;
+  // Customer's stated payment-method intent. Defaults to "Cash" but resets to
+  // "MCB Juice" if the chosen delivery method disallows Cash (Postage etc.).
+  paymentMethod: PaymentMethod;
   notes: string;
   createAccount: boolean;
   password: string;
@@ -199,6 +235,7 @@ export const EMPTY_CHECKOUT_STATE: CheckoutFormState = {
   },
   shippingOptionId: null,
   deliveryDate: "",
+  paymentMethod: "Cash",
   notes: "",
   createAccount: false,
   password: "",
