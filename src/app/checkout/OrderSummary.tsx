@@ -28,7 +28,11 @@ function PromoCodeBox({ cart }: { cart: Cart }) {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const promotions = (cart.promotions ?? []) as CartPromotion[];
+  const allPromotions = (cart.promotions ?? []) as CartPromotion[];
+  // Auto-applied promotions (e.g. free shipping over Rs 1500) are managed by
+  // Medusa server-side rules. They should never appear in the customer-facing
+  // promo box — we don't want to surface "FREE" as if it were a coupon code.
+  const promotions = allPromotions.filter((p) => !p.is_automatic);
 
   async function setPromoCodes(codes: string[]) {
     await clientSdk.store.cart.update(cart.id, {
@@ -174,9 +178,17 @@ export function OrderSummary({
   // discount_total is the cart-level promotion discount (Medusa Promotion
   // module). Loyalty redemption uses metadata-driven adjustments and lands
   // here too, so subtract that out to avoid double-counting in the UI.
+  // We also subtract the shipping-side discount: free-shipping promotions
+  // belong in the Shipping line ("Free"), not in a "Promo discount" line.
+  const shippingDiscount = Math.max(
+    0,
+    (cart.shipping_subtotal ?? 0) - (cart.shipping_total ?? 0),
+  );
   const promoDiscount = Math.max(
     0,
-    (cart.discount_total ?? 0) - (redeemMeta?.discount_mur ?? 0),
+    (cart.discount_total ?? 0) -
+      (redeemMeta?.discount_mur ?? 0) -
+      shippingDiscount,
   );
 
   return (
@@ -193,16 +205,18 @@ export function OrderSummary({
         <ul className="mb-5 space-y-4 border-b border-blush-100 pb-5">
           {items.map((item) => (
             <li key={item.id} className="flex gap-3">
-              <div className="relative h-20 w-16 shrink-0 overflow-hidden rounded-md bg-blush-300">
-                {item.thumbnail ? (
-                  <Image
-                    src={item.thumbnail}
-                    alt={item.product_title ?? ""}
-                    fill
-                    className="object-cover"
-                    sizes="64px"
-                  />
-                ) : null}
+              <div className="relative h-20 w-16 shrink-0">
+                <div className="relative h-full w-full overflow-hidden rounded-md bg-blush-300">
+                  {item.thumbnail ? (
+                    <Image
+                      src={item.thumbnail}
+                      alt={item.product_title ?? ""}
+                      fill
+                      className="object-cover"
+                      sizes="64px"
+                    />
+                  ) : null}
+                </div>
                 <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-ink px-1 font-sans text-[10px] font-semibold text-white">
                   {item.quantity}
                 </span>
