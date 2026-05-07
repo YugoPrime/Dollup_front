@@ -1,5 +1,4 @@
-// Payment destination info for non-cash methods. Both MCB Juice and Bank
-// Transfer route to the same MCB business account. If these change, update
+// Payment destination info for Juice / Bank Transfer. If these change, update
 // here and ship a new build.
 export const PAYMENT_INFO = {
   account_name: "Doll Up Boutique Limited",

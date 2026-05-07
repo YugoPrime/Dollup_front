@@ -10,6 +10,7 @@ import { clientSdk } from "@/lib/cart-client";
 import { formatPrice } from "@/lib/format";
 import { PaymentInstructions } from "@/components/checkout/PaymentInstructions";
 import {
+  ACCOUNT_TRANSFER_PAYMENT_METHOD,
   PAYMENT_METHODS,
   DM_DELIVERY_METHODS,
   type DmDeliveryMethod,
@@ -21,6 +22,9 @@ const ORDER_FIELDS =
 
 function readPaymentMethod(meta: Record<string, unknown> | null | undefined): PaymentMethod {
   const v = meta?.payment_method;
+  if (v === "MCB Juice" || v === "Bank Transfer") {
+    return ACCOUNT_TRANSFER_PAYMENT_METHOD;
+  }
   return PAYMENT_METHODS.find((m) => m === v) ?? "Cash";
 }
 

@@ -1,8 +1,8 @@
 // Renders the payment-method-specific instructions on the checkout success
 // page. Branches on the customer's stated payment_method (stored as cart
 // metadata at checkout, propagated to order metadata by Medusa's
-// completeCartWorkflow). Cash on delivery shows COD copy; non-cash methods
-// show MCB account details + a WhatsApp screenshot CTA, and add a
+// completeCartWorkflow). Cash on delivery shows COD copy; account-transfer
+// payments show MCB account details + a WhatsApp screenshot CTA, and add a
 // "processed only after funds received" callout for courier deliveries.
 "use client";
 
@@ -82,12 +82,9 @@ export function PaymentInstructions({
     );
   }
 
-  const heading =
-    paymentMethod === "MCB Juice" ? "Pay via MCB Juice" : "Pay via Bank Transfer";
+  const heading = "Pay by Juice / Bank Transfer";
   const subhead =
-    paymentMethod === "MCB Juice"
-      ? "Open your MCB Juice app and send the total to the account below."
-      : "Transfer the total to our MCB business account.";
+    "Send the total by MCB Juice or bank transfer to the account below.";
 
   const reference = `DUB${displayId}`;
   const waMessage = encodeURIComponent(

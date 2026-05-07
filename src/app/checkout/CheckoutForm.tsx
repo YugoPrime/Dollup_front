@@ -7,7 +7,6 @@ import {
   Banknote,
   Building2,
   Mail,
-  Smartphone,
   Store,
   Truck,
 } from "lucide-react";
@@ -658,7 +657,8 @@ export function CheckoutForm() {
               {selectedMethod === "Pick Up"
                 ? "Choose your pickup date."
                 : "Choose your delivery date."}{" "}
-              No deliveries on Sundays. Same-day requests close at 1pm.
+              No same-day delivery. For next-day delivery, order before 1pm the
+              day before. No deliveries on Sundays.
             </p>
             <input
               type="date"
@@ -672,7 +672,8 @@ export function CheckoutForm() {
               !isValidDeliveryDate(state.deliveryDate) && (
                 <p className="font-sans text-[11px] text-coral-700">
                   That date is not available. Please pick another date: no
-                  Sundays, and same-day cutoff is 1pm.
+                  same-day delivery, next-day cutoff is 1pm the day before, and
+                  no Sundays.
                 </p>
               )}
           </section>
@@ -692,17 +693,11 @@ export function CheckoutForm() {
                       sub: "Pay with cash when your order arrives.",
                       Icon: Banknote,
                     }
-                  : m === "MCB Juice"
-                    ? {
-                        main: "MCB Juice",
-                        sub: "Mobile transfer to our MCB account.",
-                        Icon: Smartphone,
-                      }
-                    : {
-                        main: "Bank Transfer",
-                        sub: "Transfer to our MCB business account.",
-                        Icon: Building2,
-                      };
+                  : {
+                      main: "Juice / Bank Transfer",
+                      sub: "Send payment to our MCB business account.",
+                      Icon: Building2,
+                    };
               const PaymentIcon = label.Icon;
               return (
                 <label

@@ -57,7 +57,11 @@ export function deliveryDateApplies(method: DmDeliveryMethod | null): boolean {
 // Payment methods. Strings match dollup-admin's PAYMENT_METHODS exactly so
 // the existing admin order form select renders storefront-placed orders
 // correctly without a translation layer.
-export const PAYMENT_METHODS = ["Cash", "MCB Juice", "Bank Transfer"] as const;
+export const ACCOUNT_TRANSFER_PAYMENT_METHOD = "Juice / Bank Transfer";
+export const PAYMENT_METHODS = [
+  "Cash",
+  ACCOUNT_TRANSFER_PAYMENT_METHOD,
+] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
 // Cash on delivery is only offered for in-person handoff (Home Delivery or
@@ -66,10 +70,10 @@ export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 export function allowedPaymentMethods(
   method: DmDeliveryMethod | null,
 ): readonly PaymentMethod[] {
-  if (method === "Home Delivery" || method === "Pick Up") {
+  if (method === null || method === "Home Delivery" || method === "Pick Up") {
     return PAYMENT_METHODS;
   }
-  return ["MCB Juice", "Bank Transfer"];
+  return [ACCOUNT_TRANSFER_PAYMENT_METHOD];
 }
 
 // Postage / Express / Rodrigues with non-cash payment must wait for the funds
@@ -120,14 +124,14 @@ function addDaysYmd(ymd: string, days: number): string {
 }
 
 // Earliest delivery date the customer can pick. Rules:
+//  - No same-day delivery.
+//  - Next-day delivery is available only when the order is placed before
+//    13:00 MU time on the day before delivery.
 //  - No Sundays (dow === 0). Push to Monday.
-//  - Cutoff 13:00 MU time: before 1pm → today is allowed; from 1pm on → start
-//    at tomorrow.
-// If the resulting earliest date lands on Sunday, advance to Monday.
 export function earliestDeliveryDate(now: Date = new Date()): string {
   const { year, month, day, hour } = muDateParts(now);
   const todayYmd = fmtYmd(year, month, day);
-  let candidate = hour < 13 ? todayYmd : addDaysYmd(todayYmd, 1);
+  let candidate = addDaysYmd(todayYmd, hour < 13 ? 1 : 2);
   if (dowOfYmd(candidate) === 0) candidate = addDaysYmd(candidate, 1);
   return candidate;
 }
@@ -206,7 +210,7 @@ export type CheckoutFormState = {
   // Home Delivery or Pick Up; cleared on switch to a Postage method.
   deliveryDate: string;
   // Customer's stated payment-method intent. Defaults to "Cash" but resets to
-  // "MCB Juice" if the chosen delivery method disallows Cash (Postage etc.).
+  // account transfer if the chosen delivery method disallows Cash (Postage etc.).
   paymentMethod: PaymentMethod;
   notes: string;
   createAccount: boolean;
