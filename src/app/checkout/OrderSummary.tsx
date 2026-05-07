@@ -178,18 +178,31 @@ export function OrderSummary({
   // discount_total is the cart-level promotion discount (Medusa Promotion
   // module). Loyalty redemption uses metadata-driven adjustments and lands
   // here too, so subtract that out to avoid double-counting in the UI.
-  // We also subtract the shipping-side discount: free-shipping promotions
-  // belong in the Shipping line ("Free"), not in a "Promo discount" line.
+  //
+  // The "Promo discount" line should only surface customer-applied codes.
+  // When the only applied promo is auto (e.g. the Rs.1500+ free-shipping
+  // rule), the entire discount is auto and already shown as "Shipping: Free"
+  // — we hide the discount line completely to avoid the confusing
+  // "Promo discount -Rs.150" display next to "Shipping: Free".
+  //
+  // When a manual code IS applied alongside an auto promo, we still subtract
+  // the shipping-side discount so the displayed amount reflects only the
+  // manual code's contribution.
+  const hasManualPromo = ((cart.promotions ?? []) as CartPromotion[]).some(
+    (p) => !p.is_automatic,
+  );
   const shippingDiscount = Math.max(
     0,
     (cart.shipping_subtotal ?? 0) - (cart.shipping_total ?? 0),
   );
-  const promoDiscount = Math.max(
-    0,
-    (cart.discount_total ?? 0) -
-      (redeemMeta?.discount_mur ?? 0) -
-      shippingDiscount,
-  );
+  const promoDiscount = hasManualPromo
+    ? Math.max(
+        0,
+        (cart.discount_total ?? 0) -
+          (redeemMeta?.discount_mur ?? 0) -
+          shippingDiscount,
+      )
+    : 0;
 
   return (
     <aside className="order-first lg:sticky lg:top-24 lg:order-none lg:self-start">
