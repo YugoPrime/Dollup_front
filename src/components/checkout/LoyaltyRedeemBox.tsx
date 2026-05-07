@@ -83,6 +83,20 @@ export function LoyaltyRedeemBox({
 
   if (status === "loading" || !customer || !account) return null;
 
+  function explainNoRedemption(p: LoyaltyRedeemPreview): string {
+    if (p.redeem_rate_mur_per_100_pts <= 0) {
+      return "Doll Rewards is temporarily unavailable.";
+    }
+    if (p.points_balance < p.min_redeem_points) {
+      const need = p.min_redeem_points - p.points_balance;
+      return `You need ${need.toLocaleString("en-MU")} more pts to redeem (minimum ${p.min_redeem_points.toLocaleString("en-MU")}).`;
+    }
+    const minDiscount = Math.floor(
+      (p.min_redeem_points * p.redeem_rate_mur_per_100_pts) / 100,
+    );
+    return `Cart subtotal is too low — you need at least Rs ${(minDiscount * 2).toLocaleString("en-MU")} to redeem ${p.min_redeem_points.toLocaleString("en-MU")} pts.`;
+  }
+
   if (alreadyApplied && applied) {
     return (
       <div className="rounded-xl border border-coral-500 bg-coral-500/5 p-5">
@@ -159,11 +173,17 @@ export function LoyaltyRedeemBox({
         </p>
       )}
 
-      {preview && !previewing && (
+      {preview && !previewing && preview.max_redeemable > 0 && (
         <p className="mt-2 font-sans text-[12px] text-ink-soft">
           {preview.requested_points.toLocaleString("en-MU")} pts gives -Rs{" "}
           {preview.discount_mur.toLocaleString("en-MU")} off. Max{" "}
           {preview.max_redeemable.toLocaleString("en-MU")} pts allowed.
+        </p>
+      )}
+
+      {preview && !previewing && preview.max_redeemable === 0 && (
+        <p className="mt-2 font-sans text-[12px] text-coral-700">
+          {explainNoRedemption(preview)}
         </p>
       )}
 

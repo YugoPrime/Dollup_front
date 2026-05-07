@@ -241,18 +241,12 @@ export function CheckoutForm() {
         option_id: state.shippingOptionId!,
       });
 
-      await clientSdk.store.payment.initiatePaymentSession(cart, {
-        provider_id: "pp_system_default",
-      });
-
-      const result = await clientSdk.store.cart.complete(cart.id);
-      if (result.type !== "order") {
-        throw new Error(
-          result.error?.message ?? "Order could not be completed",
-        );
-      }
-
-      if (state.createAccount && state.password) {
+      // Create the account BEFORE completing the cart so the resulting order's
+      // customer_id is the new customer (Medusa copies cart.customer_id onto
+      // the order at complete-time, then freezes it). If we registered after
+      // cart.complete, the order would be locked to no/wrong customer and
+      // never appear under /account/orders.
+      if (!customer && state.createAccount && state.password) {
         try {
           await clientSdk.auth.register("customer", "emailpass", {
             email: state.email,
@@ -264,12 +258,37 @@ export function CheckoutForm() {
             last_name: state.lastName,
             phone: state.phone,
           });
-          // SDK now holds the JWT in localStorage — refresh the in-memory auth
-          // state so the header avatar appears immediately on /checkout/success.
+          // Bind the in-flight cart to the new customer so the order inherits
+          // the right customer_id at cart.complete.
+          await clientSdk.store.cart.transferCart(cart.id);
+          // Refresh in-memory auth so the header avatar updates immediately
+          // on /checkout/success.
           await refreshCustomer();
         } catch (e) {
+          // Most common failure: email already registered. Don't block the
+          // order — it still completes as guest. (User can claim it later
+          // via the existing /forgot-password + /account flow.)
           console.warn("Account creation skipped:", e);
         }
+      } else if (customer) {
+        // Defensive: ensure cart belongs to the logged-in customer right
+        // before completion. transferCart is a no-op when already bound.
+        try {
+          await clientSdk.store.cart.transferCart(cart.id);
+        } catch {
+          /* best effort — let cart.complete proceed */
+        }
+      }
+
+      await clientSdk.store.payment.initiatePaymentSession(cart, {
+        provider_id: "pp_system_default",
+      });
+
+      const result = await clientSdk.store.cart.complete(cart.id);
+      if (result.type !== "order") {
+        throw new Error(
+          result.error?.message ?? "Order could not be completed",
+        );
       }
 
       clearCart();

@@ -2,10 +2,13 @@
 "use client";
 
 import Image from "next/image";
+import { useState } from "react";
 import type { HttpTypes } from "@medusajs/types";
 import { formatPrice } from "@/lib/format";
 import { readLoyaltyRedeemMetadata } from "@/lib/loyalty-client";
 import { qualifiesForFreeHomeDelivery } from "@/lib/checkout";
+import { clientSdk } from "@/lib/cart-client";
+import { useCart } from "@/components/cart/CartProvider";
 
 type Cart = HttpTypes.StoreCart;
 
@@ -17,6 +20,123 @@ type Props = {
   loyaltySlot?: React.ReactNode;
   selectedShippingOption?: HttpTypes.StoreCartShippingOption | null;
 };
+
+type CartPromotion = NonNullable<Cart["promotions"]>[number];
+
+function PromoCodeBox({ cart }: { cart: Cart }) {
+  const { refreshCart } = useCart();
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const promotions = (cart.promotions ?? []) as CartPromotion[];
+
+  async function setPromoCodes(codes: string[]) {
+    await clientSdk.store.cart.update(cart.id, {
+      promo_codes: codes,
+    });
+    await refreshCart();
+  }
+
+  async function apply() {
+    const trimmed = code.trim();
+    if (!trimmed) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const existing = promotions
+        .map((p) => p.code)
+        .filter((c): c is string => Boolean(c));
+      if (existing.includes(trimmed)) {
+        setError("That code is already applied.");
+        return;
+      }
+      await setPromoCodes([...existing, trimmed]);
+      setCode("");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Couldn't apply that code.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove(promoCode: string) {
+    setBusy(true);
+    setError(null);
+    try {
+      const remaining = promotions
+        .map((p) => p.code)
+        .filter((c): c is string => Boolean(c) && c !== promoCode);
+      await setPromoCodes(remaining);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Couldn't remove that code.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mb-5 border-b border-blush-100 pb-5">
+      <p className="mb-2 font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-coral-500">
+        Promo code
+      </p>
+      <div className="flex items-center gap-2">
+        <input
+          type="text"
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              apply();
+            }
+          }}
+          placeholder="Enter code"
+          autoComplete="off"
+          autoCapitalize="characters"
+          className="w-full rounded-full border border-blush-300 px-4 py-2 font-sans text-[13px] text-ink outline-none focus:border-coral-500"
+        />
+        <button
+          type="button"
+          onClick={apply}
+          disabled={busy || !code.trim()}
+          className="shrink-0 rounded-full bg-coral-500 px-4 py-2 font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-coral-700 disabled:opacity-40"
+        >
+          {busy ? "..." : "Apply"}
+        </button>
+      </div>
+      {error && (
+        <p className="mt-2 font-sans text-[12px] text-coral-700">{error}</p>
+      )}
+      {promotions.length > 0 && (
+        <ul className="mt-3 space-y-1.5">
+          {promotions.map((p) => (
+            <li
+              key={p.id}
+              className="flex items-center justify-between rounded-md bg-blush-100/60 px-3 py-1.5"
+            >
+              <span className="font-sans text-[12px] font-semibold text-ink">
+                {p.code}
+              </span>
+              <button
+                type="button"
+                onClick={() => p.code && remove(p.code)}
+                disabled={busy}
+                aria-label={`Remove ${p.code}`}
+                className="font-sans text-[12px] text-coral-700 transition hover:text-coral-500 disabled:opacity-40"
+              >
+                Remove
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 export function OrderSummary({
   cart,
@@ -48,6 +168,13 @@ export function OrderSummary({
   );
   const mysteryBox = readMysteryBoxMetadata(
     cart.metadata as Record<string, unknown> | null | undefined,
+  );
+  // discount_total is the cart-level promotion discount (Medusa Promotion
+  // module). Loyalty redemption uses metadata-driven adjustments and lands
+  // here too, so subtract that out to avoid double-counting in the UI.
+  const promoDiscount = Math.max(
+    0,
+    (cart.discount_total ?? 0) - (redeemMeta?.discount_mur ?? 0),
   );
 
   return (
@@ -93,11 +220,19 @@ export function OrderSummary({
           ))}
         </ul>
 
+        <PromoCodeBox cart={cart} />
+
         <dl className="space-y-1.5 font-sans text-sm">
           <div className="flex justify-between text-ink-soft">
             <dt>Subtotal</dt>
             <dd>{formatPrice(itemSubtotal, currency)}</dd>
           </div>
+          {promoDiscount > 0 && (
+            <div className="flex justify-between text-coral-500">
+              <dt>Promo discount</dt>
+              <dd>-{formatPrice(promoDiscount, currency)}</dd>
+            </div>
+          )}
           <div className="flex justify-between text-ink-soft">
             <dt>Shipping</dt>
             <dd>
