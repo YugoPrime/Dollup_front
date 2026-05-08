@@ -99,9 +99,13 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html
-      lang="en"
+      lang="en-MU"
       className={`${playfair.variable} ${dmSans.variable} h-full antialiased`}
     >
+      <head>
+        <link rel="preconnect" href="https://api.dollupboutique.com" crossOrigin="" />
+        <link rel="preconnect" href="https://cdn.dollupboutique.com" crossOrigin="" />
+      </head>
       <body className="min-h-full flex flex-col">
         <script
           type="application/ld+json"

@@ -17,16 +17,14 @@ export function ProductGalleryDesktop({ images, alt }: { images: Img[]; alt?: st
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
   if (!images.length) {
-    return (
-      <div className="hidden aspect-[3/4] w-full rounded-2xl bg-blush-100 md:block" />
-    );
+    return <div className="aspect-[3/4] w-full rounded-2xl bg-blush-100" />;
   }
 
   const main = images[active] ?? images[0];
 
   return (
     <>
-      <div className="hidden gap-4 md:flex">
+      <div className="flex gap-4">
         <div className="sticky top-6 flex h-fit w-[90px] shrink-0 flex-col gap-2.5">
           {images.map((img, i) => (
             <button
