@@ -134,12 +134,18 @@ export async function POST(request: Request) {
       });
       order = res.order ?? null;
     } else {
-      const res = await sdk.store.order.list({
-        display_id: ref.value,
-        fields: ORDER_FIELDS,
-        limit: 1,
-      } as HttpTypes.StoreOrderFilters);
-      order = res.orders?.[0] ?? null;
+      // Custom backend route — Medusa's built-in /store/orders list requires
+      // customer auth, which guests don't have. /store/orders/lookup also
+      // performs the phone check server-side; the redundant check below is
+      // kept as defense in depth.
+      const res = await sdk.client.fetch<{ order: HttpTypes.StoreOrder }>(
+        "/store/orders/lookup",
+        {
+          method: "POST",
+          body: { display_id: ref.value, phone: normalizedPhone },
+        },
+      );
+      order = res.order ?? null;
     }
   } catch {
     return notFound();
