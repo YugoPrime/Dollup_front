@@ -73,10 +73,19 @@ const fetchStoreConfig = unstable_cache(
       const cfg = json.config;
       if (!cfg) return FALLBACK_STORE_CONFIG;
       // Defensive: backend may not yet return shipping.options — normalize to [].
+      // Validate each entry at the parse boundary so malformed wire data
+      // (e.g. amount as string, name null) is dropped instead of trusted.
       const rawOptions = (cfg.shipping as { options?: unknown } | undefined)
         ?.options;
       const options: StoreConfigShippingOption[] = Array.isArray(rawOptions)
-        ? (rawOptions as StoreConfigShippingOption[])
+        ? rawOptions.filter(
+            (o): o is StoreConfigShippingOption =>
+              !!o &&
+              typeof (o as Record<string, unknown>).id === "string" &&
+              typeof (o as Record<string, unknown>).name === "string" &&
+              typeof (o as Record<string, unknown>).amount === "number" &&
+              typeof (o as Record<string, unknown>).currency_code === "string",
+          )
         : [];
       return {
         ...cfg,

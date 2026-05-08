@@ -42,8 +42,7 @@ function matchKey(name: string): string | null {
 }
 
 // Resolve "first wins per key" map from the public store-config shipping options.
-// Returns null shape when no options were returned (or all unmappable) so callers
-// fall through to FALLBACKS just like the previous admin-SDK code path did.
+// Returns an empty record when no options matched; callers fall through to FALLBACKS.
 async function resolveLiveRates(): Promise<Record<string, { amount: number }>> {
   const cfg = await getStoreConfig();
   const out: Record<string, { amount: number }> = {};
