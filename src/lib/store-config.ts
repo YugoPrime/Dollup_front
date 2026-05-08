@@ -2,11 +2,20 @@ import "server-only";
 
 import { unstable_cache } from "next/cache";
 
+export type StoreConfigShippingOption = {
+  id: string;
+  name: string;
+  amount: number;
+  currency_code: string;
+  description?: string;
+};
+
 export type PublicStoreConfig = {
   shipping: {
     free_shipping_threshold_mur: number;
     return_fee_mur: number;
     preorder_eta_copy: string;
+    options: StoreConfigShippingOption[];
   };
   store: {
     contact_phone: string;
@@ -26,6 +35,7 @@ export const FALLBACK_STORE_CONFIG: PublicStoreConfig = {
     return_fee_mur: 70,
     preorder_eta_copy:
       "Confirm before noon to receive your order the next day across Mauritius.",
+    options: [],
   },
   store: {
     contact_phone: "+230 5941 6359",
@@ -60,7 +70,18 @@ const fetchStoreConfig = unstable_cache(
       }
 
       const json = (await res.json()) as { config?: PublicStoreConfig };
-      return json.config ?? FALLBACK_STORE_CONFIG;
+      const cfg = json.config;
+      if (!cfg) return FALLBACK_STORE_CONFIG;
+      // Defensive: backend may not yet return shipping.options — normalize to [].
+      const rawOptions = (cfg.shipping as { options?: unknown } | undefined)
+        ?.options;
+      const options: StoreConfigShippingOption[] = Array.isArray(rawOptions)
+        ? (rawOptions as StoreConfigShippingOption[])
+        : [];
+      return {
+        ...cfg,
+        shipping: { ...cfg.shipping, options },
+      };
     } catch {
       return FALLBACK_STORE_CONFIG;
     }

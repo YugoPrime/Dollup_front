@@ -1,6 +1,4 @@
 import "server-only";
-import { unstable_cache } from "next/cache";
-import { getAdminSdk } from "./medusa-admin";
 import { getStoreConfig } from "./store-config";
 
 export type ShippingRate = {
@@ -43,62 +41,46 @@ function matchKey(name: string): string | null {
   return null;
 }
 
-const fetchRatesFromMedusa = unstable_cache(
-  async (): Promise<Record<string, { amount: number; currency: string }> | null> => {
-    try {
-      const sdk = await getAdminSdk();
-      const { shipping_options } = await sdk.admin.shippingOption.list({
-        fields: "id,name,prices.amount,prices.currency_code",
-        limit: 100,
-      });
-      const out: Record<string, { amount: number; currency: string }> = {};
-      for (const opt of shipping_options ?? []) {
-        const key = matchKey(opt.name ?? "");
-        if (!key || out[key]) continue;
-        const price =
-          opt.prices?.find((p) => p.currency_code?.toLowerCase() === "mur") ??
-          opt.prices?.[0];
-        if (price?.amount == null) continue;
-        out[key] = { amount: price.amount, currency: price.currency_code ?? "MUR" };
-      }
-      return out;
-    } catch (err) {
-      console.error("[shipping-rates] failed to fetch from Medusa", err);
-      return null;
-    }
-  },
-  ["shipping-rates-v1"],
-  { revalidate: 300, tags: ["shipping-rates"] },
-);
+// Resolve "first wins per key" map from the public store-config shipping options.
+// Returns null shape when no options were returned (or all unmappable) so callers
+// fall through to FALLBACKS just like the previous admin-SDK code path did.
+async function resolveLiveRates(): Promise<Record<string, { amount: number }>> {
+  const cfg = await getStoreConfig();
+  const out: Record<string, { amount: number }> = {};
+  for (const opt of cfg.shipping.options ?? []) {
+    const key = matchKey(opt.name ?? "");
+    if (!key || out[key]) continue;
+    if (opt.amount == null) continue;
+    out[key] = { amount: opt.amount };
+  }
+  return out;
+}
 
 export async function getMauritiusRates(): Promise<ShippingRate[]> {
-  const [live, cfg] = await Promise.all([
-    fetchRatesFromMedusa(),
-    getStoreConfig(),
-  ]);
+  const [live, cfg] = await Promise.all([resolveLiveRates(), getStoreConfig()]);
   const freeOver = cfg.shipping.free_shipping_threshold_mur;
   return DISPLAY.map((d) => {
     const fallback = FALLBACKS[d.key];
-    const liveRow = live?.[d.key];
+    const liveRow = live[d.key];
     return {
       key: d.key,
       label: d.label,
       timeframe: d.timeframe,
       amount: liveRow?.amount ?? fallback?.amount ?? null,
-      currency: liveRow?.currency ?? "MUR",
+      currency: "MUR",
       freeOver: d.key === "home" && freeOver > 0 ? freeOver : undefined,
     };
   });
 }
 
 export async function getRodriguesRate(): Promise<ShippingRate> {
-  const live = await fetchRatesFromMedusa();
-  const liveRow = live?.rodrigues;
+  const live = await resolveLiveRates();
+  const liveRow = live.rodrigues;
   return {
     key: RODRIGUES_DISPLAY.key,
     label: RODRIGUES_DISPLAY.label,
     timeframe: RODRIGUES_DISPLAY.timeframe,
     amount: liveRow?.amount ?? FALLBACKS.rodrigues.amount,
-    currency: liveRow?.currency ?? "MUR",
+    currency: "MUR",
   };
 }
