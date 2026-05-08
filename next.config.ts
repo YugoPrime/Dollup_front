@@ -2,20 +2,41 @@ import type { NextConfig } from "next";
 
 const backendUrl = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL;
 const backendHost = backendUrl ? new URL(backendUrl).hostname : undefined;
+const backendOrigin = backendHost ? `https://${backendHost}` : undefined;
+
+const imgSrc = [
+  "'self'",
+  "https://cdn.dollupboutique.com",
+  "https://medusa-public-images.s3.eu-west-1.amazonaws.com",
+  ...(backendOrigin ? [backendOrigin] : []),
+  "data:",
+  "blob:",
+].join(" ");
+
+const connectSrc = [
+  "'self'",
+  "https://api.dollupboutique.com",
+  "https://cdn.dollupboutique.com",
+  ...(backendOrigin && backendOrigin !== "https://api.dollupboutique.com"
+    ? [backendOrigin]
+    : []),
+].join(" ");
 
 const contentSecurityPolicyReportOnly = [
-  "default-src 'self' https: data: blob: 'unsafe-inline' 'unsafe-eval'",
-  "script-src 'self' https: 'unsafe-inline' 'unsafe-eval'",
-  "style-src 'self' https: 'unsafe-inline'",
-  "img-src 'self' https: data: blob:",
-  "font-src 'self' https: data:",
-  "connect-src 'self' https: wss:",
-  "frame-src 'self' https:",
-  "media-src 'self' https: data: blob:",
+  "default-src 'self'",
+  // 'unsafe-inline' kept because Next.js inlines hydration scripts; revisit
+  // post-launch with a nonce-based strategy.
+  "script-src 'self' 'unsafe-inline'",
+  // 'unsafe-inline' kept for Tailwind/Next inline styles; no third-party stylesheets.
+  "style-src 'self' 'unsafe-inline'",
+  `img-src ${imgSrc}`,
+  "font-src 'self' data:",
+  `connect-src ${connectSrc}`,
+  "frame-src 'self'",
+  "media-src 'self' data: blob:",
   "object-src 'none'",
   "base-uri 'self'",
-  "form-action 'self' https:",
-  "report-uri /api/csp-report",
+  "form-action 'self'",
 ].join("; ");
 
 const nextConfig: NextConfig = {
@@ -43,8 +64,10 @@ const nextConfig: NextConfig = {
           },
           {
             key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=()",
+            value:
+              "camera=(), microphone=(), geolocation=(), interest-cohort=(), payment=(), usb=()",
           },
+          // TODO: After 24-48h of clean Report-Only logs, rename to "Content-Security-Policy" (enforcing mode). See plan 2026-05-09-launch-01-security.md Step 6.
           {
             key: "Content-Security-Policy-Report-Only",
             value: contentSecurityPolicyReportOnly,

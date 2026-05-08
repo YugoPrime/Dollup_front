@@ -142,6 +142,17 @@ export async function startGoogleLogin(redirectAfter?: string): Promise<void> {
     window.location.href = redirect;
     return;
   }
+  // Defense-in-depth: validate the redirect host so a compromised/misconfigured
+  // backend can't bounce the user to an arbitrary origin.
+  let redirectUrl: URL;
+  try {
+    redirectUrl = new URL(result.location);
+  } catch {
+    throw new Error("Google sign-in failed: backend returned a malformed redirect URL.");
+  }
+  if (redirectUrl.hostname !== "accounts.google.com") {
+    throw new Error(`Refusing to redirect to unexpected host: ${redirectUrl.hostname}`);
+  }
   window.location.href = result.location;
 }
 
