@@ -9,10 +9,17 @@ import { useCustomer } from "@/lib/auth-client";
 import { clientSdk } from "@/lib/cart-client";
 import { formatPrice } from "@/lib/format";
 
+// Medusa v2 SDK fields syntax: `+field` includes computed fields normally
+// omitted (totals), `*relation` expands a relation. Without the `+` prefix,
+// the totals come back as 0 / partial values — that's the bug the previous
+// version had where the detail page showed Subtotal Rs.150 / Total Rs.0
+// while the cart actually totalled Rs.1,950. The /checkout/success page uses
+// the same shape and renders correctly.
 const ORDER_FIELDS =
-  "id,display_id,status,payment_status,fulfillment_status,total,subtotal,shipping_total,tax_total,discount_total,currency_code,created_at,email," +
-  "items.title,items.quantity,items.thumbnail,items.unit_price,items.total,items.variant.title,items.product.handle," +
-  "shipping_address.*,billing_address.*";
+  "id,+display_id,status,payment_status,fulfillment_status,currency_code,created_at,email," +
+  "+total,+subtotal,+shipping_total,+tax_total,+discount_total," +
+  "*items,*items.variant,*items.product," +
+  "*shipping_address,*billing_address";
 
 export function OrderDetailClient({ orderId }: { orderId: string }) {
   const router = useRouter();
