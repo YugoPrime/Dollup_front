@@ -5,12 +5,14 @@ import Medusa from "@medusajs/js-sdk";
 const baseUrl = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL!;
 const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY!;
 
-// JWT in localStorage so login persists across tabs/reloads. The SDK reads/writes
-// the token automatically; auth-client.ts wraps the customer login/register/logout flow.
+// Session-mode auth: SDK posts the JWT to `POST /auth/session` on login, and the
+// backend converts it into an httpOnly cookie that JS can't read. Every request
+// goes out with `credentials: "include"` so the cookie rides along. XSS-resistant.
+// auth-client.ts wraps the customer login/register/logout flow on top of this.
 export const clientSdk = new Medusa({
   baseUrl,
   publishableKey,
-  auth: { type: "jwt", jwtTokenStorageMethod: "local" },
+  auth: { type: "session" },
 });
 
 export const MEDUSA_JWT_KEY = "medusa_auth_token";

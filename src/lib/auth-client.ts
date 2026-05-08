@@ -42,11 +42,6 @@ function publish(next: AuthState) {
   }
 }
 
-function hasToken(): boolean {
-  if (typeof window === "undefined") return false;
-  return !!window.localStorage.getItem(MEDUSA_JWT_KEY);
-}
-
 async function fetchCustomer(): Promise<Customer | null> {
   try {
     const { customer } = await clientSdk.store.customer.retrieve();
@@ -59,9 +54,11 @@ async function fetchCustomer(): Promise<Customer | null> {
 async function init() {
   if (initStarted) return;
   initStarted = true;
-  if (!hasToken()) {
-    publish({ status: "ready", customer: null });
-    return;
+  if (typeof window !== "undefined") {
+    // One-time migration: pre-cookie sessions stored a JWT in localStorage.
+    if (window.localStorage.getItem(MEDUSA_JWT_KEY)) {
+      window.localStorage.removeItem(MEDUSA_JWT_KEY);
+    }
   }
   const customer = await fetchCustomer();
   if (customer) {
@@ -193,12 +190,11 @@ function extractEmailFromJwt(token: string): string | null {
 
 export async function logout(): Promise<void> {
   try {
+    // In session mode this hits `DELETE /auth/session`, which clears the
+    // httpOnly cookie server-side — that's the source of truth.
     await clientSdk.auth.logout();
   } catch {
     // server-side logout failed — still wipe local state below
-  }
-  if (typeof window !== "undefined") {
-    window.localStorage.removeItem(MEDUSA_JWT_KEY);
   }
   clearStoredCartId();
   clearWishlist();
@@ -206,10 +202,6 @@ export async function logout(): Promise<void> {
 }
 
 export async function refreshCustomer(): Promise<Customer | null> {
-  if (!hasToken()) {
-    publish({ status: "ready", customer: null });
-    return null;
-  }
   const customer = await fetchCustomer();
   publish({ status: "ready", customer });
   return customer;
