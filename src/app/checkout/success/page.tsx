@@ -17,8 +17,12 @@ import {
   type PaymentMethod,
 } from "@/lib/checkout";
 
+// Medusa v2 quirk: `subtotal` = item_subtotal + shipping_subtotal, which
+// reads as "Rs.2,100" to the customer when items=1,950 and shipping=150-pre-
+// promo. Customers expect "Subtotal" to mean items only — that's `item_total`.
+// We fetch both so the page can display item_total under "Subtotal".
 const ORDER_FIELDS =
-  "*items,*items.variant,*shipping_address,*billing_address,*shipping_methods,+display_id,+subtotal,+total,+shipping_total,+tax_total,metadata";
+  "*items,*items.variant,*shipping_address,*billing_address,*shipping_methods,+display_id,+item_total,+subtotal,+total,+shipping_total,+discount_total,+tax_total,metadata";
 
 function readPaymentMethod(meta: Record<string, unknown> | null | undefined): PaymentMethod {
   const v = meta?.payment_method;
@@ -169,11 +173,15 @@ function CheckoutSuccessInner() {
           <dl className="mt-6 space-y-1.5 font-sans text-sm">
             <div className="flex justify-between text-ink-soft">
               <dt>Subtotal</dt>
-              <dd>{formatPrice(order.subtotal ?? 0, currency)}</dd>
+              <dd>{formatPrice(order.item_total ?? 0, currency)}</dd>
             </div>
             <div className="flex justify-between text-ink-soft">
               <dt>Shipping</dt>
-              <dd>{formatPrice(order.shipping_total ?? 0, currency)}</dd>
+              <dd>
+                {(order.shipping_total ?? 0) === 0
+                  ? "Free"
+                  : formatPrice(order.shipping_total ?? 0, currency)}
+              </dd>
             </div>
             <div className="mt-2 flex justify-between border-t border-blush-100 pt-3 font-display text-base font-semibold text-ink">
               <dt>Total</dt>

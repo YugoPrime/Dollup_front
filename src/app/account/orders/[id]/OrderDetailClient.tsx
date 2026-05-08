@@ -15,9 +15,14 @@ import { formatPrice } from "@/lib/format";
 // version had where the detail page showed Subtotal Rs.150 / Total Rs.0
 // while the cart actually totalled Rs.1,950. The /checkout/success page uses
 // the same shape and renders correctly.
+//
+// `+item_total` (items only) and `+shipping_subtotal` (pre-promo shipping)
+// are needed because Medusa's `+subtotal` means item_subtotal +
+// shipping_subtotal which reads as "Rs.2,100" when items=1,950 and
+// shipping=150. Customers expect "Subtotal" = items only.
 const ORDER_FIELDS =
   "id,+display_id,status,payment_status,fulfillment_status,currency_code,created_at,email," +
-  "+total,+subtotal,+shipping_total,+tax_total,+discount_total," +
+  "+total,+item_total,+subtotal,+shipping_total,+shipping_subtotal,+tax_total,+discount_total," +
   "*items,*items.variant,*items.product," +
   "*shipping_address,*billing_address";
 
@@ -163,15 +168,31 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
               </ul>
 
               <dl className="mt-5 space-y-2 border-t border-blush-100 pt-4 font-sans text-sm">
-                <Total label="Subtotal" value={order.subtotal} cur={order.currency_code} />
-                <Total label="Shipping" value={order.shipping_total} cur={order.currency_code} />
-                {(order.discount_total ?? 0) > 0 && (
-                  <Total
-                    label="Discount"
-                    value={-(order.discount_total ?? 0)}
-                    cur={order.currency_code}
-                  />
-                )}
+                <Total label="Subtotal" value={order.item_total} cur={order.currency_code} />
+                <ShippingRow
+                  shippingTotal={order.shipping_total ?? 0}
+                  cur={order.currency_code}
+                />
+                {(() => {
+                  // Hide the "Discount" line when the only discount is the
+                  // shipping promo (already shown as "Free"). Otherwise the
+                  // customer sees "Free shipping AND -Rs.150 discount" which
+                  // looks like a double benefit.
+                  const shippingPromo = Math.max(
+                    0,
+                    (order.shipping_subtotal ?? 0) -
+                      (order.shipping_total ?? 0),
+                  );
+                  const otherDiscount =
+                    (order.discount_total ?? 0) - shippingPromo;
+                  return otherDiscount > 0 ? (
+                    <Total
+                      label="Discount"
+                      value={-otherDiscount}
+                      cur={order.currency_code}
+                    />
+                  ) : null;
+                })()}
                 {(order.tax_total ?? 0) > 0 && (
                   <Total label="Tax" value={order.tax_total} cur={order.currency_code} />
                 )}
@@ -229,6 +250,21 @@ function Total({
     <div className="flex justify-between text-ink-muted">
       <dt>{label}</dt>
       <dd>{formatPrice(value ?? 0, cur)}</dd>
+    </div>
+  );
+}
+
+function ShippingRow({
+  shippingTotal,
+  cur,
+}: {
+  shippingTotal: number;
+  cur: string;
+}) {
+  return (
+    <div className="flex justify-between text-ink-muted">
+      <dt>Shipping</dt>
+      <dd>{shippingTotal === 0 ? "Free" : formatPrice(shippingTotal, cur)}</dd>
     </div>
   );
 }
