@@ -99,6 +99,21 @@ export async function register(args: {
     email: args.email,
     password: args.password,
   });
+  // Medusa SDK bug (2.14.1): in session mode, `auth.register()` calls
+  // `client.setToken()` directly — which writes the JWT to localStorage —
+  // instead of the session-aware `setToken_()` that POSTs to `/auth/session`
+  // to convert the JWT into the httpOnly cookie. Result: no cookie is set
+  // and `getJwtHeader_()` returns `{}`, so the very next request 401s.
+  // Workaround: log in immediately after register — `auth.login()` follows
+  // the correct session path and the backend cookie gets set. Then clear
+  // the stray localStorage JWT register() left behind.
+  await clientSdk.auth.login("customer", "emailpass", {
+    email: args.email,
+    password: args.password,
+  });
+  if (typeof window !== "undefined") {
+    window.localStorage.removeItem(MEDUSA_JWT_KEY);
+  }
   const { customer } = await clientSdk.store.customer.create({
     email: args.email,
     first_name: args.firstName,
@@ -194,7 +209,9 @@ export async function logout(): Promise<void> {
     // httpOnly cookie server-side — that's the source of truth.
     await clientSdk.auth.logout();
   } catch {
-    // server-side logout failed — still wipe local state below
+    // Server-side logout failed. We can't clear the httpOnly cookie from JS,
+    // so the user may pop back into a logged-in state on next page load.
+    // Acceptable for launch; revisit if reports come in.
   }
   clearStoredCartId();
   clearWishlist();
@@ -219,7 +236,9 @@ export async function updateCustomer(
 function subscribe(callback: () => void): () => void {
   const handler = () => callback();
   window.addEventListener(EVENT, handler);
-  // Cross-tab sync: another tab logging out clears the token via storage event.
+  // Cross-tab sync: localStorage events from wishlist/cart-id changes still
+  // nudge consumers to re-read state. The auth JWT no longer lives in localStorage,
+  // so logout in another tab won't sync until the next refreshCustomer() call.
   window.addEventListener("storage", handler);
   return () => {
     window.removeEventListener(EVENT, handler);
