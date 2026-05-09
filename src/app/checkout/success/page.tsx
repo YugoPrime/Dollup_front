@@ -9,7 +9,7 @@ import type { HttpTypes } from "@medusajs/types";
 import { clientSdk } from "@/lib/cart-client";
 import { formatPrice } from "@/lib/format";
 import { PaymentInstructions } from "@/components/checkout/PaymentInstructions";
-import { trackPurchase } from "@/lib/analytics";
+import { sendCapiPurchase, trackPurchase } from "@/lib/analytics";
 import {
   ACCOUNT_TRANSFER_PAYMENT_METHOD,
   PAYMENT_METHODS,
@@ -64,7 +64,10 @@ function CheckoutSuccessInner() {
         setOrder(order);
         if (order && purchaseFiredRef.current !== order.id) {
           purchaseFiredRef.current = order.id;
-          trackPurchase(order);
+          const eventId = trackPurchase(order);
+          // Best-effort server-side conversion. /api/meta-capi 204s when not
+          // configured, so this is safe to fire unconditionally.
+          void sendCapiPurchase(order, eventId);
         }
       } catch {
         setError(true);

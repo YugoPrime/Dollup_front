@@ -196,8 +196,11 @@ export function trackAddPaymentInfo(
   });
 }
 
-export function trackPurchase(order: HttpTypes.StoreOrder) {
+// Returns the event_id used for the dataLayer push so it can be passed to
+// the server-side Meta CAPI call for cross-channel deduplication.
+export function trackPurchase(order: HttpTypes.StoreOrder): string {
   const currency = order.currency_code ?? CURRENCY_FALLBACK;
+  const eventId = generateEventId(order.id);
   pushEvent("purchase", {
     transaction_id: order.display_id?.toString() ?? order.id,
     currency,
@@ -205,7 +208,72 @@ export function trackPurchase(order: HttpTypes.StoreOrder) {
     tax: order.tax_total ?? 0,
     shipping: order.shipping_total ?? 0,
     items: (order.items ?? []).map((i) => orderItemToAnalytics(i, currency)),
+    // event_id matches what /api/meta-capi forwards to Meta so the pixel
+    // and CAPI events dedupe. The GTM Meta Pixel "Purchase" tag should pass
+    // this through as fbq's `eventID`.
+    event_id: eventId,
   });
+  return eventId;
+}
+
+// Send the Purchase event to /api/meta-capi for server-to-server delivery.
+// Returns silently — failures are logged on the server. The route is a no-op
+// when META_CAPI_ACCESS_TOKEN / NEXT_PUBLIC_META_PIXEL_ID aren't set, so this
+// can be called unconditionally.
+export async function sendCapiPurchase(
+  order: HttpTypes.StoreOrder,
+  eventId: string,
+) {
+  if (typeof window === "undefined") return;
+  const currency = order.currency_code ?? CURRENCY_FALLBACK;
+  const items = order.items ?? [];
+  const ship = order.shipping_address ?? null;
+  const body = {
+    event_id: eventId,
+    event_time: Math.floor(Date.now() / 1000),
+    event_source_url: window.location.href,
+    email: order.email ?? null,
+    phone: ship?.phone ?? null,
+    address: ship
+      ? {
+          city: ship.city ?? null,
+          postal_code: ship.postal_code ?? null,
+          country_code: ship.country_code ?? null,
+          province: ship.province ?? null,
+          first_name: ship.first_name ?? null,
+          last_name: ship.last_name ?? null,
+        }
+      : null,
+    client_user_agent:
+      typeof navigator !== "undefined" ? navigator.userAgent : null,
+    currency,
+    value: order.total ?? 0,
+    contents: items.map((i) => ({
+      id: i.variant_id ?? i.product_id ?? i.id,
+      quantity: i.quantity ?? 1,
+      item_price: i.unit_price,
+    })),
+    content_ids: items.map((i) => i.variant_id ?? i.product_id ?? i.id),
+    num_items: items.reduce((s, i) => s + (i.quantity ?? 1), 0),
+  };
+  try {
+    await fetch("/api/meta-capi", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+      keepalive: true,
+    });
+  } catch {
+    // Best-effort; pixel side-channel is the primary signal.
+  }
+}
+
+function generateEventId(orderId: string): string {
+  // Stable per-order: Meta dedupe needs the pixel and CAPI events to share
+  // an ID for the same conversion. Re-mounting the success page (e.g. via
+  // browser back-forward) re-fires the pixel with the same ID, and Meta
+  // collapses to a single conversion.
+  return `dub-purchase-${orderId}`;
 }
 
 // ---------- Consent ----------
