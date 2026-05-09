@@ -5,6 +5,8 @@ import { HeroBento } from "@/components/home/HeroBento";
 import { TrendingRail } from "@/components/home/TrendingRail";
 import { CategoryIcons } from "@/components/home/CategoryIcons";
 import { SalesOfTheMonth } from "@/components/home/SalesOfTheMonth";
+import { salesOfMonthConfig } from "@/lib/sales-of-month";
+import { sanitizeRichText } from "@/lib/sanitize-html";
 import { NewArrivalsRail } from "@/components/home/NewArrivalsRail";
 import { LoyaltyTeaser } from "@/components/home/LoyaltyTeaser";
 import { InstagramMosaic } from "@/components/home/InstagramMosaic";
@@ -51,7 +53,7 @@ export default function HomePage() {
       <Suspense fallback={<ProductRailSkeleton />}>
         <NewArrivalsSection latestCollectionPromise={latestCollectionPromise} />
       </Suspense>
-      <SalesOfTheMonth />
+      <SalesOfTheMonth descriptionHtml={sanitizeRichText(salesOfMonthConfig.description)} />
       <Suspense fallback={<EssentialsSkeleton />}>
         <BabeEssentialsSection />
       </Suspense>

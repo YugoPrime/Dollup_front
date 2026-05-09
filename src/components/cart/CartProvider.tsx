@@ -8,6 +8,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import dynamic from "next/dynamic";
 import type { HttpTypes } from "@medusajs/types";
 import {
   clientSdk,
@@ -15,7 +16,11 @@ import {
   setStoredCartId,
   clearStoredCartId,
 } from "@/lib/cart-client";
-import { CartDrawer } from "./CartDrawer";
+
+const CartDrawer = dynamic(
+  () => import("./CartDrawer").then((m) => m.CartDrawer),
+  { ssr: false, loading: () => null },
+);
 
 type Cart = HttpTypes.StoreCart;
 
@@ -171,7 +176,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   return (
     <CartContext.Provider value={value}>
       {children}
-      <CartDrawer />
+      {open && <CartDrawer />}
     </CartContext.Provider>
   );
 }

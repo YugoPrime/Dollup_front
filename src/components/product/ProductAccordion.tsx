@@ -1,71 +1,28 @@
 "use client";
 
 import { useState } from "react";
-import { sanitizeRichText } from "@/lib/sanitize-html";
 
 type Section = { key: string; title: string; body: React.ReactNode };
 
-// Importer embeds the size chart inside `description` as `<h3>Size Chart</h3>` followed
-// by either a plain HTML table or a single `<img>` tag (see inventory-audit/scripts/import-medusa.ts).
-// We split on that heading so the accordion can show the rest of the description in
-// "Description" and the chart itself in "Size Chart".
-function splitDescription(description: string | null | undefined): {
-  main: string;
-  sizeChart: string | null;
-} {
-  if (!description) return { main: "", sizeChart: null };
-  const re = /<h3[^>]*>\s*Size Chart\s*<\/h3>/i;
-  const match = re.exec(description);
-  if (!match) {
-    return { main: sanitizeRichText(cleanHtml(description)), sizeChart: null };
-  }
-  const main = sanitizeRichText(cleanHtml(description.slice(0, match.index)));
-  const sizeChart = sanitizeRichText(
-    cleanHtml(description.slice(match.index + match[0].length)),
-  );
-  return {
-    main,
-    sizeChart: sizeChart || null,
-  };
-}
-
-// Aggressively strip the empty wrapping markup the importer leaves around
-// the size chart (visible as a tall blank gap above the table). Repeatedly
-// peel off leading whitespace, &nbsp;, <br>, and empty <p>/<div> until we
-// hit real content. Same for trailing.
-function cleanHtml(s: string): string {
-  let out = s;
-  const leading = /^(?:\s|&nbsp;|<br\s*\/?>|<p[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>|<div[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/div>)+/i;
-  const trailing = /(?:\s|&nbsp;|<br\s*\/?>|<p[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>|<div[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/div>)+$/i;
-  let prev: string;
-  do {
-    prev = out;
-    out = out.replace(leading, "").replace(trailing, "");
-  } while (out !== prev);
-  // Collapse runs of 3+ <br>s anywhere inside.
-  out = out.replace(/(<br\s*\/?>\s*){3,}/gi, "<br><br>");
-  return out.trim();
-}
-
 export function ProductAccordion({
-  description,
+  descriptionHtml,
+  sizeChartHtml,
   preorderEtaCopy,
   freeShippingLabel,
 }: {
-  description?: string | null;
+  descriptionHtml: string;
+  sizeChartHtml: string | null;
   preorderEtaCopy: string;
   freeShippingLabel: string;
 }) {
-  const { main, sizeChart } = splitDescription(description);
-
   const sections: Section[] = [
     {
       key: "size",
       title: "Size Chart",
-      body: sizeChart ? (
+      body: sizeChartHtml ? (
         <div
           className="font-sans text-[13px] leading-[1.6] text-ink-soft [&_img]:mt-2 [&_img]:max-w-full [&_img]:rounded-lg [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-blush-300 [&_th]:bg-blush-100 [&_th]:p-2 [&_th]:text-left [&_td]:border [&_td]:border-blush-300 [&_td]:p-2 [&_p:empty]:hidden [&_br+br]:hidden"
-          dangerouslySetInnerHTML={{ __html: sizeChart }}
+          dangerouslySetInnerHTML={{ __html: sizeChartHtml }}
         />
       ) : (
         <p className="font-sans text-[13px] leading-[1.6] text-ink-soft">
@@ -76,10 +33,10 @@ export function ProductAccordion({
     {
       key: "desc",
       title: "Description",
-      body: main ? (
+      body: descriptionHtml ? (
         <div
           className="prose-sm font-sans text-[13px] leading-[1.6] text-ink-soft [&_p]:mb-2 [&_strong]:text-ink [&_p:empty]:hidden"
-          dangerouslySetInnerHTML={{ __html: main }}
+          dangerouslySetInnerHTML={{ __html: descriptionHtml }}
         />
       ) : (
         <p className="font-sans text-[13px] leading-[1.6] text-ink-soft">No description yet.</p>

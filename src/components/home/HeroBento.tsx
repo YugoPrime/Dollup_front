@@ -155,19 +155,6 @@ export function HeroBento({ products }: { products: Product[] }) {
         </div>
       </div>
 
-      <style>{`
-        @media (prefers-reduced-motion: no-preference) {
-          .hero-bento-tile { will-change: transform; }
-          @keyframes float-a { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-          @keyframes float-b { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
-          @keyframes float-c { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
-          .anim-1 { animation: float-a 6s ease-in-out infinite; }
-          .anim-2 { animation: float-b 6s ease-in-out 0.5s infinite; }
-          .anim-3 { animation: float-c 6s ease-in-out 1.0s infinite; }
-          .anim-4 { animation: float-b 6s ease-in-out 1.5s infinite; }
-          .anim-5 { animation: float-a 6s ease-in-out 2.0s infinite; }
-        }
-      `}</style>
     </section>
   );
 }

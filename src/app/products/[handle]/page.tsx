@@ -9,6 +9,7 @@ import { ProductAccordion } from "@/components/product/ProductAccordion";
 import { YouMayAlsoLike } from "@/components/product/YouMayAlsoLike";
 import { StickyATC } from "@/components/product/StickyATC";
 import { getStoreConfig } from "@/lib/store-config";
+import { splitProductDescription } from "@/lib/product-description";
 
 export const revalidate = 60;
 const SITE_URL = "https://dollupboutique.com";
@@ -59,6 +60,8 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
     freeShippingThreshold > 0
       ? formatPrice(freeShippingThreshold, "MUR")
       : "eligible orders";
+  const { main: descriptionHtml, sizeChart: sizeChartHtml } =
+    splitProductDescription(product.description ?? null);
 
   // "You may also like" pulls a light sample from recent catalog items.
   let related: Awaited<ReturnType<typeof listProducts>>["products"] = [];
@@ -114,7 +117,8 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
           />
           <div className="mt-6">
             <ProductAccordion
-              description={product.description ?? null}
+              descriptionHtml={descriptionHtml}
+              sizeChartHtml={sizeChartHtml}
               preorderEtaCopy={cfg.shipping.preorder_eta_copy}
               freeShippingLabel={freeShippingLabel}
             />

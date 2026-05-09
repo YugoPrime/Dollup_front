@@ -1,8 +1,11 @@
 import "server-only";
+import { unstable_cache } from "next/cache";
 import { sdk } from "./medusa";
 import { getRegion } from "./region";
 import type { HttpTypes } from "@medusajs/types";
 import type { CanonicalSize, MysteryBoxSlot } from "@/lib/mystery-box";
+
+export const SHOP_FACETS_CACHE_TAG = "shop-facets";
 
 const PRODUCT_FIELDS =
   "*variants,*variants.calculated_price,*variants.options,+variants.inventory_quantity,+variants.manage_inventory,*options,*options.values,*images,*tags,*collection,*categories";
@@ -287,6 +290,36 @@ export type ShopFacets = {
 };
 
 export async function getShopFacets(args: {
+  q?: string;
+  category?: string | string[];
+  tag?: string;
+  onSale?: boolean;
+}): Promise<ShopFacets> {
+  const cacheKey = JSON.stringify({
+    q: args.q ?? "",
+    category: Array.isArray(args.category)
+      ? [...args.category].sort()
+      : args.category ?? "",
+    tag: args.tag ?? "",
+    onSale: args.onSale ? 1 : 0,
+  });
+  return cachedShopFacets(cacheKey, args);
+}
+
+// Time-based revalidation (24h). A future Medusa cron can call
+// revalidateTag(SHOP_FACETS_CACHE_TAG) for instant invalidation.
+const cachedShopFacets = unstable_cache(
+  (_key: string, args: {
+    q?: string;
+    category?: string | string[];
+    tag?: string;
+    onSale?: boolean;
+  }) => computeShopFacets(args),
+  ["shop-facets"],
+  { tags: [SHOP_FACETS_CACHE_TAG], revalidate: 86400 },
+);
+
+async function computeShopFacets(args: {
   q?: string;
   category?: string | string[];
   tag?: string;

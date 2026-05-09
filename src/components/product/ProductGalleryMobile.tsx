@@ -1,9 +1,14 @@
 "use client";
 
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import { useRef, useState } from "react";
 import { PDP_FALLBACK_BLUR } from "@/lib/blur-data";
-import { Lightbox } from "./Lightbox";
+
+const Lightbox = dynamic(() => import("./Lightbox").then((m) => m.Lightbox), {
+  ssr: false,
+  loading: () => null,
+});
 
 type Img = { url: string; alt?: string };
 
