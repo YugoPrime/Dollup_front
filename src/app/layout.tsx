@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
 import { Playfair_Display, DM_Sans } from "next/font/google";
 import "./globals.css";
+import { Suspense } from "react";
 import { CartProvider } from "@/components/cart/CartProvider";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { WishlistAuthSync } from "@/components/wishlist/WishlistAuthSync";
+import { TagManager, TagManagerNoScript } from "@/components/analytics/TagManager";
+import { RouteChangeTracker } from "@/components/analytics/RouteChangeTracker";
+import { ConsentBanner } from "@/components/analytics/ConsentBanner";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -105,8 +109,10 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://api.dollupboutique.com" crossOrigin="" />
         <link rel="preconnect" href="https://cdn.dollupboutique.com" crossOrigin="" />
+        <TagManager />
       </head>
       <body className="min-h-full flex flex-col">
+        <TagManagerNoScript />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: jsonLd(organizationJsonLd) }}
@@ -127,6 +133,10 @@ export default function RootLayout({
           <Footer />
           <MobileBottomNav />
         </CartProvider>
+        <Suspense fallback={null}>
+          <RouteChangeTracker />
+        </Suspense>
+        <ConsentBanner />
       </body>
     </html>
   );

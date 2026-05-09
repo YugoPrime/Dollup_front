@@ -3,12 +3,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { HttpTypes } from "@medusajs/types";
 import { clientSdk } from "@/lib/cart-client";
 import { formatPrice } from "@/lib/format";
 import { PaymentInstructions } from "@/components/checkout/PaymentInstructions";
+import { trackPurchase } from "@/lib/analytics";
 import {
   ACCOUNT_TRANSFER_PAYMENT_METHOD,
   PAYMENT_METHODS,
@@ -45,6 +46,10 @@ function CheckoutSuccessInner() {
   const orderId = params.get("order");
   const [order, setOrder] = useState<HttpTypes.StoreOrder | null>(null);
   const [error, setError] = useState(false);
+  // Guard against React 19 Strict Mode double-invocation re-firing the
+  // GA4 purchase event (which would inflate revenue and double-count
+  // transactions).
+  const purchaseFiredRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!orderId) {
@@ -57,6 +62,10 @@ function CheckoutSuccessInner() {
           fields: ORDER_FIELDS,
         });
         setOrder(order);
+        if (order && purchaseFiredRef.current !== order.id) {
+          purchaseFiredRef.current = order.id;
+          trackPurchase(order);
+        }
       } catch {
         setError(true);
       }

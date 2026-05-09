@@ -1,10 +1,11 @@
 "use client";
 
-import { useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { HttpTypes } from "@medusajs/types";
 import { useCart } from "@/components/cart/CartProvider";
 import { formatPrice, getDisplayPrice, formatDiscountPercent } from "@/lib/format";
 import { toggleWishlist, useIsInWishlist } from "@/lib/wishlist-client";
+import { trackViewItem } from "@/lib/analytics";
 
 type Product = HttpTypes.StoreProduct;
 const LOW_STOCK_THRESHOLD = 5;
@@ -58,6 +59,25 @@ export function ProductBuy({
   const colorOption = options.find((o) => (o.title ?? "").toLowerCase() === "color");
   const sizeOption = options.find((o) => (o.title ?? "").toLowerCase() === "size");
   const otherOptions = options.filter((o) => o !== colorOption && o !== sizeOption);
+
+  // Fire GA4 view_item once per (product, variant) pair. Re-runs on variant
+  // change so analytics reflect what the customer is actually looking at.
+  const lastViewedRef = useRef<string | null>(null);
+  useEffect(() => {
+    const key = `${product.id}:${matchedVariant?.id ?? "no-variant"}`;
+    if (lastViewedRef.current === key) return;
+    lastViewedRef.current = key;
+    trackViewItem({
+      productId: product.id,
+      productHandle: product.handle ?? "",
+      productTitle: product.title ?? "",
+      variantId: matchedVariant?.id,
+      variantTitle: matchedVariant?.title ?? undefined,
+      category: product.categories?.[0]?.name ?? undefined,
+      price: price.amount ?? 0,
+      currency: price.currency ?? "MUR",
+    });
+  }, [product, matchedVariant, price.amount, price.currency]);
 
   const handleAdd = async () => {
     if (options.some((o) => !selected[o.id])) {

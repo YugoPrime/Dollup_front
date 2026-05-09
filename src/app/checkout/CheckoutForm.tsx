@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -18,6 +18,11 @@ import { refreshCustomer, useCustomer } from "@/lib/auth-client";
 import { formatPrice } from "@/lib/format";
 import { readLoyaltyRedeemMetadata } from "@/lib/loyalty-client";
 import { OrderSummary } from "./OrderSummary";
+import {
+  trackAddPaymentInfo,
+  trackAddShippingInfo,
+  trackBeginCheckout,
+} from "@/lib/analytics";
 import {
   allowedPaymentMethods,
   deliveryDateApplies,
@@ -96,6 +101,15 @@ export function CheckoutForm() {
   const [submitting, setSubmitting] = useState(false);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
   const [prefilledFromCustomer, setPrefilledFromCustomer] = useState(false);
+  const beginCheckoutFiredRef = useRef(false);
+
+  // Fire GA4 begin_checkout once when the cart first hydrates with items.
+  useEffect(() => {
+    if (beginCheckoutFiredRef.current) return;
+    if (!cart || (cart.items?.length ?? 0) === 0) return;
+    beginCheckoutFiredRef.current = true;
+    trackBeginCheckout(cart);
+  }, [cart]);
 
   const set = <K extends keyof CheckoutFormState>(
     key: K,
@@ -260,6 +274,7 @@ export function CheckoutForm() {
       await clientSdk.store.cart.addShippingMethod(cart.id, {
         option_id: state.shippingOptionId!,
       });
+      trackAddShippingInfo(cart, selectedMethod ?? selectedOption?.name ?? null);
 
       // Create the account BEFORE completing the cart so the resulting order's
       // customer_id is the new customer (Medusa copies cart.customer_id onto
@@ -303,6 +318,7 @@ export function CheckoutForm() {
       await clientSdk.store.payment.initiatePaymentSession(cart, {
         provider_id: "pp_system_default",
       });
+      trackAddPaymentInfo(cart, state.paymentMethod);
 
       const result = await clientSdk.store.cart.complete(cart.id);
       if (result.type !== "order") {

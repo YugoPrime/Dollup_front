@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { FocusTrapLayer } from "@/components/a11y/FocusTrapLayer";
 import { useCart } from "./CartProvider";
 import { formatPrice } from "@/lib/format";
+import { trackViewCart } from "@/lib/analytics";
 
 const FREE_SHIPPING_THRESHOLD = 1500;
 
@@ -30,9 +31,13 @@ export function CartDrawer() {
     if (!open) return;
     const original = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    trackViewCart(cart);
     return () => {
       document.body.style.overflow = original;
     };
+    // intentionally only re-runs when the drawer opens — `cart` is read at that
+    // moment, we don't want a re-fire on every line update inside the drawer.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   useEffect(() => {

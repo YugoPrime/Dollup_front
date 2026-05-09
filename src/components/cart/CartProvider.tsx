@@ -16,6 +16,7 @@ import {
   setStoredCartId,
   clearStoredCartId,
 } from "@/lib/cart-client";
+import { trackAddToCart } from "@/lib/analytics";
 
 const CartDrawer = dynamic(
   () => import("./CartDrawer").then((m) => m.CartDrawer),
@@ -108,6 +109,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           { fields: CART_FIELDS },
         );
         setCart(updated);
+        const addedLine = updated.items?.find(
+          (i) => i.variant_id === variantId,
+        );
+        if (addedLine) {
+          trackAddToCart({
+            variantId,
+            productId: addedLine.product_id ?? undefined,
+            productTitle: addedLine.product_title ?? addedLine.title ?? "",
+            variantTitle: addedLine.variant_title ?? undefined,
+            price: addedLine.unit_price ?? 0,
+            quantity,
+            currency: updated.currency_code ?? "MUR",
+          });
+        }
         setOpen(true);
       } finally {
         setLoading(false);
