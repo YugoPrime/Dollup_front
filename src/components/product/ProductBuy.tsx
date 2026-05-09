@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import type { HttpTypes } from "@medusajs/types";
 import { useCart } from "@/components/cart/CartProvider";
 import { formatPrice, getDisplayPrice, formatDiscountPercent } from "@/lib/format";
@@ -100,8 +100,25 @@ export function ProductBuy({
         )}
       </div>
 
-      <p className="-mt-3 font-sans text-[11px] font-bold uppercase tracking-wider text-emerald-700">
-        {inStock ? (lowStockQty ? `⚠ Only ${lowStockQty} left` : "● In stock — Ships in 1-2 days") : "Sold out"}
+      <p
+        className="-mt-3 font-sans text-[11px] font-bold uppercase tracking-wider text-emerald-700"
+        aria-live="polite"
+      >
+        {inStock ? (
+          lowStockQty ? (
+            <>
+              <span aria-hidden="true">⚠ </span>
+              {`Only ${lowStockQty} left`}
+            </>
+          ) : (
+            <>
+              <span aria-hidden="true">● </span>
+              In stock — Ships in 1-2 days
+            </>
+          )
+        ) : (
+          "Sold out"
+        )}
       </p>
 
       {colorOption && (
@@ -192,10 +209,27 @@ function OptionGroup({
   variant: "color" | "size";
   rightLink?: { href: string; label: string };
 }) {
+  const labelId = useId();
+  const buttonsRef = useRef<Array<HTMLButtonElement | null>>([]);
+  // If no value is selected yet, the first option in the group is the tab stop.
+  const focusableIndex = selected ? Math.max(0, values.indexOf(selected)) : 0;
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, idx: number) => {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft" && e.key !== "Home" && e.key !== "End") return;
+    e.preventDefault();
+    let next = idx;
+    if (e.key === "ArrowRight") next = (idx + 1) % values.length;
+    else if (e.key === "ArrowLeft") next = (idx - 1 + values.length) % values.length;
+    else if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = values.length - 1;
+    onSelect(values[next]);
+    buttonsRef.current[next]?.focus();
+  };
+
   return (
     <div>
       <div className="mb-2.5 flex items-baseline justify-between">
-        <span className="font-sans text-[10px] font-bold uppercase tracking-[0.1em] text-ink">{title}</span>
+        <span id={labelId} className="font-sans text-[10px] font-bold uppercase tracking-[0.1em] text-ink">{title}</span>
         {rightLink && (
           <a href={rightLink.href} className="font-sans text-[11px] font-semibold text-coral-500">
             {rightLink.label}
@@ -203,12 +237,17 @@ function OptionGroup({
         )}
       </div>
       {variant === "color" ? (
-        <div className="flex flex-wrap gap-2.5">
-          {values.map((v) => (
+        <div role="radiogroup" aria-labelledby={labelId} className="flex flex-wrap gap-2.5">
+          {values.map((v, i) => (
             <button
               key={v}
-              onClick={() => onSelect(v)}
+              ref={(el) => { buttonsRef.current[i] = el; }}
+              role="radio"
+              aria-checked={selected === v}
               aria-label={v}
+              tabIndex={i === focusableIndex ? 0 : -1}
+              onClick={() => onSelect(v)}
+              onKeyDown={(e) => handleKeyDown(e, i)}
               className={`h-8 w-8 rounded-full border-2 border-white ${
                 selected === v ? "ring-2 ring-coral-500" : "ring-1 ring-blush-400"
               }`}
@@ -217,11 +256,16 @@ function OptionGroup({
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-6 gap-1.5">
-          {values.map((v) => (
+        <div role="radiogroup" aria-labelledby={labelId} className="grid grid-cols-6 gap-1.5">
+          {values.map((v, i) => (
             <button
               key={v}
+              ref={(el) => { buttonsRef.current[i] = el; }}
+              role="radio"
+              aria-checked={selected === v}
+              tabIndex={i === focusableIndex ? 0 : -1}
               onClick={() => onSelect(v)}
+              onKeyDown={(e) => handleKeyDown(e, i)}
               className={`rounded-md border py-2.5 font-sans text-[12px] font-semibold transition-colors ${
                 selected === v
                   ? "border-ink bg-ink text-white"

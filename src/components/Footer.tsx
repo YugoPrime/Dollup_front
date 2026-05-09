@@ -149,10 +149,10 @@ function FooterCol({
   links: { label: string; href: string }[];
 }) {
   return (
-    <div className="flex flex-col gap-2.5">
-      <div className="mb-1 font-sans text-[10px] font-bold uppercase tracking-[0.14em] text-ink">
+    <nav aria-label={title} className="flex flex-col gap-2.5">
+      <h3 className="mb-1 font-sans text-[10px] font-bold uppercase tracking-[0.14em] text-ink">
         {title}
-      </div>
+      </h3>
       {links.map((l) => (
         <Link
           key={l.label}
@@ -163,6 +163,6 @@ function FooterCol({
           {l.label}
         </Link>
       ))}
-    </div>
+    </nav>
   );
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FocusTrapLayer } from "@/components/a11y/FocusTrapLayer";
 import { useCart } from "./CartProvider";
 import { formatPrice } from "@/lib/format";
@@ -18,6 +18,14 @@ export function CartDrawer() {
   const remaining = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
   const progress = Math.min(100, (subtotal / FREE_SHIPPING_THRESHOLD) * 100);
 
+  const [liveMessage, setLiveMessage] = useState("");
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const removeButtonRefs = useRef<Map<string, HTMLButtonElement | null>>(new Map());
+  // Track item count + total qty so we can describe what changed since the last
+  // render. Skip the very first observation to avoid an "added" announcement on
+  // drawer open.
+  const prevSnapshotRef = useRef<{ count: number; totalQty: number } | null>(null);
+
   useEffect(() => {
     if (!open) return;
     const original = document.body.style.overflow;
@@ -26,6 +34,27 @@ export function CartDrawer() {
       document.body.style.overflow = original;
     };
   }, [open]);
+
+  useEffect(() => {
+    const totalQty = items.reduce((s, i) => s + (i.quantity ?? 0), 0);
+    const snap = { count: items.length, totalQty };
+    const prev = prevSnapshotRef.current;
+    prevSnapshotRef.current = snap;
+    if (!prev) return;
+    if (snap.count > prev.count) setLiveMessage("Item added to bag");
+    else if (snap.count < prev.count) setLiveMessage("Item removed from bag");
+    else if (snap.totalQty !== prev.totalQty) setLiveMessage("Quantity updated");
+  }, [items]);
+
+  const handleRemove = async (itemId: string) => {
+    const idx = items.findIndex((i) => i.id === itemId);
+    const nextItemId = items[idx + 1]?.id ?? items[idx - 1]?.id ?? null;
+    await removeItem(itemId);
+    requestAnimationFrame(() => {
+      const target = nextItemId ? removeButtonRefs.current.get(nextItemId) : null;
+      (target ?? closeButtonRef.current)?.focus();
+    });
+  };
 
   if (!open) return null;
 
@@ -43,16 +72,23 @@ export function CartDrawer() {
         className="fixed inset-0 bg-ink/45 backdrop-blur-[2px]"
       />
       <aside
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cart-drawer-title"
         className="fixed bottom-0 right-0 top-0 z-[201] flex w-full max-w-[400px] flex-col bg-white shadow-[-8px_0_40px_rgba(0,0,0,0.12)]"
       >
+        <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+          {liveMessage}
+        </div>
         <header className="flex items-center justify-between border-b border-blush-400 px-6 py-5">
-          <h2 className="font-display text-lg font-semibold text-ink">
+          <h2 id="cart-drawer-title" className="font-display text-lg font-semibold text-ink">
             My Bag{" "}
             <span className="font-sans text-[13px] font-normal text-ink-muted">
               ({items.length})
             </span>
           </h2>
           <button
+            ref={closeButtonRef}
             onClick={() => setOpen(false)}
             className="flex h-11 w-11 items-center justify-center rounded text-ink-soft hover:bg-blush-100"
             aria-label="Close cart"
@@ -134,11 +170,12 @@ export function CartDrawer() {
                     </div>
                   </div>
                   <button
-                    onClick={() => removeItem(item.id)}
+                    ref={(el) => { removeButtonRefs.current.set(item.id, el); }}
+                    onClick={() => handleRemove(item.id)}
                     aria-label={`Remove ${item.product_title}`}
                     className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center text-coral-300 hover:text-coral-500"
                   >
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
                       <line x1="18" y1="6" x2="6" y2="18" />
                       <line x1="6" y1="6" x2="18" y2="18" />
                     </svg>

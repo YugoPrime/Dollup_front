@@ -54,6 +54,7 @@ function Field({
   required?: boolean;
   autoComplete?: string;
 }) {
+  const errorId = error ? `${name}-error` : undefined;
   return (
     <label className="block">
       <span className="mb-1.5 block font-sans text-xs font-semibold text-ink">
@@ -67,12 +68,14 @@ function Field({
         autoComplete={autoComplete}
         onChange={(e) => onChange(e.target.value)}
         onBlur={onBlur}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={errorId}
         className={`w-full rounded-md border-[1.5px] bg-white px-3 py-2.5 font-sans text-sm text-ink outline-none transition-colors focus:border-coral-500 ${
           error ? "border-coral-500" : "border-blush-400"
         }`}
       />
       {error && (
-        <span className="mt-1 block font-sans text-[11px] text-coral-700">
+        <span id={errorId} className="mt-1 block font-sans text-[11px] text-coral-700">
           {error}
         </span>
       )}

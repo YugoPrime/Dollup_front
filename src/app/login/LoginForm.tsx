@@ -48,7 +48,11 @@ export function LoginForm() {
       </p>
 
       {error && (
-        <div className="mt-5 rounded-md border border-coral-500 bg-blush-100 px-3 py-2 font-sans text-[13px] text-coral-700">
+        <div
+          id="login-form-error"
+          role="alert"
+          className="mt-5 rounded-md border border-coral-500 bg-blush-100 px-3 py-2 font-sans text-[13px] text-coral-700"
+        >
           {error}
         </div>
       )}
@@ -75,6 +79,8 @@ export function LoginForm() {
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? "login-form-error" : undefined}
             className="w-full rounded-md border-[1.5px] border-blush-400 bg-white px-3 py-2.5 font-sans text-sm text-ink outline-none focus:border-coral-500"
           />
         </label>
@@ -88,6 +94,8 @@ export function LoginForm() {
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? "login-form-error" : undefined}
             className="w-full rounded-md border-[1.5px] border-blush-400 bg-white px-3 py-2.5 font-sans text-sm text-ink outline-none focus:border-coral-500"
           />
         </label>

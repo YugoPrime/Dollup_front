@@ -92,7 +92,11 @@ export function ResetPasswordForm() {
       </p>
 
       {error && (
-        <div className="mt-5 rounded-md border border-coral-500 bg-blush-100 px-3 py-2 font-sans text-[13px] text-coral-700">
+        <div
+          id="reset-form-error"
+          role="alert"
+          className="mt-5 rounded-md border border-coral-500 bg-blush-100 px-3 py-2 font-sans text-[13px] text-coral-700"
+        >
           {error}
         </div>
       )}
@@ -107,6 +111,8 @@ export function ResetPasswordForm() {
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? "reset-form-error" : undefined}
             className="w-full rounded-md border-[1.5px] border-blush-400 bg-white px-3 py-2.5 font-sans text-sm text-ink outline-none focus:border-coral-500"
           />
           <span className="mt-1 block font-sans text-[11px] text-ink-muted">
@@ -123,6 +129,8 @@ export function ResetPasswordForm() {
             autoComplete="new-password"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? "reset-form-error" : undefined}
             className="w-full rounded-md border-[1.5px] border-blush-400 bg-white px-3 py-2.5 font-sans text-sm text-ink outline-none focus:border-coral-500"
           />
         </label>

@@ -19,6 +19,14 @@ function useAnimatedHint(active: boolean): string {
 
   useEffect(() => {
     if (!active) return;
+    // Honor prefers-reduced-motion: show a single static hint, no typing loop.
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      setText(SEARCH_HINTS[0]);
+      return;
+    }
     let timer: ReturnType<typeof setTimeout>;
     const tick = () => {
       const phrase = SEARCH_HINTS[idxRef.current];

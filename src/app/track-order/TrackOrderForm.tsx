@@ -92,10 +92,12 @@ export function TrackOrderForm({
             onChange={(e) => onChangeOrderRef(e.target.value)}
             placeholder="DUB1042"
             autoComplete="off"
+            aria-invalid={showOrderRefError ? true : undefined}
+            aria-describedby={showOrderRefError ? "track-orderref-error" : undefined}
             className="mt-1 w-full rounded-md border border-blush-400 px-3 py-2 font-sans text-sm text-ink focus:border-coral-500 focus:outline-none"
           />
           {showOrderRefError && (
-            <span className="mt-1 block font-sans text-[12px] text-red-600">
+            <span id="track-orderref-error" className="mt-1 block font-sans text-[12px] text-red-600">
               {showOrderRefError}
             </span>
           )}
@@ -112,10 +114,12 @@ export function TrackOrderForm({
             onChange={(e) => onChangePhone(e.target.value)}
             placeholder="5712 3456"
             autoComplete="tel"
+            aria-invalid={showPhoneError ? true : undefined}
+            aria-describedby={showPhoneError ? "track-phone-error" : undefined}
             className="mt-1 w-full rounded-md border border-blush-400 px-3 py-2 font-sans text-sm text-ink focus:border-coral-500 focus:outline-none"
           />
           {showPhoneError && (
-            <span className="mt-1 block font-sans text-[12px] text-red-600">
+            <span id="track-phone-error" className="mt-1 block font-sans text-[12px] text-red-600">
               {showPhoneError}
             </span>
           )}
