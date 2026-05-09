@@ -52,6 +52,7 @@ export const FOOTER_ABOUT = [
 
 export const FOOTER_LEGAL = [
   { label: "Privacy Policy", href: "/privacy" },
+  { label: "Cookie preferences", href: "/privacy/cookies" },
   { label: "Terms & Conditions", href: "/terms" },
   { label: "Returns Policy", href: "/returns" },
 ];

@@ -13,6 +13,7 @@ const STATIC_PATHS = [
   "/returns",
   "/terms",
   "/privacy",
+  "/privacy/cookies",
   "/loyalty",
   "/size-guide",
   "/lookbook",
