@@ -147,6 +147,14 @@ export default async function ShopPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLd(shopBreadcrumbJsonLd()) }}
       />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLd(
+            shopItemListJsonLd(products, page, PER_PAGE, title),
+          ),
+        }}
+      />
       <div className="border-b border-blush-100 bg-white px-4 py-4 md:flex md:items-end md:justify-between md:px-8 md:py-6">
         <div>
           <p className="font-sans text-[10px] font-bold uppercase tracking-[0.14em] text-ink-muted">
@@ -219,11 +227,18 @@ export default async function ShopPage({
 }
 
 function buildShopCanonical(sp: Awaited<SearchParams>) {
+  // Canonical is self-referential for paginated views (page > 1) so deep
+  // pages get indexed independently. We omit volatile filters (size, color,
+  // price ranges) — those are facets, not distinct pages — but keep the
+  // category, tag, sale, and search-query filters since each is its own
+  // landing-page intent.
   const params = new URLSearchParams();
   if (sp.category) params.set("category", sp.category);
   if (sp.q) params.set("q", sp.q);
   if (sp.tag) params.set("tag", sp.tag);
   if (sp.on_sale) params.set("on_sale", sp.on_sale);
+  const pageNum = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
+  if (pageNum > 1) params.set("page", String(pageNum));
   const query = params.toString();
   return query ? `/shop?${query}` : "/shop";
 }
@@ -232,6 +247,27 @@ function titleCase(value: string) {
   return value
     .replace(/[-_]+/g, " ")
     .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function shopItemListJsonLd(
+  products: Awaited<ReturnType<typeof listProducts>>["products"],
+  page: number,
+  perPage: number,
+  listName: string,
+) {
+  const startPosition = (page - 1) * perPage + 1;
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: `${listName} — Doll Up Boutique`,
+    numberOfItems: products.length,
+    itemListElement: products.map((p, i) => ({
+      "@type": "ListItem",
+      position: startPosition + i,
+      url: `${SITE_URL}/products/${p.handle}`,
+      name: p.title,
+    })),
+  };
 }
 
 function shopBreadcrumbJsonLd() {

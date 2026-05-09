@@ -134,11 +134,67 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
 }
 
 function productJsonLd(product: NonNullable<Awaited<ReturnType<typeof getProductByHandle>>["product"]>) {
-  const price = getDisplayPrice(product);
   const image = product.thumbnail ?? product.images?.[0]?.url;
-  const inStock = (product.variants ?? []).some(
+  const variants = product.variants ?? [];
+  const inStock = variants.some(
     (variant) => !variant.manage_inventory || (variant.inventory_quantity ?? 0) > 0,
   );
+  const availability = inStock
+    ? "https://schema.org/InStock"
+    : "https://schema.org/OutOfStock";
+  const url = `${SITE_URL}/products/${product.handle}`;
+  // Quote prices "valid until" 30 days out — gives Google rich-result eligibility
+  // a fresh window without committing to a long-lived price guarantee.
+  const priceValidUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+
+  const variantPrices = variants
+    .map((v) => getDisplayPrice({ variants: [v] }).amount)
+    .filter((p): p is number => typeof p === "number" && p > 0);
+  const fallbackPrice = getDisplayPrice(product).amount;
+  const prices =
+    variantPrices.length > 0
+      ? variantPrices
+      : typeof fallbackPrice === "number" && fallbackPrice > 0
+        ? [fallbackPrice]
+        : [];
+
+  let offers: Record<string, unknown> | undefined;
+  if (prices.length === 0) {
+    offers = undefined;
+  } else {
+    const lowPrice = Math.min(...prices);
+    const highPrice = Math.max(...prices);
+    offers =
+      lowPrice === highPrice
+        ? {
+            "@type": "Offer",
+            url,
+            priceCurrency: "MUR",
+            price: lowPrice,
+            priceValidUntil,
+            availability,
+            itemCondition: "https://schema.org/NewCondition",
+          }
+        : {
+            "@type": "AggregateOffer",
+            url,
+            priceCurrency: "MUR",
+            lowPrice,
+            highPrice,
+            offerCount: prices.length,
+            priceValidUntil,
+            availability,
+            itemCondition: "https://schema.org/NewCondition",
+          };
+  }
+
+  // Use a real variant SKU when there's exactly one; for multi-variant we omit
+  // it at the product level since each variant would need its own Offer node
+  // to map a SKU correctly.
+  const productSku =
+    variants.length === 1 ? (variants[0]?.sku ?? product.handle) : undefined;
 
   return {
     "@context": "https://schema.org",
@@ -146,24 +202,12 @@ function productJsonLd(product: NonNullable<Awaited<ReturnType<typeof getProduct
     name: product.title,
     image: image ? [image] : undefined,
     description: plainText(product.description ?? product.subtitle ?? ""),
-    sku: product.handle,
+    sku: productSku,
     brand: {
       "@type": "Brand",
       name: "Doll Up Boutique",
     },
-    offers:
-      price.amount != null
-        ? {
-            "@type": "Offer",
-            url: `${SITE_URL}/products/${product.handle}`,
-            priceCurrency: "MUR",
-            price: price.amount,
-            availability: inStock
-              ? "https://schema.org/InStock"
-              : "https://schema.org/OutOfStock",
-            itemCondition: "https://schema.org/NewCondition",
-          }
-        : undefined,
+    offers,
   };
 }
 

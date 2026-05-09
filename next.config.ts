@@ -75,6 +75,7 @@ const contentSecurityPolicyReportOnly = [
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
+  "report-uri /api/csp-report",
 ].join("; ");
 
 const nextConfig: NextConfig = {

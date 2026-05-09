@@ -16,6 +16,8 @@ const STATIC_PATHS = [
   "/loyalty",
   "/size-guide",
   "/lookbook",
+  "/events",
+  "/events/mystery-box",
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

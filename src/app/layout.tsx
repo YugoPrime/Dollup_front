@@ -70,6 +70,7 @@ const organizationJsonLd = {
   name: "Doll Up Boutique",
   url: SITE_URL,
   logo: `${SITE_URL}/logo.png`,
+  currenciesAccepted: "MUR",
   sameAs: [
     "https://www.instagram.com/dollupboutique/",
     "https://www.facebook.com/dollupboutique/",
@@ -79,6 +80,13 @@ const organizationJsonLd = {
     "@type": "PostalAddress",
     addressCountry: "MU",
     addressLocality: "Mauritius",
+  },
+  contactPoint: {
+    "@type": "ContactPoint",
+    contactType: "customer support",
+    email: "hello@dollupboutique.com",
+    availableLanguage: ["en", "fr"],
+    areaServed: "MU",
   },
 };
 
