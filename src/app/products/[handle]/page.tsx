@@ -110,7 +110,7 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
 
       <div className="mx-auto grid max-w-[1280px] gap-6 px-0 pb-8 md:grid-cols-[1fr_480px] md:gap-8 md:px-8 md:pb-12">
         <ProductGallery product={product} />
-        <div className="px-4 md:sticky md:top-6 md:px-0" id="pdp-buy-anchor">
+        <div className="px-4 md:sticky md:top-[140px] md:px-0" id="pdp-buy-anchor">
           <ProductBuy
             product={product}
             freeShippingThreshold={freeShippingThreshold}

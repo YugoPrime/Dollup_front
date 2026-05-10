@@ -30,7 +30,7 @@ export function ProductGalleryDesktop({ images, alt }: { images: Img[]; alt?: st
   return (
     <>
       <div className="flex gap-4">
-        <div className="sticky top-6 flex h-fit w-[90px] shrink-0 flex-col gap-2.5">
+        <div className="sticky top-[140px] flex h-fit w-[90px] shrink-0 flex-col gap-2.5">
           {images.map((img, i) => (
             <button
               key={img.url}
