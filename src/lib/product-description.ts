@@ -50,7 +50,10 @@ function isBlankHtml(s: string): boolean {
 }
 
 function cleanHtml(s: string): string {
-  let out = s;
+  // ~65% of imported size charts contain literal `\n` / `\r` / `\t` text (backslash+letter,
+  // not real whitespace) between HTML tags. Browsers render those as visible characters
+  // above the table. Strip them before the trim-blank-wrapper pass below.
+  let out = s.replace(/\\[nrt]/g, "");
   const atomLeading = /^(?:\s|&nbsp;|&#160;|&#8203;|<br\s*\/?>|<!--[\s\S]*?-->)+/i;
   const atomTrailing = /(?:\s|&nbsp;|&#160;|&#8203;|<br\s*\/?>|<!--[\s\S]*?-->)+$/i;
 
