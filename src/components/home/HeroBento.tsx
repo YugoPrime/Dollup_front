@@ -67,7 +67,6 @@ export function HeroBento({ products }: { products: Product[] }) {
                 : "(max-width: 768px) 30vw, 12vw"
             }
             className="object-cover object-top"
-            priority={key === "feature"}
             placeholder="blur"
             blurDataURL={tileBlur(key)}
           />
@@ -86,7 +85,7 @@ export function HeroBento({ products }: { products: Product[] }) {
         {/* Text column */}
         <div>
           <p className="font-sans text-[11px] font-bold uppercase tracking-[0.22em] text-ink-soft mb-3.5">
-            ★ This week&apos;s drop
+            Find your next favorite fit.
           </p>
           <h1 className="font-display text-[44px] leading-[0.92] tracking-[-1.5px] text-ink md:text-[72px]">
             Doll up,
@@ -94,14 +93,19 @@ export function HeroBento({ products }: { products: Product[] }) {
             <em className="text-coral-500">babe.</em>
           </h1>
           <p className="mt-4 max-w-[380px] font-sans text-[14px] leading-[1.5] text-ink-soft">
-            Mauritius-curated dresses, lingerie &amp; beachwear. Cash on delivery available island-wide.
+            From everyday essentials to statement looks.
+            <br />
+            Shop trendy dresses, lingerie &amp; beachwear with island-wide delivery.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
               href="/shop?sort=new"
-              className="rounded-full bg-coral-500 px-6 py-3.5 font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-white shadow-[0_4px_12px_rgba(229,96,74,0.3)] transition-colors hover:bg-coral-700"
+              className="hero-cta group relative overflow-hidden rounded-full bg-coral-500 px-6 py-3.5 font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-white shadow-[0_4px_12px_rgba(229,96,74,0.3)] transition-colors hover:bg-coral-700"
             >
-              Shop new arrivals →
+              <span className="relative z-10 inline-flex items-center gap-1.5">
+                Shop new arrivals
+                <span aria-hidden className="hero-cta-arrow inline-block">→</span>
+              </span>
             </Link>
             <Link
               href="/shop?on_sale=1"
@@ -142,9 +146,14 @@ export function HeroBento({ products }: { products: Product[] }) {
                     src={img}
                     alt={p!.title}
                     fill
-                    sizes="33vw"
+                    sizes={
+                      i === 0
+                        ? "(max-width: 768px) 33vw, 30vw"
+                        : "(max-width: 768px) 33vw, 12vw"
+                    }
                     className="object-cover object-top"
-                    priority={i === 0}
+                    loading="eager"
+                    fetchPriority="high"
                     placeholder="blur"
                     blurDataURL={HERO_TILE_BLURS[i] ?? HERO_TILE_1_BLUR}
                   />

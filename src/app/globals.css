@@ -104,6 +104,35 @@ input:focus, textarea:focus, select:focus {
   .anim-3 { animation: float-c 6s ease-in-out 1.0s infinite; }
   .anim-4 { animation: float-b 6s ease-in-out 1.5s infinite; }
   .anim-5 { animation: float-a 6s ease-in-out 2.0s infinite; }
+
+  /* Hero CTA — coral glow pulse + arrow nudge + shine sweep.
+     Pure CSS, GPU-accelerated (transform/opacity only), no layout thrash. */
+  .hero-cta { will-change: transform, box-shadow; animation: hero-cta-pulse 2.8s ease-in-out infinite; }
+  .hero-cta::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.35) 50%, transparent 70%);
+    transform: translateX(-120%);
+    animation: hero-cta-shine 3.6s ease-in-out infinite;
+    pointer-events: none;
+  }
+  .hero-cta-arrow { animation: hero-cta-arrow 2.8s ease-in-out infinite; }
+  .hero-cta:hover .hero-cta-arrow { animation-duration: 1.2s; }
+
+  @keyframes hero-cta-pulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 4px 12px rgba(229,96,74,0.3); }
+    50%      { transform: scale(1.03); box-shadow: 0 8px 24px rgba(229,96,74,0.45); }
+  }
+  @keyframes hero-cta-arrow {
+    0%, 100% { transform: translateX(0); }
+    50%      { transform: translateX(4px); }
+  }
+  @keyframes hero-cta-shine {
+    0%   { transform: translateX(-120%); }
+    60%  { transform: translateX(120%); }
+    100% { transform: translateX(120%); }
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
