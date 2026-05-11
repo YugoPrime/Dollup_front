@@ -35,57 +35,6 @@ export default function EventsPage() {
         </div>
       </section>
 
-      {/* Giveaway block */}
-      <section className="px-6 py-14 md:px-10 md:py-20">
-        <div className="mx-auto grid max-w-[1100px] gap-10 md:grid-cols-[1.1fr_1fr] md:items-center">
-          <div className="rounded-2xl bg-white p-8 shadow-[0_4px_16px_rgba(229,96,74,0.08)] md:p-10">
-            <p className="mb-2 font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-coral-500">
-              ✦ This month
-            </p>
-            <h2 className="font-display text-[28px] leading-[1.05] text-ink md:text-[36px]">
-              Win a <em className="not-italic text-coral-500" style={{ fontStyle: "italic" }}>full outfit</em> on us
-            </h2>
-            <p className="mt-4 font-sans text-[14px] leading-[1.55] text-ink-soft">
-              Every month we pick one customer to win a complete outfit of their choice from the latest drop. Worth up to Rs 4,000.
-            </p>
-            <ul className="mt-5 space-y-2.5 font-sans text-[13px] text-ink-soft">
-              <li className="flex items-start gap-2">
-                <span className="mt-[3px] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-coral-500" />
-                Follow <a href="https://www.instagram.com/dollupboutique/" target="_blank" rel="noreferrer" className="text-coral-500 hover:underline">@dollupboutique</a>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="mt-[3px] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-coral-500" />
-                Tag 2 friends in the giveaway post
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="mt-[3px] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-coral-500" />
-                Repost to your story for an extra entry
-              </li>
-            </ul>
-            <a
-              href="https://www.instagram.com/dollupboutique/"
-              target="_blank"
-              rel="noreferrer"
-              className="mt-7 inline-block rounded-full bg-coral-500 px-6 py-3 font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-coral-700"
-            >
-              Enter on Instagram →
-            </a>
-          </div>
-          <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-gradient-to-br from-coral-300 via-blush-300 to-blush-100">
-            <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center">
-              <span className="mb-3 text-[60px] leading-none text-white opacity-90">★</span>
-              <p className="font-display text-[28px] leading-[1.1] text-white md:text-[36px]">
-                Rs 4,000
-                <br />
-                <span className="font-sans text-[12px] font-bold uppercase tracking-[0.2em] opacity-90">
-                  in store credit
-                </span>
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Mystery Box */}
       <section className="bg-ink px-6 py-14 text-white md:px-10 md:py-20">
         <div className="mx-auto grid max-w-[1100px] gap-10 md:grid-cols-[1fr_1.1fr] md:items-center">
