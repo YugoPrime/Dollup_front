@@ -41,7 +41,11 @@ export function NewArrivalsRail({
               data-card
               className="w-[150px] shrink-0 snap-start md:w-[230px]"
             >
-              <ProductCard product={p} latestCollectionTag={latestCollectionTag} />
+              <ProductCard
+                product={p}
+                latestCollectionTag={latestCollectionTag}
+                imageSizes="(max-width: 768px) 150px, 230px"
+              />
             </div>
           ))}
           <div data-card className="w-[150px] shrink-0 snap-start md:w-[230px]">

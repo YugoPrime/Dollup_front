@@ -24,13 +24,22 @@ export function YouMayAlsoLike({
         <div className="flex gap-2.5 overflow-x-auto px-4 pb-2 md:hidden">
           {products.slice(0, 6).map((p) => (
             <div key={p.id} className="w-[150px] shrink-0">
-              <ProductCard product={p} latestCollectionTag={latestCollectionTag} />
+              <ProductCard
+                product={p}
+                latestCollectionTag={latestCollectionTag}
+                imageSizes="150px"
+              />
             </div>
           ))}
         </div>
         <div className="hidden grid-cols-5 gap-4 px-8 md:grid">
           {products.slice(0, 5).map((p) => (
-            <ProductCard key={p.id} product={p} latestCollectionTag={latestCollectionTag} />
+            <ProductCard
+              key={p.id}
+              product={p}
+              latestCollectionTag={latestCollectionTag}
+              imageSizes="224px"
+            />
           ))}
         </div>
       </div>

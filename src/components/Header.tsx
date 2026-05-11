@@ -28,7 +28,8 @@ export function Header() {
             alt="Doll Up Boutique"
             width={260}
             height={224}
-            priority
+            loading="eager"
+            sizes="(max-width: 768px) 70px, 102px"
             className="h-[60px] w-auto md:h-[88px]"
           />
         </Link>

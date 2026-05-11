@@ -78,9 +78,11 @@ function colorNameToHex(name: string): string {
 export function ProductCard({
   product,
   latestCollectionTag = null,
+  imageSizes = "(max-width: 768px) 50vw, 25vw",
 }: {
   product: Product;
   latestCollectionTag?: string | null;
+  imageSizes?: string;
 }) {
   const price = getDisplayPrice(product);
   const inStockVariant = product.variants?.find(
@@ -129,7 +131,7 @@ export function ProductCard({
             src={thumb}
             alt={product.title}
             fill
-            sizes="(max-width: 768px) 50vw, 25vw"
+            sizes={imageSizes}
             className="object-cover object-top"
           />
         )}

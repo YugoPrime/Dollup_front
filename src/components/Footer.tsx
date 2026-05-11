@@ -31,6 +31,7 @@ export async function Footer() {
             alt="Doll Up Boutique"
             width={260}
             height={224}
+            sizes="111px"
             className="mb-3 h-24 w-auto"
           />
           <p className="mb-4 max-w-[220px] font-sans text-[13px] leading-relaxed text-ink-soft">

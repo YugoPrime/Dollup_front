@@ -30,14 +30,19 @@ export function TrendingRail({
         <div className="flex gap-2.5 overflow-x-auto px-4 pb-2 md:hidden">
           {products.slice(0, 10).map((p) => (
             <div key={p.id} className="w-[150px] shrink-0">
-              <ProductCard product={p} />
+              <ProductCard product={p} imageSizes="150px" />
             </div>
           ))}
         </div>
         {/* Desktop: 5-up grid */}
         <div className="hidden gap-4 px-10 md:grid md:grid-cols-5">
           {products.slice(0, 5).map((p) => (
-            <ProductCard key={p.id} product={p} latestCollectionTag={latestCollectionTag} />
+            <ProductCard
+              key={p.id}
+              product={p}
+              latestCollectionTag={latestCollectionTag}
+              imageSizes="224px"
+            />
           ))}
         </div>
       </div>
