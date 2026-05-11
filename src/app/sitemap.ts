@@ -1,5 +1,9 @@
 import type { MetadataRoute } from "next";
 import { listCategories, listProducts } from "@/lib/products";
+import {
+  INTIMATES_CATEGORY_HANDLE,
+  isPubliclyListedStoreProduct,
+} from "@/lib/visibility";
 
 const SITE_URL = "https://dollupboutique.com";
 
@@ -35,6 +39,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const productEntries = products
     .filter((product) => product.handle)
+    // Exclude age-gated / unlisted products. Search engines must not index
+    // anything in Intimates — those pages also serve noindex headers, but
+    // omitting the sitemap entry keeps Google from discovering them in the
+    // first place.
+    .filter((product) => isPubliclyListedStoreProduct(product, { unlocked: false }))
     .map((product) => ({
       url: `${SITE_URL}/products/${product.handle}`,
       changeFrequency: "weekly" as const,
@@ -43,6 +52,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const categoryEntries = categories
     .filter((category) => category.handle)
+    .filter((category) => category.handle !== INTIMATES_CATEGORY_HANDLE)
     .map((category) => ({
       url: `${SITE_URL}/shop?category=${encodeURIComponent(category.handle)}`,
       changeFrequency: "weekly" as const,

@@ -11,6 +11,12 @@ import { YouMayAlsoLike } from "@/components/product/YouMayAlsoLike";
 import { StickyATC } from "@/components/product/StickyATC";
 import { getStoreConfig } from "@/lib/store-config";
 import { splitProductDescription } from "@/lib/product-description";
+import { isPrivateUnlocked } from "@/lib/private-unlock";
+import {
+  isAgeRestricted,
+  isPubliclyListedStoreProduct,
+} from "@/lib/visibility";
+import { AgeGateModal } from "@/components/product/AgeGateModal";
 
 export const revalidate = 60;
 const SITE_URL = "https://dollupboutique.com";
@@ -29,33 +35,58 @@ export async function generateMetadata({
   const image = product.thumbnail ?? product.images?.[0]?.url ?? "/og-default.jpg";
   const canonical = `/products/${product.handle}`;
 
+  const ageRestricted = isAgeRestricted(product as unknown as {
+    metadata?: unknown;
+    categories?: Array<{ handle?: string | null }> | null;
+  });
+
   return {
     title: product.title,
     description: description || undefined,
     alternates: { canonical },
-    openGraph: {
-      type: "website",
-      title: product.title,
-      description: description || undefined,
-      url: canonical,
-      images: [{ url: image, alt: product.title }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: product.title,
-      description: description || undefined,
-      images: [image],
-    },
+    // Intimates / age-restricted PDPs must never be indexed. The robots meta
+    // tag plus the sitemap exclusion together keep Google away from these URLs.
+    robots: ageRestricted
+      ? { index: false, follow: false, nocache: true }
+      : undefined,
+    openGraph: ageRestricted
+      ? undefined
+      : {
+          type: "website",
+          title: product.title,
+          description: description || undefined,
+          url: canonical,
+          images: [{ url: image, alt: product.title }],
+        },
+    twitter: ageRestricted
+      ? undefined
+      : {
+          card: "summary_large_image",
+          title: product.title,
+          description: description || undefined,
+          images: [image],
+        },
   };
 }
 
 export default async function ProductPage({ params }: { params: RouteParams }) {
   const { handle } = await params;
-  const [{ product }, cfg] = await Promise.all([
+  const [{ product }, cfg, unlocked] = await Promise.all([
     getProductByHandle(handle),
     getStoreConfig(),
+    isPrivateUnlocked().catch(() => false),
   ]);
   if (!product) notFound();
+  const productLike = product as unknown as {
+    metadata?: unknown;
+    categories?: Array<{ handle?: string | null }> | null;
+  };
+  // Unlisted products are still directly reachable by URL (per design), but
+  // not when there's no unlock cookie. 404 keeps Google + curious visitors out.
+  if (!isPubliclyListedStoreProduct(product, { unlocked, includeIntimates: true })) {
+    notFound();
+  }
+  const ageRestricted = isAgeRestricted(productLike);
   const freeShippingThreshold = cfg.shipping.free_shipping_threshold_mur;
   const freeShippingLabel =
     freeShippingThreshold > 0
@@ -66,14 +97,21 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
 
   return (
     <div>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: jsonLd(productJsonLd(product)) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: jsonLd(productBreadcrumbJsonLd(product)) }}
-      />
+      {ageRestricted ? <AgeGateModal /> : null}
+      {/* Skip Product / BreadcrumbList JSON-LD for age-restricted items —
+          we don't want them appearing in Google's product knowledge graph. */}
+      {ageRestricted ? null : (
+        <>
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: jsonLd(productJsonLd(product)) }}
+          />
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: jsonLd(productBreadcrumbJsonLd(product)) }}
+          />
+        </>
+      )}
       <nav aria-label="Breadcrumb" className="px-4 py-3 font-sans text-[10px] font-bold uppercase tracking-wider text-ink-muted md:px-8 md:py-4">
         <Link href="/" className="hover:text-coral-500">Home</Link>
         <span className="mx-1.5 text-blush-400">/</span>
@@ -111,9 +149,14 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
         </div>
       </div>
 
-      <Suspense fallback={null}>
-        <RelatedProductsSection currentProductId={product.id} />
-      </Suspense>
+      {ageRestricted ? null : (
+        <Suspense fallback={null}>
+          <RelatedProductsSection
+            currentProductId={product.id}
+            unlocked={unlocked}
+          />
+        </Suspense>
+      )}
 
       <StickyATC product={product} watchElementId="pdp-buy-anchor" />
     </div>
@@ -122,19 +165,22 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
 
 async function RelatedProductsSection({
   currentProductId,
+  unlocked,
 }: {
   currentProductId: string;
+  unlocked: boolean;
 }) {
   let related: Awaited<ReturnType<typeof listProducts>>["products"] = [];
   let latestCollectionTag: string | null = null;
 
   try {
     const [pool, tag] = await Promise.all([
-      listProducts({ limit: 12, order: "-created_at" }),
+      listProducts({ limit: 16, order: "-created_at" }),
       getLatestCollectionTag().catch(() => null),
     ]);
     related = pool.products
       .filter((p) => p.id !== currentProductId)
+      .filter((p) => isPubliclyListedStoreProduct(p, { unlocked }))
       .slice(0, 5);
     latestCollectionTag = tag?.value ?? null;
   } catch {

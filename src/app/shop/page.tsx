@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import {
   listProducts,
@@ -12,6 +13,11 @@ import { ProductCard } from "@/components/ProductCard";
 import { ShopFilterSidebar } from "@/components/shop/ShopFilterSidebar";
 import { ShopSortDropdown } from "@/components/shop/ShopSortDropdown";
 import { ShopMobileClient } from "@/components/shop/ShopMobileClient";
+import { isPrivateUnlocked } from "@/lib/private-unlock";
+import {
+  INTIMATES_CATEGORY_HANDLE,
+  isPubliclyListedStoreProduct,
+} from "@/lib/visibility";
 
 export const revalidate = 60;
 
@@ -75,9 +81,10 @@ export default async function ShopPage({
   const priceMax = sp.price_max ? Number(sp.price_max) : undefined;
   const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
 
-  const [allCategories, latestCollection] = await Promise.all([
+  const [allCategories, latestCollection, unlocked] = await Promise.all([
     listCategories(),
     getLatestCollectionTag().catch(() => null),
+    isPrivateUnlocked().catch(() => false),
   ]);
   const latestTag = latestCollection?.value ?? null;
   // Trim trailing slashes so /shop?category=beachwear/ still matches "beachwear".
@@ -85,6 +92,19 @@ export default async function ShopPage({
   const matchedCategory = normalizedHandle
     ? allCategories.find((c) => c.handle === normalizedHandle)
     : null;
+
+  // The Intimates category page does NOT exist for the public. Even with a
+  // direct URL, the listing shape requires the private-unlock cookie. Routing
+  // them to 404 keeps Google from caching anything and stops curious eyes.
+  if (
+    matchedCategory?.handle === INTIMATES_CATEGORY_HANDLE &&
+    !unlocked
+  ) {
+    notFound();
+  }
+
+  const isViewingIntimates =
+    matchedCategory?.handle === INTIMATES_CATEGORY_HANDLE;
   const categoryFilter = matchedCategory
     ? expandCategoryWithDescendants(matchedCategory.id, allCategories)
     : undefined;
@@ -130,8 +150,21 @@ export default async function ShopPage({
       onSale,
     }).catch(() => ({ sizes: [], colors: [], priceMin: 0, priceMax: 0 })),
   ]);
-  const products = productsRes.products;
-  const total = productsRes.count;
+  // Strip Intimates + unlisted from the page output unless the visitor is
+  // viewing the Intimates landing (only reachable when unlocked) OR has the
+  // private cookie. `count` reflects the unfiltered Medusa total — we expose
+  // the visible count to match the rendered grid.
+  const filteredProducts = productsRes.products.filter((p) =>
+    isPubliclyListedStoreProduct(p, {
+      unlocked,
+      includeIntimates: isViewingIntimates,
+    }),
+  );
+  const products = filteredProducts;
+  const total =
+    filteredProducts.length === productsRes.products.length
+      ? productsRes.count
+      : filteredProducts.length;
 
   const title = q
     ? `Search: ${q}`
@@ -174,12 +207,14 @@ export default async function ShopPage({
 
       {/* Mobile shell: chips, grid, sticky bar, sheet */}
       <ShopMobileClient
-        categories={allCategories.map((c) => ({
-          id: c.id,
-          name: c.name,
-          handle: c.handle,
-          parent_category_id: c.parent_category_id,
-        }))}
+        categories={allCategories
+          .filter((c) => unlocked || c.handle !== INTIMATES_CATEGORY_HANDLE)
+          .map((c) => ({
+            id: c.id,
+            name: c.name,
+            handle: c.handle,
+            parent_category_id: c.parent_category_id,
+          }))}
         facets={facets}
       >
         {products.length === 0 ? (
@@ -199,12 +234,14 @@ export default async function ShopPage({
       {/* Desktop body */}
       <div className="mx-auto hidden max-w-[1280px] gap-6 px-8 pb-12 pt-6 md:grid md:grid-cols-[260px_1fr] md:items-start">
         <ShopFilterSidebar
-          categories={allCategories.map((c) => ({
-            id: c.id,
-            name: c.name,
-            handle: c.handle,
-            parent_category_id: c.parent_category_id,
-          }))}
+          categories={allCategories
+            .filter((c) => unlocked || c.handle !== INTIMATES_CATEGORY_HANDLE)
+            .map((c) => ({
+              id: c.id,
+              name: c.name,
+              handle: c.handle,
+              parent_category_id: c.parent_category_id,
+            }))}
           facets={facets}
         />
         <div>

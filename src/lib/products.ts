@@ -4,6 +4,7 @@ import { sdk } from "./medusa";
 import { getRegion } from "./region";
 import type { HttpTypes } from "@medusajs/types";
 import type { CanonicalSize, MysteryBoxSlot } from "@/lib/mystery-box";
+import { isInIntimatesCategory, isUnlisted } from "@/lib/visibility";
 
 export const SHOP_FACETS_CACHE_TAG = "shop-facets";
 export const PRODUCTS_CACHE_TAG = "products";
@@ -11,10 +12,10 @@ export const PRODUCT_TAGS_CACHE_TAG = "product-tags";
 export const PRODUCT_CATEGORIES_CACHE_TAG = "product-categories";
 
 const PRODUCT_LIST_FIELDS =
-  "id,title,handle,thumbnail,*variants,*variants.calculated_price,*variants.options,+variants.inventory_quantity,+variants.manage_inventory,*options,*options.values,*tags,*categories";
+  "id,title,handle,thumbnail,metadata,*variants,*variants.calculated_price,*variants.options,+variants.inventory_quantity,+variants.manage_inventory,*options,*options.values,*tags,*categories";
 
 const PRODUCT_DETAIL_FIELDS =
-  "*variants,*variants.calculated_price,*variants.options,+variants.inventory_quantity,+variants.manage_inventory,*options,*options.values,*images,*tags,*collection,*categories";
+  "metadata,*variants,*variants.calculated_price,*variants.options,+variants.inventory_quantity,+variants.manage_inventory,*options,*options.values,*images,*tags,*collection,*categories";
 
 export type ListProductsArgs = {
   limit?: number;
@@ -565,27 +566,90 @@ export async function getLatestCollectionTag(): Promise<{ id: string; value: str
   return best ? { id: best.id, value: best.value } : null;
 }
 
-/**
- * Returns up to 5 products from the latest collection for the hero bento.
- * "Latest collection" = the highest-numbered `collectionN` tag in Medusa.
- * Falls back to the most recent products globally if no collection tag exists.
- */
-export async function listFeatured(): Promise<HttpTypes.StoreProduct[]> {
-  const latestTagId = await getLatestCollectionTagId().catch(() => null);
-  if (latestTagId) {
-    try {
-      const tagged = await listProducts({
-        tag: latestTagId,
-        order: "-created_at",
-        limit: 5,
-      });
-      if (tagged.products.length) return tagged.products.slice(0, 5);
-    } catch {
-      // fall through to recent
+// Hero pool config — only these top-level categories feed the hero bento.
+// Descendants are auto-included via expandCategoryWithDescendants.
+const HERO_CATEGORY_HANDLES = ["dresses", "lingerie", "beachwear"] as const;
+const HERO_POOL_SIZE = 15;
+const HERO_PICK_COUNT = 5;
+
+async function getHeroCategoryIds(): Promise<string[]> {
+  const all = await listCategories();
+  const idByHandle = new Map<string, string>();
+  for (const c of all) {
+    if (c.handle) idByHandle.set(c.handle.toLowerCase(), c.id);
+  }
+  const out = new Set<string>();
+  for (const handle of HERO_CATEGORY_HANDLES) {
+    const id = idByHandle.get(handle);
+    if (!id) continue;
+    for (const descendantId of expandCategoryWithDescendants(id, all)) {
+      out.add(descendantId);
     }
   }
-  const recent = await listProducts({ order: "-created_at", limit: 5 });
-  return recent.products.slice(0, 5);
+  return [...out];
+}
+
+function shuffleAndPick<T>(arr: readonly T[], n: number): T[] {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(0, n);
+}
+
+/**
+ * Returns up to 5 products from the latest collection for the hero bento,
+ * scoped to Dresses / Lingerie / Beachwear and mixed across them.
+ *
+ * Strategy: fetch a 15-item pool (cached server-side via listProducts'
+ * unstable_cache), then random-shuffle and pick 5. Because the home page
+ * is ISR-cached at revalidate=60s, rotation happens every minute — fresh
+ * mix on each cache rebuild with zero per-request cost.
+ *
+ * Fallback chain: latest collection + categories → categories only →
+ * latest collection only → most recent globally.
+ */
+export async function listFeatured(): Promise<HttpTypes.StoreProduct[]> {
+  const [latestTagId, categoryIds] = await Promise.all([
+    getLatestCollectionTagId().catch(() => null),
+    getHeroCategoryIds().catch(() => [] as string[]),
+  ]);
+
+  const tryFetch = async (args: ListProductsArgs) => {
+    try {
+      const res = await listProducts(args);
+      return res.products;
+    } catch {
+      return [] as HttpTypes.StoreProduct[];
+    }
+  };
+
+  let pool: HttpTypes.StoreProduct[] = [];
+  if (latestTagId && categoryIds.length > 0) {
+    pool = await tryFetch({
+      tag: latestTagId,
+      category: categoryIds,
+      order: "-created_at",
+      limit: HERO_POOL_SIZE,
+    });
+  }
+  if (pool.length < HERO_PICK_COUNT && categoryIds.length > 0) {
+    pool = await tryFetch({
+      category: categoryIds,
+      order: "-created_at",
+      limit: HERO_POOL_SIZE,
+    });
+  }
+  if (pool.length < HERO_PICK_COUNT && latestTagId) {
+    pool = await tryFetch({ tag: latestTagId, order: "-created_at", limit: HERO_POOL_SIZE });
+  }
+  if (pool.length < HERO_PICK_COUNT) {
+    pool = await tryFetch({ order: "-created_at", limit: HERO_POOL_SIZE });
+  }
+
+  if (pool.length <= HERO_PICK_COUNT) return pool;
+  return shuffleAndPick(pool, HERO_PICK_COUNT);
 }
 
 // Babe Essentials products — hand-curated by handle. Order matters: index 0 is
@@ -618,7 +682,8 @@ export async function listInStockProductsForSize(
     region_id: regionId,
     limit: MYSTERY_BOX_POOL_LIMIT,
     fields:
-      "id,title,handle,thumbnail,discountable," +
+      "id,title,handle,thumbnail,discountable,metadata," +
+      "*categories," +
       "variants.id,variants.sku,variants.title,+variants.inventory_quantity," +
       "+variants.manage_inventory,variants.metadata," +
       "variants.calculated_price.calculated_amount," +
@@ -629,6 +694,9 @@ export async function listInStockProductsForSize(
 
   for (const product of products) {
     if (product.discountable === false) continue;
+    // Mystery box must never pick Intimates products or unlisted items.
+    if (isInIntimatesCategory(product as unknown as { categories?: Array<{ handle?: string | null }> })) continue;
+    if (isUnlisted(product as unknown as { metadata?: unknown })) continue;
 
     for (const rawVariant of product.variants ?? []) {
       const variant = rawVariant as HttpTypes.StoreProductVariant & {
