@@ -141,6 +141,12 @@ export function ProductBuy({
         )}
       </p>
 
+      {matchedVariant?.sku && (
+        <p className="-mt-2 font-sans text-[11px] uppercase tracking-[0.1em] text-ink-muted">
+          SKU: <span className="text-ink">{matchedVariant.sku}</span>
+        </p>
+      )}
+
       {colorOption && (
         <OptionGroup
           title={`Color${selected[colorOption.id] ? `: ${selected[colorOption.id]}` : ""}`}

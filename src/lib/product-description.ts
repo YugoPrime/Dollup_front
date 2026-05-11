@@ -29,19 +29,51 @@ export function splitProductDescription(
 }
 
 // Strip the empty wrapping markup the importer leaves around the size chart
-// (visible as a tall blank gap above the table). Repeatedly peel off leading
-// whitespace, &nbsp;, <br>, and empty <p>/<div> until we hit real content.
+// (visible as a tall blank gap above the table). Peels off whitespace,
+// &nbsp;, <br>, HTML comments, and any leading/trailing tag whose inner
+// content reduces to nothing — including nested wrappers like
+// <p><span>&nbsp;</span></p> or <p><strong><br></strong></p>.
+const VOID_TAGS = new Set([
+  "br", "hr", "img", "input", "meta", "link", "source", "track", "wbr", "area", "base", "col", "embed", "param",
+]);
+
+function isBlankHtml(s: string): boolean {
+  const noComments = s.replace(/<!--[\s\S]*?-->/g, "");
+  const noTags = noComments.replace(/<[^>]*>/g, "");
+  const noEntities = noTags
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&#160;/g, " ")
+    .replace(/&#8203;/g, " ")
+    .replace(/&zwj;/gi, " ")
+    .replace(/&zwnj;/gi, " ");
+  return noEntities.trim() === "";
+}
+
 function cleanHtml(s: string): string {
   let out = s;
-  const leading =
-    /^(?:\s|&nbsp;|<br\s*\/?>|<p[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>|<div[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/div>)+/i;
-  const trailing =
-    /(?:\s|&nbsp;|<br\s*\/?>|<p[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/p>|<div[^>]*>(?:\s|&nbsp;|<br\s*\/?>)*<\/div>)+$/i;
-  let prev: string;
-  do {
+  const atomLeading = /^(?:\s|&nbsp;|&#160;|&#8203;|<br\s*\/?>|<!--[\s\S]*?-->)+/i;
+  const atomTrailing = /(?:\s|&nbsp;|&#160;|&#8203;|<br\s*\/?>|<!--[\s\S]*?-->)+$/i;
+
+  let prev = "";
+  let iters = 0;
+  while (prev !== out && iters < 50) {
     prev = out;
-    out = out.replace(leading, "").replace(trailing, "");
-  } while (out !== prev);
+    iters++;
+    out = out.replace(atomLeading, "").replace(atomTrailing, "");
+
+    const leadMatch = /^<([a-z][a-z0-9]*)([^>]*)>([\s\S]*?)<\/\1\s*>/i.exec(out);
+    if (leadMatch && !VOID_TAGS.has(leadMatch[1].toLowerCase()) && isBlankHtml(leadMatch[3])) {
+      out = out.slice(leadMatch[0].length);
+      continue;
+    }
+
+    const trailRe = /<([a-z][a-z0-9]*)([^>]*)>([\s\S]*?)<\/\1\s*>\s*$/i;
+    const trailMatch = trailRe.exec(out);
+    if (trailMatch && !VOID_TAGS.has(trailMatch[1].toLowerCase()) && isBlankHtml(trailMatch[3])) {
+      out = out.slice(0, trailMatch.index);
+    }
+  }
+
   out = out.replace(/(<br\s*\/?>\s*){3,}/gi, "<br><br>");
   return out.trim();
 }

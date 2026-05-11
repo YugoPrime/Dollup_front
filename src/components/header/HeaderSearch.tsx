@@ -65,6 +65,7 @@ export function HeaderSearchDesktop() {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [focused, setFocused] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const animatedHint = useAnimatedHint(!focused && q === "");
   const placeholder = focused || q ? "Search dresses, lingerie, accessories…" : animatedHint || "Search…";
 
@@ -72,6 +73,11 @@ export function HeaderSearchDesktop() {
     e.preventDefault();
     if (!q.trim()) return;
     router.push(`/shop?q=${encodeURIComponent(q.trim())}`);
+  };
+
+  const onClear = () => {
+    setQ("");
+    inputRef.current?.focus();
   };
 
   return (
@@ -84,6 +90,7 @@ export function HeaderSearchDesktop() {
         <path d="m21 21-4.35-4.35" />
       </svg>
       <input
+        ref={inputRef}
         aria-label="Search products"
         value={q}
         onChange={(e) => setQ(e.target.value)}
@@ -93,6 +100,19 @@ export function HeaderSearchDesktop() {
         placeholder={placeholder}
         className="flex-1 bg-transparent font-sans text-sm text-ink outline-none placeholder:text-ink-muted"
       />
+      {q && (
+        <button
+          type="button"
+          onClick={onClear}
+          aria-label="Clear search"
+          className="-mr-1 grid h-5 w-5 shrink-0 place-items-center rounded-full text-ink-muted transition hover:bg-blush-300 hover:text-ink"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+          </svg>
+        </button>
+      )}
     </form>
   );
 }
@@ -101,6 +121,7 @@ export function HeaderSearchMobile() {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [focused, setFocused] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   const animatedHint = useAnimatedHint(!focused && q === "");
   const placeholder = focused || q ? "Search dresses, lingerie, accessories…" : animatedHint || "Search…";
 
@@ -108,6 +129,11 @@ export function HeaderSearchMobile() {
     e.preventDefault();
     if (!q.trim()) return;
     router.push(`/shop?q=${encodeURIComponent(q.trim())}`);
+  };
+
+  const onClear = () => {
+    setQ("");
+    inputRef.current?.focus();
   };
 
   return (
@@ -120,6 +146,7 @@ export function HeaderSearchMobile() {
         <path d="m21 21-4.35-4.35" />
       </svg>
       <input
+        ref={inputRef}
         aria-label="Search products"
         value={q}
         onChange={(e) => setQ(e.target.value)}
@@ -129,6 +156,19 @@ export function HeaderSearchMobile() {
         placeholder={placeholder}
         className="flex-1 bg-transparent font-sans text-[13px] text-ink outline-none placeholder:text-ink-muted"
       />
+      {q && (
+        <button
+          type="button"
+          onClick={onClear}
+          aria-label="Clear search"
+          className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-ink-muted transition hover:bg-blush-100 hover:text-ink"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+          </svg>
+        </button>
+      )}
     </form>
   );
 }

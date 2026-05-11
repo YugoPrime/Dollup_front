@@ -12,9 +12,12 @@ type Props = {
 };
 
 const COLUMN_COUNT = 5;
-const STRIP_TILE_HEIGHT = 320;
 const STRIP_TILES_PER_COLUMN = 24;
 const SPIN_DURATION_MS = 2200;
+// Percentage of the strip wrapper's own height that lands the LAST tile in view.
+// (N-1)/N * 100 — works regardless of the per-breakpoint tile height in px.
+const FINAL_OFFSET_PCT =
+  ((STRIP_TILES_PER_COLUMN - 1) / STRIP_TILES_PER_COLUMN) * 100;
 
 export function SpinWheel({ pool, selected, spinning, onSpinEnd }: Props) {
   const fallbackColumns = useMemo(
@@ -61,16 +64,16 @@ export function SpinWheel({ pool, selected, spinning, onSpinEnd }: Props) {
   const landed = Boolean(selected) && !spinning;
   const translateY =
     spinning || landed
-      ? `translateY(-${(STRIP_TILES_PER_COLUMN - 1) * STRIP_TILE_HEIGHT}px)`
+      ? `translateY(-${FINAL_OFFSET_PCT}%)`
       : "translateY(0)";
 
   if (!selected && !spinning) {
     return (
-      <div className="grid grid-cols-5 gap-2 overflow-hidden rounded-xl border border-blush-400 bg-white p-2 shadow-[0_10px_30px_rgba(26,18,18,0.06)] md:gap-3 md:p-3">
+      <div className="grid grid-cols-3 gap-2 overflow-hidden rounded-xl border border-blush-400 bg-white p-2 shadow-[0_10px_30px_rgba(26,18,18,0.06)] sm:grid-cols-5 md:gap-3 md:p-3">
         {Array.from({ length: COLUMN_COUNT }, (_, index) => (
           <div
             key={index}
-            className="flex h-[180px] items-center justify-center overflow-hidden rounded-lg border border-blush-200 bg-gradient-to-br from-cream-50 via-blush-300 to-coral-300/35 p-3 text-center sm:h-[260px] lg:h-[320px]"
+            className="flex h-[140px] items-center justify-center overflow-hidden rounded-lg border border-blush-200 bg-gradient-to-br from-cream-50 via-blush-300 to-coral-300/35 p-3 text-center sm:h-[260px] lg:h-[320px]"
           >
             <div>
               <p className="font-sans text-[9px] font-bold uppercase tracking-[0.18em] text-coral-700">
@@ -90,11 +93,11 @@ export function SpinWheel({ pool, selected, spinning, onSpinEnd }: Props) {
   }
 
   return (
-    <div className="grid grid-cols-5 gap-2 overflow-hidden rounded-xl border border-blush-400 bg-white p-2 shadow-[0_10px_30px_rgba(26,18,18,0.06)] md:gap-3 md:p-3">
+    <div className="grid grid-cols-3 gap-2 overflow-hidden rounded-xl border border-blush-400 bg-white p-2 shadow-[0_10px_30px_rgba(26,18,18,0.06)] sm:grid-cols-5 md:gap-3 md:p-3">
       {columns.map((column, columnIndex) => (
         <div
           key={columnIndex}
-          className="relative h-[180px] overflow-hidden rounded-lg bg-blush-100 sm:h-[260px] lg:h-[320px]"
+          className="relative h-[140px] overflow-hidden rounded-lg bg-blush-100 sm:h-[260px] lg:h-[320px]"
         >
           <div
             className="will-change-transform"
@@ -108,14 +111,14 @@ export function SpinWheel({ pool, selected, spinning, onSpinEnd }: Props) {
             {column.map((slot, tileIndex) => (
               <div
                 key={`${columnIndex}-${tileIndex}-${slot.variantId}`}
-                className="relative h-[180px] overflow-hidden sm:h-[260px] lg:h-[320px]"
+                className="relative h-[140px] overflow-hidden sm:h-[260px] lg:h-[320px]"
               >
                 {slot.thumbnail ? (
                   <Image
                     src={slot.thumbnail}
                     alt=""
                     fill
-                    sizes="(min-width: 1024px) 210px, 20vw"
+                    sizes="(min-width: 1024px) 210px, (min-width: 640px) 18vw, 32vw"
                     className="object-cover"
                   />
                 ) : (
