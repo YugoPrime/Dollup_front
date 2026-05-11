@@ -283,41 +283,6 @@ function isVariantInStock(v: HttpTypes.StoreProductVariant): boolean {
 // only what's actually buyable. Same fetch pattern as listWithFacetFilters
 // but doesn't apply the size/color/price filters — those are what we're
 // deriving the facets for.
-// Picks one representative product thumbnail per category for the home page
-// category-icons row. Uses the newest product in the category. Returns null
-// per category if nothing is available so the component falls back to its
-// gradient placeholder.
-export async function getCategoryIconImages(
-  handles: string[],
-): Promise<Record<string, string | null>> {
-  const region = await getRegion();
-  const cats = await listCategories();
-  const out: Record<string, string | null> = {};
-  await Promise.all(
-    handles.map(async (h) => {
-      try {
-        const cat = cats.find((c) => c.handle === h);
-        if (!cat) {
-          out[h] = null;
-          return;
-        }
-        const ids = expandCategoryWithDescendants(cat.id, cats);
-        const res = await sdk.store.product.list({
-          category_id: ids,
-          region_id: region.id,
-          fields: "id,thumbnail,handle",
-          limit: 1,
-          order: "-created_at",
-        });
-        out[h] = res.products[0]?.thumbnail ?? null;
-      } catch {
-        out[h] = null;
-      }
-    }),
-  );
-  return out;
-}
-
 export type ShopFacets = {
   sizes: string[];
   colors: string[];
