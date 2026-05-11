@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
-import { Gift, Ruler, X } from "lucide-react";
+import { ChevronRight, Ruler, ShoppingBag, X } from "lucide-react";
 import { useCart } from "@/components/cart/CartProvider";
 import { clientSdk, setStoredCartId } from "@/lib/cart-client";
 import {
@@ -248,9 +248,12 @@ export function MysteryBoxClient({ poolsBySize, regionId }: Props) {
               type="button"
               disabled={spinning || !canSpin}
               onClick={startSpin}
-              className="min-h-12 rounded-full bg-coral-500 px-8 py-3 font-sans text-[12px] font-bold uppercase tracking-[0.16em] text-white shadow-[0_10px_24px_rgba(214,103,78,0.28)] transition-colors hover:bg-coral-700 disabled:opacity-40"
+              className="inline-flex min-h-12 items-center gap-2 rounded-full bg-coral-500 px-8 py-3 font-sans text-[12px] font-bold uppercase tracking-[0.16em] text-white shadow-[0_10px_24px_rgba(214,103,78,0.28)] transition-colors hover:bg-coral-700 disabled:opacity-40"
             >
               {spinning ? "Spinning..." : box ? "Spin again" : "Spin"}
+              {!spinning ? (
+                <ChevronRight className="h-4 w-4" aria-hidden="true" />
+              ) : null}
             </button>
           </div>
 
@@ -269,109 +272,131 @@ export function MysteryBoxClient({ poolsBySize, regionId }: Props) {
       ) : null}
 
       {box && !spinning ? (
-        <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blush-300 via-blush-100 to-cream-50 p-4 text-ink shadow-[0_18px_44px_rgba(214,103,78,0.18)] md:p-6">
-          <span
+        <section className="relative rounded-xl border border-blush-400 bg-white p-5 shadow-[0_10px_30px_rgba(26,18,18,0.06)] md:p-6">
+          {/* Decorative bow ribbon — top-left corner */}
+          <div
             aria-hidden="true"
-            className="pointer-events-none absolute -left-10 -top-10 h-32 w-32 rounded-full bg-coral-300/20 blur-2xl"
-          />
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute -bottom-12 -right-8 h-32 w-32 rounded-full bg-coral-300/20 blur-2xl"
-          />
-
-          <div className="relative mb-4 flex items-center justify-center gap-2">
-            <span className="h-px w-12 max-w-[80px] flex-1 bg-coral-300/60" />
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-coral-500 px-3.5 py-1.5 font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-white shadow-[0_8px_20px_rgba(214,103,78,0.35)]">
-              <Gift className="h-3.5 w-3.5" aria-hidden="true" />
-              Your gift box
-            </span>
-            <span className="h-px w-12 max-w-[80px] flex-1 bg-coral-300/60" />
+            className="pointer-events-none absolute -left-3 -top-4 hidden h-20 w-28 md:block"
+          >
+            <div className="absolute left-3 top-4 h-6 w-24 -rotate-[18deg] rounded-sm bg-gradient-to-r from-coral-300 to-coral-500 shadow-[0_4px_10px_rgba(214,103,78,0.25)]" />
+            <div className="absolute -left-2 top-9 h-7 w-14 -rotate-[36deg] rounded-[50%] bg-gradient-to-br from-coral-300 to-coral-500 shadow-[0_4px_10px_rgba(214,103,78,0.18)]" />
+            <div className="absolute left-10 top-3 h-7 w-12 rotate-[4deg] rounded-[50%] bg-gradient-to-bl from-coral-300 to-coral-500 shadow-[0_4px_10px_rgba(214,103,78,0.18)]" />
+            <div className="absolute left-6 top-7 h-4 w-6 rounded-sm bg-coral-700/90" />
           </div>
 
-          <div className="relative mb-4 flex flex-wrap items-end justify-between gap-3 px-1">
-            <div>
-              <h2 className="font-display text-[26px] leading-tight md:text-[34px]">
-                Rs {box.flat_price_mur.toLocaleString("en-MU")}
-              </h2>
-              <p className="mt-0.5 font-sans text-[11px] text-ink-muted md:text-[12px]">
-                Value Rs {box.total_value_mur.toLocaleString("en-MU")}
+          {/* Decorative hanging tag — right edge */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -right-3 top-[58%] hidden md:block"
+          >
+            <div className="absolute -top-12 left-1/2 h-12 w-px -translate-x-1/2 bg-ink/30" />
+            <div className="relative h-[88px] w-[64px] rotate-[6deg]">
+              <div className="absolute inset-0 rounded-md bg-cream-50 shadow-[0_8px_16px_rgba(26,18,18,0.12)] ring-1 ring-blush-200 [clip-path:polygon(50%_0,100%_18%,100%_100%,0_100%,0_18%)]" />
+              <span className="absolute left-1/2 top-3 h-2 w-2 -translate-x-1/2 rounded-full bg-ink/30" />
+              <p className="absolute inset-x-0 top-7 text-center font-sans text-[8px] font-bold uppercase tracking-[0.18em] text-coral-500">
+                Open
+                <br />
+                your box.
+              </p>
+              <p className="absolute inset-x-0 bottom-3 text-center font-sans text-[7px] italic text-ink-muted">
+                Love every
+                <br />
+                surprise.
               </p>
             </div>
-            <span className="rounded-full bg-white/85 px-3 py-1.5 font-sans text-[11px] font-bold text-coral-500 shadow-[0_4px_12px_rgba(214,103,78,0.18)] backdrop-blur md:text-[12px]">
-              You save Rs {savings.toLocaleString("en-MU")}
-            </span>
           </div>
 
-          <div className="relative rounded-xl border-2 border-dashed border-coral-300/60 bg-white/80 p-2.5 backdrop-blur md:p-4">
-            <ul className="grid grid-cols-2 gap-2.5 md:gap-3 lg:grid-cols-5">
-              {box.slots.map((slot, index) => {
-                const isLastOdd =
-                  box.slots.length % 2 === 1 &&
-                  index === box.slots.length - 1;
-                return (
-                  <li
-                    key={`${slot.variantId}-${index}`}
-                    className={[
-                      "overflow-hidden rounded-lg border border-blush-400 bg-cream-50",
-                      isLastOdd ? "col-span-2 lg:col-span-1" : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
-                  >
-                    <div
-                      className={[
-                        "relative bg-blush-100 lg:h-[300px]",
-                        isLastOdd
-                          ? "h-[180px] sm:h-[220px]"
-                          : "h-[150px] sm:h-[220px]",
-                      ].join(" ")}
-                    >
-                      {slot.thumbnail ? (
-                        <Image
-                          src={slot.thumbnail}
-                          alt=""
-                          fill
-                          sizes="(min-width: 1024px) 180px, (min-width: 640px) 45vw, 50vw"
-                          className="object-cover"
-                        />
-                      ) : null}
-                      <span className="absolute left-2 top-2 rounded-full bg-coral-500/95 px-2 py-0.5 font-sans text-[10px] font-bold text-white shadow-sm">
-                        {String(index + 1).padStart(2, "0")}
-                      </span>
-                    </div>
-                    <div className="p-2.5 md:p-3">
-                      <p className="line-clamp-2 font-sans text-[11px] font-semibold leading-snug text-ink md:text-[12px]">
-                        {slot.title}
-                      </p>
-                      <p className="mt-1 font-sans text-[10px] text-ink-muted md:text-[11px]">
-                        {slot.sku} · size {slot.size}
-                      </p>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="mb-2 inline-flex items-center gap-1.5 font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-coral-500">
+                <ShoppingBag className="h-3.5 w-3.5" aria-hidden="true" />
+                Your box
+              </p>
+              <h2 className="font-display text-[28px] leading-tight text-ink md:text-[36px]">
+                Rs {box.flat_price_mur.toLocaleString("en-MU")}
+              </h2>
+            </div>
+            <div className="flex items-center gap-3">
+              <p className="font-sans text-[12px] text-ink-muted">
+                Value Rs {box.total_value_mur.toLocaleString("en-MU")}
+              </p>
+              <span className="rounded-md bg-emerald-50 px-2.5 py-1.5 font-sans text-[11px] font-semibold text-emerald-700">
+                You save Rs {savings.toLocaleString("en-MU")}
+              </span>
+            </div>
           </div>
+
+          <ul className="grid grid-cols-2 gap-2.5 md:gap-3 lg:grid-cols-5">
+            {box.slots.map((slot, index) => {
+              const isLastOdd =
+                box.slots.length % 2 === 1 &&
+                index === box.slots.length - 1;
+              return (
+                <li
+                  key={`${slot.variantId}-${index}`}
+                  className={[
+                    "overflow-hidden rounded-lg border border-blush-200 bg-white",
+                    isLastOdd ? "col-span-2 lg:col-span-1" : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                >
+                  <div
+                    className={[
+                      "relative bg-blush-100 lg:h-[260px]",
+                      isLastOdd
+                        ? "h-[200px] sm:h-[220px]"
+                        : "h-[180px] sm:h-[220px]",
+                    ].join(" ")}
+                  >
+                    {slot.thumbnail ? (
+                      <Image
+                        src={slot.thumbnail}
+                        alt=""
+                        fill
+                        sizes="(min-width: 1024px) 180px, (min-width: 640px) 45vw, 50vw"
+                        className="object-cover"
+                      />
+                    ) : null}
+                    <span className="absolute left-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-coral-500 font-sans text-[10px] font-bold text-white shadow-sm">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                  </div>
+                  <div className="border-t border-blush-200 p-2.5 md:p-3">
+                    <p className="line-clamp-2 font-sans text-[12px] font-semibold leading-snug text-ink">
+                      {slot.title}
+                    </p>
+                    <p className="mt-1 font-sans text-[10px] text-ink-muted md:text-[11px]">
+                      {slot.sku} · size {slot.size}
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
 
           <button
             type="button"
             disabled={locking}
             onClick={handleLock}
-            className="relative mt-5 inline-flex w-full min-h-12 items-center justify-center rounded-full bg-coral-500 px-8 py-3 font-sans text-[12px] font-bold uppercase tracking-[0.16em] text-white shadow-[0_10px_24px_rgba(214,103,78,0.32)] transition-colors hover:bg-coral-700 disabled:opacity-40 md:w-auto"
+            className="mt-5 inline-flex w-full min-h-12 items-center justify-center gap-2 rounded-full bg-coral-500 px-8 py-3 font-sans text-[12px] font-bold uppercase tracking-[0.16em] text-white shadow-[0_10px_24px_rgba(214,103,78,0.32)] transition-colors hover:bg-coral-700 disabled:opacity-40"
           >
             {locking
               ? "Locking..."
               : `Buy now - save Rs ${savings.toLocaleString("en-MU")}`}
+            {!locking ? (
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            ) : null}
           </button>
 
           {lockError?.kind === "out_of_stock" ? (
-            <p className="relative mt-3 font-sans text-[12px] text-coral-500">
+            <p className="mt-3 font-sans text-[12px] text-coral-500">
               Sorry, one or more of those pieces just sold. Spin again to get a
               fresh box.
             </p>
           ) : null}
           {lockError?.kind === "generic" ? (
-            <p className="relative mt-3 font-sans text-[12px] text-coral-500">
+            <p className="mt-3 font-sans text-[12px] text-coral-500">
               {lockError.message}
             </p>
           ) : null}

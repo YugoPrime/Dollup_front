@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Image from "next/image";
+import { Gift, Heart, RotateCcw, ShoppingBag, Tag, Target } from "lucide-react";
 import { getRegion } from "@/lib/region";
 import { listInStockProductsForSize } from "@/lib/products";
 import type { CanonicalSize, MysteryBoxSlot } from "@/lib/mystery-box";
@@ -54,13 +56,14 @@ export default async function MysteryBoxPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-cream-50 via-cream to-blush-100 px-6 py-10 text-ink md:px-10 md:py-14">
       <div className="mx-auto max-w-[1180px]">
-        <header className="grid gap-6 border-b border-blush-400 pb-8 md:grid-cols-[1fr_320px] md:items-end">
-          <div>
+        <header className="relative grid gap-6 border-b border-blush-400 pb-8 md:grid-cols-[1.1fr_0.9fr_320px] md:items-end md:gap-8">
+          <div className="relative z-10">
             <p className="mb-3 font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-coral-300">
               Mystery Box
             </p>
-            <h1 className="max-w-[740px] font-display text-[42px] leading-[0.96] md:text-[72px]">
-              Spin the wheel.{" "}
+            <h1 className="max-w-[520px] font-display text-[42px] leading-[0.96] md:text-[64px]">
+              Spin the wheel.
+              <br />
               <em
                 className="not-italic text-coral-300"
                 style={{ fontStyle: "italic" }}
@@ -68,30 +71,101 @@ export default async function MysteryBoxPage() {
                 Trust the drop.
               </em>
             </h1>
-            <p className="mt-4 max-w-[580px] font-sans text-[14px] leading-[1.55] text-ink-soft md:text-[15px]">
-              5 surprise pieces curated for your size. Flat Rs 3,500. Always
-              more value than the price tag.
+            <p className="mt-4 max-w-[460px] font-sans text-[14px] leading-[1.55] text-ink-soft md:text-[15px]">
+              5 surprise pieces curated for your size.
+              <br />
+              Flat Rs 3,500. Always more value than the price tag.
             </p>
+
+            <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-3 font-sans text-[11px] text-ink-soft md:text-[12px]">
+              <li className="flex items-center gap-2">
+                <span className="flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-blush-100 text-coral-500">
+                  <Gift className="h-3.5 w-3.5" aria-hidden="true" />
+                </span>
+                <span className="leading-tight">
+                  <span className="block font-bold uppercase tracking-[0.12em] text-ink">
+                    Curated surprise
+                  </span>
+                  <span className="text-ink-muted">Loved by thousands</span>
+                </span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-blush-100 text-coral-500">
+                  <Heart className="h-3.5 w-3.5" aria-hidden="true" />
+                </span>
+                <span className="leading-tight">
+                  <span className="block font-bold uppercase tracking-[0.12em] text-ink">
+                    Premium quality
+                  </span>
+                  <span className="text-ink-muted">Handpicked pieces</span>
+                </span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-blush-100 text-coral-500">
+                  <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+                </span>
+                <span className="leading-tight">
+                  <span className="block font-bold uppercase tracking-[0.12em] text-ink">
+                    Easy returns
+                  </span>
+                  <span className="text-ink-muted">Hassle-free</span>
+                </span>
+              </li>
+            </ul>
           </div>
 
-          <div className="grid grid-cols-3 rounded-xl border border-blush-400 bg-white p-4 text-center shadow-[0_10px_30px_rgba(26,18,18,0.06)] md:grid-cols-1 md:text-left">
-            <div className="py-2 md:border-b md:border-blush-200 md:py-3">
-              <p className="font-sans text-[10px] uppercase tracking-[0.16em] text-ink-muted">
-                Pieces
-              </p>
-              <p className="mt-1 font-display text-[24px] text-ink">5</p>
+          <div className="relative hidden md:block">
+            <div className="relative mx-auto aspect-[16/9] w-full max-w-[440px]">
+              <Image
+                src="/mystery-box/hero.webp"
+                alt="Cream gift box with coral ribbon — Doll Up Boutique Mystery Box"
+                fill
+                priority
+                sizes="(min-width: 768px) 440px, 0px"
+                className="object-contain"
+              />
             </div>
-            <div className="border-x border-blush-200 py-2 md:border-x-0 md:border-b md:py-3">
-              <p className="font-sans text-[10px] uppercase tracking-[0.16em] text-ink-muted">
-                Flat price
-              </p>
-              <p className="mt-1 font-display text-[24px] text-ink">Rs 3,500</p>
+          </div>
+
+          <div className="relative z-10 grid grid-cols-3 rounded-xl border border-blush-400 bg-white p-4 shadow-[0_10px_30px_rgba(26,18,18,0.06)] md:grid-cols-1 md:p-5">
+            <div className="flex flex-col items-center gap-2 py-2 md:flex-row md:items-center md:gap-4 md:border-b md:border-blush-200 md:py-3">
+              <span className="flex h-10 w-10 flex-none items-center justify-center rounded-lg bg-blush-100 text-coral-500">
+                <ShoppingBag className="h-4 w-4" aria-hidden="true" />
+              </span>
+              <div className="text-center md:text-left">
+                <p className="font-sans text-[10px] uppercase tracking-[0.16em] text-ink-muted">
+                  Pieces
+                </p>
+                <p className="mt-0.5 font-display text-[22px] leading-none text-ink">
+                  5
+                </p>
+              </div>
             </div>
-            <div className="py-2 md:py-3">
-              <p className="font-sans text-[10px] uppercase tracking-[0.16em] text-ink-muted">
-                Spins
-              </p>
-              <p className="mt-1 font-display text-[24px] text-ink">3/day</p>
+            <div className="flex flex-col items-center gap-2 border-x border-blush-200 py-2 md:flex-row md:items-center md:gap-4 md:border-x-0 md:border-b md:py-3">
+              <span className="flex h-10 w-10 flex-none items-center justify-center rounded-lg bg-blush-100 text-coral-500">
+                <Tag className="h-4 w-4" aria-hidden="true" />
+              </span>
+              <div className="text-center md:text-left">
+                <p className="font-sans text-[10px] uppercase tracking-[0.16em] text-ink-muted">
+                  Flat price
+                </p>
+                <p className="mt-0.5 font-display text-[22px] leading-none text-ink">
+                  Rs 3,500
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col items-center gap-2 py-2 md:flex-row md:items-center md:gap-4 md:py-3">
+              <span className="flex h-10 w-10 flex-none items-center justify-center rounded-lg bg-blush-100 text-coral-500">
+                <Target className="h-4 w-4" aria-hidden="true" />
+              </span>
+              <div className="text-center md:text-left">
+                <p className="font-sans text-[10px] uppercase tracking-[0.16em] text-ink-muted">
+                  Spins
+                </p>
+                <p className="mt-0.5 font-display text-[22px] leading-none text-ink">
+                  3/day
+                </p>
+              </div>
             </div>
           </div>
         </header>

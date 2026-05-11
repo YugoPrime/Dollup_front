@@ -69,21 +69,28 @@ export function SpinWheel({ pool, selected, spinning, onSpinEnd }: Props) {
 
   if (!selected && !spinning) {
     return (
-      <div className="grid grid-cols-3 gap-2 overflow-hidden rounded-xl border border-blush-400 bg-white p-2 shadow-[0_10px_30px_rgba(26,18,18,0.06)] sm:grid-cols-5 md:gap-3 md:p-3">
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 md:gap-3">
         {Array.from({ length: COLUMN_COUNT }, (_, index) => (
           <div
             key={index}
-            className="flex h-[140px] items-center justify-center overflow-hidden rounded-lg border border-blush-200 bg-gradient-to-br from-cream-50 via-blush-300 to-coral-300/35 p-3 text-center sm:h-[260px] lg:h-[320px]"
+            className="overflow-hidden rounded-lg border border-blush-200 bg-white"
           >
-            <div>
-              <p className="font-sans text-[9px] font-bold uppercase tracking-[0.18em] text-coral-700">
-                Mystery
-              </p>
-              <p className="mt-1 font-display text-[20px] leading-[0.95] text-ink">
-                Doll Up
-              </p>
-              <p className="mt-2 font-sans text-[9px] uppercase tracking-[0.14em] text-ink-muted">
-                Reveal after spin
+            <div className="flex h-[140px] items-center justify-center bg-gradient-to-br from-cream-50 via-blush-300 to-coral-300/35 p-3 text-center sm:h-[220px] lg:h-[260px]">
+              <div>
+                <p className="font-sans text-[9px] font-bold uppercase tracking-[0.18em] text-coral-700">
+                  Mystery
+                </p>
+                <p className="mt-1 font-display text-[20px] leading-[0.95] text-ink">
+                  Doll Up
+                </p>
+                <p className="mt-2 font-sans text-[9px] uppercase tracking-[0.14em] text-ink-muted">
+                  Reveal after spin
+                </p>
+              </div>
+            </div>
+            <div className="border-t border-blush-200 px-2 py-1.5 text-center">
+              <p className="truncate font-sans text-[10px] font-medium text-ink-muted">
+                —
               </p>
             </div>
           </div>
@@ -93,47 +100,53 @@ export function SpinWheel({ pool, selected, spinning, onSpinEnd }: Props) {
   }
 
   return (
-    <div className="grid grid-cols-3 gap-2 overflow-hidden rounded-xl border border-blush-400 bg-white p-2 shadow-[0_10px_30px_rgba(26,18,18,0.06)] sm:grid-cols-5 md:gap-3 md:p-3">
-      {columns.map((column, columnIndex) => (
-        <div
-          key={columnIndex}
-          className="relative h-[140px] overflow-hidden rounded-lg bg-blush-100 sm:h-[260px] lg:h-[320px]"
-        >
+    <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 md:gap-3">
+      {columns.map((column, columnIndex) => {
+        const landedSlot =
+          landed && selected ? selected[columnIndex] : null;
+        return (
           <div
-            className="will-change-transform"
-            style={{
-              transform: translateY,
-              transition: spinning
-                ? `transform ${SPIN_DURATION_MS + columnIndex * 120}ms cubic-bezier(0.15, 0.8, 0.25, 1)`
-                : "none",
-            }}
+            key={columnIndex}
+            className="overflow-hidden rounded-lg border border-blush-200 bg-white"
           >
-            {column.map((slot, tileIndex) => (
+            <div className="relative h-[140px] overflow-hidden bg-blush-100 sm:h-[220px] lg:h-[260px]">
               <div
-                key={`${columnIndex}-${tileIndex}-${slot.variantId}`}
-                className="relative h-[140px] overflow-hidden sm:h-[260px] lg:h-[320px]"
+                className="will-change-transform"
+                style={{
+                  transform: translateY,
+                  transition: spinning
+                    ? `transform ${SPIN_DURATION_MS + columnIndex * 120}ms cubic-bezier(0.15, 0.8, 0.25, 1)`
+                    : "none",
+                }}
               >
-                {slot.thumbnail ? (
-                  <Image
-                    src={slot.thumbnail}
-                    alt=""
-                    fill
-                    sizes="(min-width: 1024px) 210px, (min-width: 640px) 18vw, 32vw"
-                    className="object-cover"
-                  />
-                ) : (
-                  <div className="h-full w-full bg-blush-300" />
-                )}
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent p-2">
-                  <p className="truncate font-sans text-[10px] font-semibold text-white">
-                    {slot.sku}
-                  </p>
-                </div>
+                {column.map((slot, tileIndex) => (
+                  <div
+                    key={`${columnIndex}-${tileIndex}-${slot.variantId}`}
+                    className="relative h-[140px] overflow-hidden sm:h-[220px] lg:h-[260px]"
+                  >
+                    {slot.thumbnail ? (
+                      <Image
+                        src={slot.thumbnail}
+                        alt=""
+                        fill
+                        sizes="(min-width: 1024px) 210px, (min-width: 640px) 18vw, 32vw"
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="h-full w-full bg-blush-300" />
+                    )}
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
+            <div className="border-t border-blush-200 px-2 py-1.5 text-center">
+              <p className="truncate font-sans text-[10px] font-medium text-ink-soft">
+                {landedSlot ? landedSlot.sku : "—"}
+              </p>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
