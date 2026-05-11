@@ -6,8 +6,14 @@ import type { HttpTypes } from "@medusajs/types";
 import type { CanonicalSize, MysteryBoxSlot } from "@/lib/mystery-box";
 
 export const SHOP_FACETS_CACHE_TAG = "shop-facets";
+export const PRODUCTS_CACHE_TAG = "products";
+export const PRODUCT_TAGS_CACHE_TAG = "product-tags";
+export const PRODUCT_CATEGORIES_CACHE_TAG = "product-categories";
 
-const PRODUCT_FIELDS =
+const PRODUCT_LIST_FIELDS =
+  "id,title,handle,thumbnail,*variants,*variants.calculated_price,*variants.options,+variants.inventory_quantity,+variants.manage_inventory,*options,*options.values,*tags,*categories";
+
+const PRODUCT_DETAIL_FIELDS =
   "*variants,*variants.calculated_price,*variants.options,+variants.inventory_quantity,+variants.manage_inventory,*options,*options.values,*images,*tags,*collection,*categories";
 
 export type ListProductsArgs = {
@@ -31,6 +37,16 @@ export type ListProductsArgs = {
 };
 
 export async function listProducts(args: ListProductsArgs = {}) {
+  return cachedListProducts(normalizeListProductArgs(args));
+}
+
+const cachedListProducts = unstable_cache(
+  async (args: ListProductsArgs) => listProductsUncached(args),
+  ["store-products-v2"],
+  { tags: [PRODUCTS_CACHE_TAG], revalidate: 60 },
+);
+
+async function listProductsUncached(args: ListProductsArgs = {}) {
   const region = await getRegion();
   const limit = args.limit ?? 24;
   const offset = args.offset ?? 0;
@@ -39,7 +55,7 @@ export async function listProducts(args: ListProductsArgs = {}) {
     limit,
     offset,
     region_id: region.id,
-    fields: PRODUCT_FIELDS,
+    fields: PRODUCT_LIST_FIELDS,
   };
   if (args.q) baseQuery.q = args.q;
   if (args.category) {
@@ -71,6 +87,26 @@ export async function listProducts(args: ListProductsArgs = {}) {
   return { products, count, region };
 }
 
+function normalizeListProductArgs(args: ListProductsArgs): ListProductsArgs {
+  return {
+    limit: args.limit,
+    offset: args.offset,
+    q: args.q,
+    category: Array.isArray(args.category)
+      ? [...args.category].sort()
+      : args.category,
+    collection: args.collection,
+    tag: args.tag,
+    order: args.order,
+    onSale: args.onSale,
+    size: args.size,
+    color: args.color,
+    priceMin: args.priceMin,
+    priceMax: args.priceMax,
+    sortPrice: args.sortPrice,
+  };
+}
+
 // Store API's q only matches title/description, so a customer typing the parent
 // SKU (e.g. "IS520") finds nothing. Handles in this catalog are the lowercased
 // parent SKU (see inventory-audit/scripts/import-medusa.ts handleFromRef), so we
@@ -88,7 +124,7 @@ async function listWithSkuFallback(
     ? sdk.store.product.list({
         handle: handleQuery,
         region_id: region.id,
-        fields: PRODUCT_FIELDS,
+        fields: PRODUCT_LIST_FIELDS,
         limit: 1,
       })
     : Promise.resolve({ products: [] as HttpTypes.StoreProduct[], count: 0 });
@@ -118,7 +154,7 @@ async function listWithFacetFilters(
 ) {
   const baseFilters: HttpTypes.StoreProductListParams = {
     region_id: region.id,
-    fields: PRODUCT_FIELDS,
+    fields: PRODUCT_LIST_FIELDS,
     limit: 100,
     offset: 0,
   };
@@ -328,7 +364,7 @@ async function computeShopFacets(args: {
   const region = await getRegion();
   const baseFilters: HttpTypes.StoreProductListParams = {
     region_id: region.id,
-    fields: PRODUCT_FIELDS,
+    fields: PRODUCT_LIST_FIELDS,
     limit: 100,
     offset: 0,
   };
@@ -468,23 +504,39 @@ export function expandCategoryWithDescendants(
   return [...ids];
 }
 
+const cachedProductByHandle = unstable_cache(
+  async (handle: string) => {
+    const region = await getRegion();
+    const { products } = await sdk.store.product.list({
+      handle,
+      region_id: region.id,
+      fields: PRODUCT_DETAIL_FIELDS,
+      limit: 1,
+    });
+    return { product: products?.[0] ?? null, region };
+  },
+  ["product-by-handle-v2"],
+  { tags: [PRODUCTS_CACHE_TAG], revalidate: 60 },
+);
+
 export async function getProductByHandle(handle: string) {
-  const region = await getRegion();
-  const { products } = await sdk.store.product.list({
-    handle,
-    region_id: region.id,
-    fields: PRODUCT_FIELDS,
-    limit: 1,
-  });
-  return { product: products?.[0] ?? null, region };
+  return cachedProductByHandle(handle);
 }
 
+const cachedCategories = unstable_cache(
+  async () => {
+    const { product_categories } = await sdk.store.category.list({
+      fields: "id,name,handle,parent_category_id",
+      limit: 100,
+    });
+    return product_categories ?? [];
+  },
+  ["product-categories-v1"],
+  { tags: [PRODUCT_CATEGORIES_CACHE_TAG], revalidate: 600 },
+);
+
 export async function listCategories() {
-  const { product_categories } = await sdk.store.category.list({
-    fields: "id,name,handle,parent_category_id",
-    limit: 100,
-  });
-  return product_categories ?? [];
+  return cachedCategories();
 }
 
 export async function listCollections() {
@@ -495,6 +547,26 @@ export async function listCollections() {
   return collections ?? [];
 }
 
+type ProductTag = { id: string; value: string };
+
+const cachedProductTags = unstable_cache(
+  async (): Promise<ProductTag[]> => {
+    const res = await sdk.client.fetch<{
+      product_tags: ProductTag[];
+    }>("/store/product-tags", {
+      method: "GET",
+      query: { fields: "id,value", limit: 200 },
+    });
+    return res.product_tags ?? [];
+  },
+  ["product-tags-v1"],
+  { tags: [PRODUCT_TAGS_CACHE_TAG], revalidate: 300 },
+);
+
+function listProductTags(): Promise<ProductTag[]> {
+  return cachedProductTags();
+}
+
 /**
  * Resolves a product-tag value (e.g. "winter") to its Medusa tag id, used by
  * shop filtering. Returns null if no tag matches.
@@ -502,13 +574,7 @@ export async function listCollections() {
 export async function getTagIdByValue(value: string): Promise<string | null> {
   const target = value.trim().toLowerCase();
   if (!target) return null;
-  const res = await sdk.client.fetch<{
-    product_tags: Array<{ id: string; value: string }>;
-  }>("/store/product-tags", {
-    method: "GET",
-    query: { fields: "id,value", limit: 200 },
-  });
-  for (const t of res.product_tags ?? []) {
+  for (const t of await listProductTags()) {
     if ((t.value ?? "").toLowerCase() === target) return t.id;
   }
   return null;
@@ -524,14 +590,8 @@ export async function getLatestCollectionTagId(): Promise<string | null> {
 }
 
 export async function getLatestCollectionTag(): Promise<{ id: string; value: string } | null> {
-  const res = await sdk.client.fetch<{
-    product_tags: Array<{ id: string; value: string }>;
-  }>("/store/product-tags", {
-    method: "GET",
-    query: { fields: "id,value", limit: 200 },
-  });
   let best: { id: string; value: string; n: number } | null = null;
-  for (const t of res.product_tags ?? []) {
+  for (const t of await listProductTags()) {
     const m = /^collection(\d+)$/i.exec(t.value);
     if (!m) continue;
     const n = parseInt(m[1], 10);

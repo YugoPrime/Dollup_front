@@ -1,13 +1,11 @@
-"use client";
-
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
 import type { HttpTypes } from "@medusajs/types";
-import { useCart } from "@/components/cart/CartProvider";
 import { formatPrice, getDisplayPrice, formatDiscountPercent } from "@/lib/format";
-import { toggleWishlist, useIsInWishlist } from "@/lib/wishlist-client";
+import {
+  ProductCardQuickAdd,
+  ProductCardWishlistButton,
+} from "@/components/ProductCardActions";
 
 type Product = HttpTypes.StoreProduct;
 
@@ -26,7 +24,6 @@ function isInLatestCollection(product: Product, latestTag: string | null) {
 }
 
 function getLowStockMessage(product: Product): string | null {
-  // Worst case: any variant with manage_inventory and 0 < qty < threshold
   const lowVariants = (product.variants ?? []).filter(
     (v) =>
       v.manage_inventory &&
@@ -58,7 +55,6 @@ function getVariantPickerLabel(product: Product): string {
   return "Select options";
 }
 
-// Best-effort hex mapping for common color names. Unknown values fall back to neutral grey.
 function colorNameToHex(name: string): string {
   const map: Record<string, string> = {
     black: "#1c1010",
@@ -86,15 +82,11 @@ export function ProductCard({
   product: Product;
   latestCollectionTag?: string | null;
 }) {
-  const router = useRouter();
-  const { addItem, loading } = useCart();
-  const [busy, setBusy] = useState(false);
-  const wished = useIsInWishlist(product.id);
-
   const price = getDisplayPrice(product);
-  const inStock = product.variants?.some(
+  const inStockVariant = product.variants?.find(
     (v) => !v.manage_inventory || (v.inventory_quantity ?? 0) > 0,
   );
+  const inStock = !!inStockVariant;
   const soldOut = product.variants?.length ? !inStock : false;
   const lowStockMsg = getLowStockMessage(product);
   const discountPct = formatDiscountPercent(price.amount, price.original);
@@ -103,28 +95,6 @@ export function ProductCard({
   const colors = getColorOptions(product);
   const isMultiVariant = (product.variants?.length ?? 0) > 1;
 
-  const onQuickAdd = async () => {
-    if (isMultiVariant) {
-      // Multi-variant: send to PDP so the user picks a size/color.
-      router.push(`/products/${product.handle}`);
-      return;
-    }
-    const variant = product.variants?.find(
-      (v) => !v.manage_inventory || (v.inventory_quantity ?? 0) > 0,
-    );
-    if (!variant) return;
-    setBusy(true);
-    try {
-      await addItem(variant.id, 1);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  // The outer container is a <div>. The product link wraps the title and
-  // includes a positioned ::after-style <span> that captures clicks across
-  // the whole card. The Quick Add and Wishlist <button>s sit on top with
-  // higher z-index so their clicks fire instead of the link.
   return (
     <div className="group relative block overflow-hidden rounded-xl bg-white shadow-[0_2px_8px_rgba(229,96,74,0.06)] transition-all duration-200 ease-out hover:-translate-y-[3px] hover:shadow-[0_10px_24px_rgba(229,96,74,0.16)]">
       <div className="relative aspect-[3/4] overflow-hidden bg-blush-100">
@@ -136,7 +106,6 @@ export function ProductCard({
           </div>
         )}
 
-        {/* Badge stack — top-left */}
         <div className="absolute left-2 top-2 z-[3] flex flex-col gap-1.5">
           {isInLatestCollection(product, latestCollectionTag) && (
             <span className="rounded bg-coral-500 px-2 py-1 font-sans text-[9px] font-bold uppercase tracking-wider text-white">
@@ -165,24 +134,17 @@ export function ProductCard({
           />
         )}
 
-        {/* Persistent Quick Add — bottom of image (z-5 sits above the title-link overlay at z-1) */}
         {!soldOut && (
-          <div className="absolute inset-x-2 bottom-2 z-[5]">
-            <button
-              type="button"
-              onClick={onQuickAdd}
-              disabled={busy || loading}
-              className="min-h-11 w-full rounded-md bg-white py-2 font-sans text-[10px] font-bold uppercase tracking-wider text-ink shadow-sm hover:bg-blush-100 disabled:opacity-60"
-            >
-              {busy ? "Adding…" : isMultiVariant ? getVariantPickerLabel(product) : "+ Quick Add"}
-            </button>
-          </div>
+          <ProductCardQuickAdd
+            productHandle={product.handle}
+            isMultiVariant={isMultiVariant}
+            variantId={isMultiVariant ? null : inStockVariant?.id}
+            label={getVariantPickerLabel(product)}
+          />
         )}
       </div>
 
       <div className="flex min-h-[110px] flex-col px-3 pb-3 pt-2.5">
-        {/* Single semantic link wraps the title — click target extended via the
-            stretched ::before pseudo-anchor span below. */}
         <Link
           href={`/products/${product.handle}`}
           className="line-clamp-2 min-h-[34px] font-sans text-[12px] leading-[1.3] text-ink before:absolute before:inset-0 before:z-[1] before:content-['']"
@@ -224,29 +186,7 @@ export function ProductCard({
         </div>
       </div>
 
-      {/* Heart — top-right (above link overlay) */}
-      <button
-        type="button"
-        onClick={() => toggleWishlist(product.id)}
-        aria-label={wished ? "Remove from wishlist" : "Add to wishlist"}
-        aria-pressed={wished}
-        className="absolute right-2 top-2 z-[4] flex h-11 w-11 items-center justify-center rounded-full bg-white/90 shadow-sm transition-colors hover:bg-white"
-      >
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill={wished ? "#E5604A" : "none"}
-          stroke={wished ? "#E5604A" : "#1c1010"}
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-        </svg>
-      </button>
-
+      <ProductCardWishlistButton productId={product.id} />
     </div>
   );
 }

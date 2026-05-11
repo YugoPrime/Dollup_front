@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { getProductByHandle, listProducts, getLatestCollectionTag } from "@/lib/products";
 import { formatPrice, getDisplayPrice } from "@/lib/format";
 import { ProductGallery } from "@/components/product/ProductGallery";
@@ -63,22 +64,6 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
   const { main: descriptionHtml, sizeChart: sizeChartHtml } =
     splitProductDescription(product.description ?? null);
 
-  // "You may also like" pulls a light sample from recent catalog items.
-  let related: Awaited<ReturnType<typeof listProducts>>["products"] = [];
-  let latestTag: string | null = null;
-  try {
-    const [pool, tag] = await Promise.all([
-      listProducts({ limit: 12, order: "-created_at" }),
-      getLatestCollectionTag().catch(() => null),
-    ]);
-    latestTag = tag?.value ?? null;
-    related = pool.products
-      .filter((p) => p.id !== product.id)
-      .slice(0, 5);
-  } catch {
-    // empty related is fine — section hides itself
-  }
-
   return (
     <div>
       <script
@@ -126,10 +111,41 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
         </div>
       </div>
 
-      <YouMayAlsoLike products={related} latestCollectionTag={latestTag} />
+      <Suspense fallback={null}>
+        <RelatedProductsSection currentProductId={product.id} />
+      </Suspense>
 
       <StickyATC product={product} watchElementId="pdp-buy-anchor" />
     </div>
+  );
+}
+
+async function RelatedProductsSection({
+  currentProductId,
+}: {
+  currentProductId: string;
+}) {
+  let related: Awaited<ReturnType<typeof listProducts>>["products"] = [];
+  let latestCollectionTag: string | null = null;
+
+  try {
+    const [pool, tag] = await Promise.all([
+      listProducts({ limit: 12, order: "-created_at" }),
+      getLatestCollectionTag().catch(() => null),
+    ]);
+    related = pool.products
+      .filter((p) => p.id !== currentProductId)
+      .slice(0, 5);
+    latestCollectionTag = tag?.value ?? null;
+  } catch {
+    return null;
+  }
+
+  return (
+    <YouMayAlsoLike
+      products={related}
+      latestCollectionTag={latestCollectionTag}
+    />
   );
 }
 
