@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   Banknote,
   Building2,
+  ChevronLeft,
   Mail,
   Store,
   Truck,
@@ -37,6 +38,42 @@ import {
   type FieldErrors,
   type PaymentMethod,
 } from "@/lib/checkout";
+
+type MobileCheckoutStep = "delivery" | "details" | "review";
+
+const MOBILE_CHECKOUT_STEPS: { id: MobileCheckoutStep; label: string }[] = [
+  { id: "delivery", label: "Delivery" },
+  { id: "details", label: "Details" },
+  { id: "review", label: "Review" },
+];
+
+const DETAILS_ERROR_FIELDS = [
+  "email",
+  "phone",
+  "firstName",
+  "lastName",
+  "address1",
+  "city",
+  "password",
+  "billing.firstName",
+  "billing.lastName",
+  "billing.address1",
+  "billing.city",
+] as const;
+
+function pickErrors(
+  validation: FieldErrors,
+  fields: readonly string[],
+): FieldErrors {
+  return fields.reduce<FieldErrors>((acc, field) => {
+    if (validation[field]) acc[field] = validation[field];
+    return acc;
+  }, {});
+}
+
+function scrollCheckoutToTop() {
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
 
 function Field({
   label,
@@ -98,6 +135,8 @@ export function CheckoutForm() {
   const [shippingOptions, setShippingOptions] = useState<
     HttpTypes.StoreCartShippingOptionWithServiceZone[]
   >([]);
+  const [mobileStep, setMobileStep] =
+    useState<MobileCheckoutStep>("delivery");
   const [submitting, setSubmitting] = useState(false);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
   const [prefilledFromCustomer, setPrefilledFromCustomer] = useState(false);
@@ -234,12 +273,84 @@ export function CheckoutForm() {
     return () => window.clearTimeout(timeout);
   }, [authStatus, customer, prefilledFromCustomer]);
 
+  const mobileStepIndex = Math.max(
+    0,
+    MOBILE_CHECKOUT_STEPS.findIndex((step) => step.id === mobileStep),
+  );
+
+  function goToMobileStep(next: MobileCheckoutStep) {
+    setErrorBanner(null);
+    setMobileStep(next);
+    scrollCheckoutToTop();
+  }
+
+  function markStepErrors(stepErrors: FieldErrors) {
+    const fields = Object.keys(stepErrors);
+    setTouched((current) => new Set([...current, ...fields]));
+  }
+
+  function continueFromDelivery() {
+    const validation = validateCheckout(state);
+    const stepErrors =
+      shippingOptions.length === 0
+        ? {
+            ...pickErrors(validation, ["shippingOptionId"]),
+            shippingOptionId: "Choose a shipping method",
+          }
+        : pickErrors(validation, ["shippingOptionId"]);
+
+    setErrors({ ...validation, ...stepErrors });
+    markStepErrors(stepErrors);
+
+    if (Object.keys(stepErrors).length > 0) {
+      setErrorBanner("Please choose how you want to receive your order.");
+      scrollCheckoutToTop();
+      return;
+    }
+
+    goToMobileStep("details");
+  }
+
+  function continueFromDetails() {
+    const validation = validateCheckout(state);
+    const stepErrors = pickErrors(validation, DETAILS_ERROR_FIELDS);
+
+    setErrors(validation);
+    markStepErrors(stepErrors);
+
+    if (Object.keys(stepErrors).length > 0) {
+      setErrorBanner("Please fix the highlighted fields.");
+      scrollCheckoutToTop();
+      return;
+    }
+
+    goToMobileStep("review");
+  }
+
+  function goBackMobileStep() {
+    const previous = MOBILE_CHECKOUT_STEPS[Math.max(0, mobileStepIndex - 1)];
+    goToMobileStep(previous.id);
+  }
+
+  function handleMobilePrimaryAction() {
+    if (mobileStep === "delivery") {
+      continueFromDelivery();
+      return;
+    }
+    if (mobileStep === "details") {
+      continueFromDetails();
+      return;
+    }
+    handleSubmit();
+  }
+
   async function handleSubmit() {
     const validation = validateCheckout(state);
     setErrors(validation);
     setTouched(new Set(Object.keys(validation)));
     if (Object.keys(validation).length > 0) {
       setErrorBanner("Please fix the highlighted fields.");
+      setMobileStep(validation.shippingOptionId ? "delivery" : "details");
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
@@ -397,6 +508,36 @@ export function CheckoutForm() {
     ? (cart.total ?? 0)
     : Math.max(0, itemSubtotal + ctaShipping - (cart.discount_total ?? 0));
   const ctaTotalLabel = formatPrice(ctaTotal, currency);
+  const mobileStepLabel =
+    MOBILE_CHECKOUT_STEPS[mobileStepIndex]?.label ?? "Delivery";
+  const selectedDeliveryLabel =
+    selectedOption?.name ?? "Delivery not selected";
+  const selectedPaymentLabel =
+    state.paymentMethod === "Cash"
+      ? "Cash on Delivery"
+      : "Juice / Bank Transfer";
+  const reviewName =
+    `${state.firstName} ${state.lastName}`.trim() || "No name entered";
+  const reviewAddress =
+    [state.address1, state.address2, state.city].filter(Boolean).join(", ") ||
+    "No address entered";
+  const reviewDate =
+    state.deliveryDate && isValidDeliveryDate(state.deliveryDate)
+      ? new Intl.DateTimeFormat("en-MU", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        }).format(new Date(`${state.deliveryDate}T00:00:00`))
+      : null;
+  const mobilePrimaryLabel =
+    mobileStep === "delivery"
+      ? "Continue to details"
+      : mobileStep === "details"
+        ? "Review order"
+        : submitting
+          ? "Placing order..."
+          : "Place order";
+  const shippingOptionError = showError("shippingOptionId");
 
   return (
     <>
@@ -409,9 +550,58 @@ export function CheckoutForm() {
         </div>
       ) : null}
 
+      <div className="mb-5 rounded-lg border border-blush-300 bg-white p-3 lg:hidden">
+        <div className="mb-3 flex items-center justify-between gap-3 font-sans text-xs font-semibold text-ink">
+          <span>
+            Step {mobileStepIndex + 1} of {MOBILE_CHECKOUT_STEPS.length}
+          </span>
+          <span className="text-coral-600">{mobileStepLabel}</span>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {MOBILE_CHECKOUT_STEPS.map((step, index) => {
+            const active = step.id === mobileStep;
+            const complete = index < mobileStepIndex;
+            return (
+              <button
+                key={step.id}
+                type="button"
+                onClick={() => {
+                  if (index <= mobileStepIndex) goToMobileStep(step.id);
+                }}
+                disabled={index > mobileStepIndex}
+                aria-current={active ? "step" : undefined}
+                className={`flex min-w-0 items-center justify-center gap-1.5 rounded-md border px-2 py-2 font-sans text-[11px] font-semibold transition-colors ${
+                  active
+                    ? "border-coral-500 bg-coral-500 text-white"
+                    : complete
+                      ? "border-coral-200 bg-coral-50 text-coral-700"
+                      : "border-blush-300 bg-blush-50 text-ink-muted"
+                } disabled:opacity-70`}
+              >
+                <span
+                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] ${
+                    active
+                      ? "bg-white text-coral-600"
+                      : "bg-white text-ink-soft"
+                  }`}
+                >
+                  {index + 1}
+                </span>
+                <span className="truncate">{step.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="grid gap-8 lg:grid-cols-[1fr_380px] lg:gap-10">
-      <form className="space-y-8" onSubmit={(e) => e.preventDefault()}>
-        <section className="space-y-4">
+      <form
+        className="flex flex-col gap-8 lg:block lg:space-y-8"
+        onSubmit={(e) => e.preventDefault()}
+      >
+        <section
+          className={`${mobileStep === "details" ? "block" : "hidden"} space-y-4 lg:block`}
+        >
           <h2 className="font-display text-lg font-semibold text-ink">
             Contact
           </h2>
@@ -439,7 +629,9 @@ export function CheckoutForm() {
           />
         </section>
 
-        <section className="space-y-4">
+        <section
+          className={`${mobileStep === "details" ? "block" : "hidden"} space-y-4 lg:block`}
+        >
           <h2 className="font-display text-lg font-semibold text-ink">
             Shipping address
           </h2>
@@ -514,7 +706,9 @@ export function CheckoutForm() {
           </label>
         </section>
 
-        <section className="space-y-3">
+        <section
+          className={`${mobileStep === "details" ? "block" : "hidden"} space-y-3 lg:block`}
+        >
           <label className="flex items-center gap-2 font-sans text-sm text-ink">
             <input
               type="checkbox"
@@ -585,7 +779,9 @@ export function CheckoutForm() {
           )}
         </section>
 
-        <section className="space-y-3">
+        <section
+          className={`${mobileStep === "delivery" ? "block" : "hidden"} space-y-3 lg:block`}
+        >
           <h2 className="font-display text-lg font-semibold text-ink">
             Shipping method
           </h2>
@@ -665,10 +861,17 @@ export function CheckoutForm() {
               })}
             </div>
           )}
+          {shippingOptionError ? (
+            <p className="font-sans text-[11px] text-coral-700">
+              {shippingOptionError}
+            </p>
+          ) : null}
         </section>
 
         {showDeliveryDate && (
-          <section className="space-y-3">
+          <section
+            className={`${mobileStep === "delivery" ? "block" : "hidden"} space-y-3 lg:block`}
+          >
             <h2 className="font-display text-lg font-semibold text-ink">
               Preferred delivery date (optional)
             </h2>
@@ -698,7 +901,9 @@ export function CheckoutForm() {
           </section>
         )}
 
-        <section className="space-y-3">
+        <section
+          className={`${mobileStep === "delivery" ? "block" : "hidden"} space-y-3 lg:block`}
+        >
           <h2 className="font-display text-lg font-semibold text-ink">
             Payment method
           </h2>
@@ -756,7 +961,9 @@ export function CheckoutForm() {
           )}
         </section>
 
-        <section className="space-y-3">
+        <section
+          className={`${mobileStep === "details" ? "block" : "hidden"} space-y-3 lg:block`}
+        >
           <h2 className="font-display text-lg font-semibold text-ink">
             Order notes (optional)
           </h2>
@@ -771,7 +978,9 @@ export function CheckoutForm() {
         </section>
 
         {!customer && (
-          <section className="space-y-3">
+          <section
+            className={`${mobileStep === "details" ? "block" : "hidden"} space-y-3 lg:block`}
+          >
             <label className="flex items-start gap-2 font-sans text-sm text-ink">
               <input
                 type="checkbox"
@@ -800,30 +1009,119 @@ export function CheckoutForm() {
           </section>
         )}
 
-        <div className="lg:hidden">{loyaltyBox}</div>
+        <section
+          className={`${mobileStep === "review" ? "block" : "hidden"} space-y-3 lg:hidden`}
+        >
+          <h2 className="font-display text-lg font-semibold text-ink">
+            Review details
+          </h2>
+          <div className="divide-y divide-blush-100 rounded-lg border border-blush-300 bg-white">
+            <div className="p-4">
+              <div className="mb-1 flex items-center justify-between gap-3">
+                <p className="font-sans text-[11px] font-bold uppercase tracking-[0.14em] text-coral-600">
+                  Delivery
+                </p>
+                <button
+                  type="button"
+                  onClick={() => goToMobileStep("delivery")}
+                  className="font-sans text-xs font-semibold text-coral-700"
+                >
+                  Edit
+                </button>
+              </div>
+              <p className="font-sans text-sm font-semibold text-ink">
+                {selectedDeliveryLabel}
+              </p>
+              {reviewDate ? (
+                <p className="mt-1 font-sans text-xs text-ink-muted">
+                  Preferred date: {reviewDate}
+                </p>
+              ) : null}
+            </div>
+            <div className="p-4">
+              <div className="mb-1 flex items-center justify-between gap-3">
+                <p className="font-sans text-[11px] font-bold uppercase tracking-[0.14em] text-coral-600">
+                  Payment
+                </p>
+                <button
+                  type="button"
+                  onClick={() => goToMobileStep("delivery")}
+                  className="font-sans text-xs font-semibold text-coral-700"
+                >
+                  Edit
+                </button>
+              </div>
+              <p className="font-sans text-sm font-semibold text-ink">
+                {selectedPaymentLabel}
+              </p>
+            </div>
+            <div className="p-4">
+              <div className="mb-1 flex items-center justify-between gap-3">
+                <p className="font-sans text-[11px] font-bold uppercase tracking-[0.14em] text-coral-600">
+                  Details
+                </p>
+                <button
+                  type="button"
+                  onClick={() => goToMobileStep("details")}
+                  className="font-sans text-xs font-semibold text-coral-700"
+                >
+                  Edit
+                </button>
+              </div>
+              <p className="font-sans text-sm font-semibold text-ink">
+                {reviewName}
+              </p>
+              <p className="mt-1 font-sans text-xs text-ink-muted">
+                {state.phone}
+              </p>
+              <p className="mt-1 font-sans text-xs text-ink-muted">
+                {reviewAddress}
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <div className={`${mobileStep === "review" ? "block" : "hidden"} lg:hidden`}>
+          {loyaltyBox}
+        </div>
         <div aria-hidden className="h-24 lg:hidden" />
         <div className="fixed inset-x-0 bottom-0 z-[90] border-t border-blush-300 bg-white/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(26,18,18,0.08)] backdrop-blur lg:hidden">
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={submitting}
-            className="flex w-full items-center justify-between gap-3 rounded-md bg-coral-500 px-4 py-3 font-sans text-sm font-semibold text-white shadow-lg transition-colors hover:bg-coral-700 disabled:opacity-60"
-          >
-            {submitting ? "Placing order..." : "Place Order"}
-            <span className="shrink-0">{ctaTotalLabel}</span>
-          </button>
+          <div className="flex gap-2">
+            {mobileStep !== "delivery" ? (
+              <button
+                type="button"
+                onClick={goBackMobileStep}
+                disabled={submitting}
+                className="flex h-12 w-24 shrink-0 items-center justify-center gap-1 rounded-md border border-blush-300 bg-white font-sans text-sm font-semibold text-ink transition-colors hover:border-coral-500 disabled:opacity-60"
+              >
+                <ChevronLeft aria-hidden className="h-4 w-4" />
+                Back
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={handleMobilePrimaryAction}
+              disabled={submitting}
+              className="flex h-12 min-w-0 flex-1 items-center justify-between gap-3 rounded-md bg-coral-500 px-4 font-sans text-sm font-semibold text-white shadow-lg transition-colors hover:bg-coral-700 disabled:opacity-60"
+            >
+              <span className="truncate">{mobilePrimaryLabel}</span>
+              <span className="shrink-0">{ctaTotalLabel}</span>
+            </button>
+          </div>
         </div>
       </form>
 
-      <OrderSummary
-        cart={cart}
-        submitting={submitting}
-        onSubmit={handleSubmit}
-        loyaltySlot={<div className="hidden lg:block">{loyaltyBox}</div>}
-        selectedShippingOption={
-          shippingOptions.find((o) => o.id === state.shippingOptionId) ?? null
-        }
-      />
+      <div className={`${mobileStep === "review" ? "block" : "hidden"} lg:block`}>
+        <OrderSummary
+          cart={cart}
+          submitting={submitting}
+          onSubmit={handleSubmit}
+          loyaltySlot={<div className="hidden lg:block">{loyaltyBox}</div>}
+          selectedShippingOption={
+            shippingOptions.find((o) => o.id === state.shippingOptionId) ?? null
+          }
+        />
+      </div>
       </div>
     </>
   );
