@@ -9,6 +9,7 @@ import { salesOfMonthConfig } from "@/lib/sales-of-month";
 import { sanitizeRichText } from "@/lib/sanitize-html";
 import { NewArrivalsRail } from "@/components/home/NewArrivalsRail";
 import { LoyaltyTeaser } from "@/components/home/LoyaltyTeaser";
+import { MysteryBoxTeaser } from "@/components/home/MysteryBoxTeaser";
 import { InstagramMosaic } from "@/components/home/InstagramMosaic";
 import { BabeEssentials } from "@/components/home/BabeEssentials";
 import {
@@ -57,6 +58,7 @@ export default function HomePage() {
       <Suspense fallback={<EssentialsSkeleton />}>
         <BabeEssentialsSection />
       </Suspense>
+      <MysteryBoxTeaser />
       <LoyaltyTeaser />
       <Suspense fallback={<InstagramSkeleton />}>
         <InstagramMosaic />
