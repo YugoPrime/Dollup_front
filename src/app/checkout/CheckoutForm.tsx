@@ -15,7 +15,7 @@ import type { HttpTypes } from "@medusajs/types";
 import { useCart } from "@/components/cart/CartProvider";
 import { LoyaltyRedeemBox } from "@/components/checkout/LoyaltyRedeemBox";
 import { clientSdk } from "@/lib/cart-client";
-import { refreshCustomer, useCustomer } from "@/lib/auth-client";
+import { register, useCustomer } from "@/lib/auth-client";
 import { formatPrice } from "@/lib/format";
 import { readLoyaltyRedeemMetadata } from "@/lib/loyalty-client";
 import { OrderSummary } from "./OrderSummary";
@@ -395,22 +395,24 @@ export function CheckoutForm() {
       // never appear under /account/orders.
       if (!customer && state.createAccount && state.password) {
         try {
-          await clientSdk.auth.register("customer", "emailpass", {
+          // Use the auth-client `register` helper — it carries the SDK-session
+          // workaround (auth.register in session mode writes JWT to localStorage
+          // instead of converting it to an httpOnly cookie, so the very next
+          // request 401s and customer.create silently fails). Inlining the
+          // SDK calls here was the bug: order completed as guest, no
+          // customer.created event, no welcome email, orphaned auth identity.
+          await register({
             email: state.email,
             password: state.password,
-          });
-          await clientSdk.store.customer.create({
-            email: state.email,
-            first_name: state.firstName,
-            last_name: state.lastName,
+            firstName: state.firstName,
+            lastName: state.lastName,
             phone: state.phone,
           });
           // Bind the in-flight cart to the new customer so the order inherits
-          // the right customer_id at cart.complete.
+          // the right customer_id at cart.complete. transferCart inside
+          // register() targets the localStorage cart id; this explicit call
+          // covers the current cart in case it diverged.
           await clientSdk.store.cart.transferCart(cart.id);
-          // Refresh in-memory auth so the header avatar updates immediately
-          // on /checkout/success.
-          await refreshCustomer();
         } catch (e) {
           // Most common failure: email already registered. Don't block the
           // order — it still completes as guest. (User can claim it later

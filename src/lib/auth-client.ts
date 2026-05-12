@@ -79,7 +79,23 @@ export async function login(email: string, password: string): Promise<Customer> 
   if (typeof result !== "string") {
     throw new Error("Multi-step authentication is not supported.");
   }
-  const customer = await fetchCustomer();
+  let customer = await fetchCustomer();
+  if (!customer) {
+    // Repair path for orphaned auth identities: a prior checkout that ticked
+    // "create account" may have created the auth identity but failed to create
+    // the customer record. Login here succeeds against auth, but
+    // /store/customers/me returns null. Create the missing customer now so
+    // the user isn't permanently locked out. Mirrors the first-time Google
+    // OAuth fallback below.
+    try {
+      const { customer: created } = await clientSdk.store.customer.create({
+        email,
+      });
+      customer = created ?? null;
+    } catch {
+      // Couldn't repair — fall through to the original error.
+    }
+  }
   if (!customer) {
     throw new Error("Logged in, but customer profile could not be loaded.");
   }
