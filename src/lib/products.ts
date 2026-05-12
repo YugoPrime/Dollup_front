@@ -35,6 +35,9 @@ export type ListProductsArgs = {
   // sort by computed `calculated_price` reliably, so when this is set we
   // page through results and re-sort.
   sortPrice?: "asc" | "desc";
+  // When true, do not strip `metadata.unlisted` products. Used by the
+  // private-unlock catalog. Defaults to false.
+  unlocked?: boolean;
 };
 
 export async function listProducts(args: ListProductsArgs = {}) {
@@ -49,43 +52,48 @@ const cachedListProducts = unstable_cache(
 
 async function listProductsUncached(args: ListProductsArgs = {}) {
   const region = await getRegion();
-  const limit = args.limit ?? 24;
-  const offset = args.offset ?? 0;
 
-  const baseQuery: HttpTypes.StoreProductListParams = {
-    limit,
-    offset,
-    region_id: region.id,
-    fields: PRODUCT_LIST_FIELDS,
-  };
-  if (args.q) baseQuery.q = args.q;
-  if (args.category) {
-    baseQuery.category_id = Array.isArray(args.category) ? args.category : [args.category];
-  }
-  if (args.collection) baseQuery.collection_id = [args.collection];
-  if (args.tag) baseQuery.tag_id = [args.tag];
-  if (args.order) baseQuery.order = args.order;
-
-  // Any of these facet filters require fetching a wider pool and filtering
-  // in memory — Store API doesn't expose the equivalents.
-  const needsClientFilter =
-    args.onSale ||
-    args.size ||
-    args.color ||
-    args.priceMin != null ||
-    args.priceMax != null ||
-    args.sortPrice;
-
-  if (needsClientFilter) {
-    return listWithFacetFilters(args, region);
-  }
-
-  if (args.q) {
+  // SKU/handle search keeps its own fast path so the parallel handle lookup
+  // (parent-SKU shortcut) still works. q-only callers don't paginate deep
+  // enough for the unlisted-after-slice bug to matter; the shop page's
+  // post-filter strips unlisted from search results anyway.
+  if (
+    args.q &&
+    !args.onSale &&
+    !args.size &&
+    !args.color &&
+    args.priceMin == null &&
+    args.priceMax == null &&
+    !args.sortPrice
+  ) {
+    const limit = args.limit ?? 24;
+    const offset = args.offset ?? 0;
+    const baseQuery: HttpTypes.StoreProductListParams = {
+      limit,
+      offset,
+      region_id: region.id,
+      fields: PRODUCT_LIST_FIELDS,
+      q: args.q,
+    };
+    if (args.category) {
+      baseQuery.category_id = Array.isArray(args.category)
+        ? args.category
+        : [args.category];
+    }
+    if (args.collection) baseQuery.collection_id = [args.collection];
+    if (args.tag) baseQuery.tag_id = [args.tag];
+    if (args.order) baseQuery.order = args.order;
     return listWithSkuFallback(args, region, baseQuery);
   }
 
-  const { products, count } = await sdk.store.product.list(baseQuery);
-  return { products, count, region };
+  // Everything else routes through the wide-fetch path so we can strip
+  // `metadata.unlisted` BEFORE slicing to the page window. Without this,
+  // a category with many hidden products (e.g. Intimates, where >50% have
+  // `unlisted=true`) shows fewer rows than the per-page limit. See the
+  // bug fixed in 2026-05-12: only 10 of 15 public Intimates products
+  // reached the grid because the Store API returned the unlisted ones
+  // first by -created_at.
+  return listWithFacetFilters(args, region);
 }
 
 function normalizeListProductArgs(args: ListProductsArgs): ListProductsArgs {
@@ -105,6 +113,7 @@ function normalizeListProductArgs(args: ListProductsArgs): ListProductsArgs {
     priceMin: args.priceMin,
     priceMax: args.priceMax,
     sortPrice: args.sortPrice,
+    unlocked: args.unlocked,
   };
 }
 
@@ -177,6 +186,17 @@ async function listWithFacetFilters(
   }
 
   let filtered = all;
+
+  // Strip `metadata.unlisted=true` BEFORE pagination slicing so categories
+  // with many hidden products still return a full per-page window of public
+  // products. The private-unlock catalog passes `unlocked: true` to retain
+  // them.
+  if (!args.unlocked) {
+    filtered = filtered.filter(
+      (p) =>
+        !isUnlisted(p as unknown as { metadata?: unknown }),
+    );
+  }
 
   if (args.onSale) {
     filtered = filtered.filter((p) =>

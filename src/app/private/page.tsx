@@ -35,7 +35,7 @@ export default async function PrivateCatalogPage() {
       intimatesCategory.id,
       allCategories,
     );
-    const res = await listProducts({ category: ids, limit: 100 }).catch(() => ({
+    const res = await listProducts({ category: ids, limit: 100, unlocked: true }).catch(() => ({
       products: [],
       count: 0,
       region: null,
@@ -45,7 +45,9 @@ export default async function PrivateCatalogPage() {
 
   // Sweep for `metadata.unlisted` items anywhere else in the catalog —
   // escape hatch so admin can mark any product unlisted without moving it.
-  const allRes = await listProducts({ limit: 200, order: "-created_at" }).catch(
+  // `unlocked: true` keeps unlisted items in the result set; without it
+  // `listProducts` strips them by default.
+  const allRes = await listProducts({ limit: 200, order: "-created_at", unlocked: true }).catch(
     () => ({ products: [], count: 0, region: null }),
   );
   const otherUnlisted = allRes.products.filter(
