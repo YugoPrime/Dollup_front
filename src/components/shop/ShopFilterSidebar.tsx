@@ -59,11 +59,11 @@ export function ShopFilterSidebar({
   };
   const clearAll = () => router.push("/shop");
 
-  // Build a top-level + subcategory tree (excluding hidden roots and the
-  // wrapper "Women" parent that holds everything).
+  // Build a top-level + subcategory tree. "Women" is treated as a wrapper:
+  // its children get elevated to top-level (Clothing, Accessories, Beachwear).
+  // Any OTHER top-level categories (Intimates, etc.) are kept alongside them
+  // — without this they'd be invisible whenever "Women" has children.
   const visible = useMemo(() => {
-    const womenId = categories.find((c) => c.handle === "women")?.id;
-    void womenId; // not used directly; we filter by handle membership instead
     const tree: { root: RawCategory; children: RawCategory[] }[] = [];
     const childrenByParent = new Map<string | null, RawCategory[]>();
     for (const c of categories) {
@@ -72,15 +72,18 @@ export function ShopFilterSidebar({
       arr.push(c);
       childrenByParent.set(p, arr);
     }
-    // Roots: parent_category_id is the "Women" id OR null. We elevate the children
-    // of "Women" to top-level (Accessories, Beachwear, Clothing).
-    const womenChildren = categories.filter((c) => {
-      const parent = categories.find((p) => p.handle === "women");
-      return parent != null && c.parent_category_id === parent.id;
-    });
-    const topLevel = (womenChildren.length ? womenChildren : categories.filter((c) => !c.parent_category_id))
+
+    const women = categories.find((c) => c.handle === "women");
+    const womenChildren = women
+      ? categories.filter((c) => c.parent_category_id === women.id)
+      : [];
+    const otherTopLevel = categories.filter(
+      (c) => !c.parent_category_id && c.id !== women?.id,
+    );
+    const topLevel = [...womenChildren, ...otherTopLevel]
       .filter((c) => !HIDDEN_HANDLES.has(c.handle))
       .sort((a, b) => a.name.localeCompare(b.name));
+
     for (const root of topLevel) {
       const kids = childrenByParent.get(root.id) ?? [];
       tree.push({ root, children: kids.sort((a, b) => a.name.localeCompare(b.name)) });

@@ -152,6 +152,11 @@ export default async function ShopPage({
         : "Sale"
       : matchedCategory?.name ?? (tagValue ? `${tagValue} edit` : "All products");
 
+  // Cross-sell strip: when a customer is browsing Lingerie, surface a soft
+  // "spice up your love life" link into the Intimates catalog. The handle
+  // check is case-sensitive against Medusa's slug ("lingerie").
+  const showIntimatesTeaser = matchedCategory?.handle === "lingerie";
+
   return (
     <div>
       <script
@@ -166,6 +171,36 @@ export default async function ShopPage({
           ),
         }}
       />
+      {showIntimatesTeaser ? (
+        <Link
+          href="/shop?category=intimates"
+          className="group block border-b border-blush-100 bg-gradient-to-r from-coral-500 via-coral-700 to-ink px-4 py-3 text-white transition hover:from-ink hover:via-coral-700 hover:to-coral-500 md:px-8 md:py-4"
+        >
+          <div className="mx-auto flex max-w-[1280px] items-center justify-between gap-4">
+            <div>
+              <p className="font-sans text-[10px] font-bold uppercase tracking-[0.22em] text-white/80">
+                Feeling bold?
+              </p>
+              <p className="mt-0.5 font-display text-[18px] leading-tight md:text-[22px]">
+                Spice up your love life{" "}
+                <em
+                  className="not-italic text-blush-100"
+                  style={{ fontStyle: "italic" }}
+                >
+                  — explore Intimates
+                </em>
+              </p>
+            </div>
+            <span
+              aria-hidden
+              className="font-sans text-[20px] transition-transform group-hover:translate-x-1 md:text-[24px]"
+            >
+              →
+            </span>
+          </div>
+        </Link>
+      ) : null}
+
       <div className="border-b border-blush-100 bg-white px-4 py-4 md:flex md:items-end md:justify-between md:px-8 md:py-6">
         <div>
           <p className="font-sans text-[10px] font-bold uppercase tracking-[0.14em] text-ink-muted">
