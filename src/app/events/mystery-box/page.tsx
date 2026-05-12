@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { Gift, Heart, RotateCcw, ShoppingBag, Tag, Target } from "lucide-react";
+import { Gift, Heart, ShoppingBag, Tag, Target } from "lucide-react";
 import { getRegion } from "@/lib/region";
 import { listInStockProductsForSize } from "@/lib/products";
 import type { CanonicalSize, MysteryBoxSlot } from "@/lib/mystery-box";
@@ -114,17 +114,6 @@ export default async function MysteryBoxPage() {
                       Premium quality
                     </span>
                     <span className="text-ink-muted">Handpicked pieces</span>
-                  </span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="flex h-7 w-7 flex-none items-center justify-center rounded-lg bg-white/85 text-coral-500 shadow-sm backdrop-blur">
-                    <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
-                  </span>
-                  <span className="leading-tight">
-                    <span className="block font-bold uppercase tracking-[0.12em] text-ink">
-                      Easy returns
-                    </span>
-                    <span className="text-ink-muted">Hassle-free</span>
                   </span>
                 </li>
               </ul>
