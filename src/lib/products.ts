@@ -14,8 +14,11 @@ export const PRODUCT_CATEGORIES_CACHE_TAG = "product-categories";
 const PRODUCT_LIST_FIELDS =
   "id,title,handle,thumbnail,metadata,updated_at,*variants,*variants.calculated_price,*variants.options,+variants.inventory_quantity,+variants.manage_inventory,*options,*options.values,*tags,*categories";
 
+// Medusa v2 strips any field not explicitly listed here — including base scalars
+// like title/handle/thumbnail. Omitting them breaks PDP h1, og:title, canonical,
+// JSON-LD, and the homepage Babe-essentials tiles (links resolve to /products/undefined).
 const PRODUCT_DETAIL_FIELDS =
-  "metadata,*variants,*variants.calculated_price,*variants.options,+variants.inventory_quantity,+variants.manage_inventory,*options,*options.values,*images,*tags,*collection,*categories";
+  "id,title,handle,thumbnail,description,subtitle,metadata,*variants,*variants.calculated_price,*variants.options,+variants.inventory_quantity,+variants.manage_inventory,*options,*options.values,*images,*tags,*collection,*categories";
 
 export type ListProductsArgs = {
   limit?: number;
