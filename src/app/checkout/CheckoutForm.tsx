@@ -201,7 +201,8 @@ export function CheckoutForm() {
     selectedOption?.name ?? null,
   );
   const showDeliveryDate = deliveryDateApplies(selectedMethod);
-  const minDeliveryDate = earliestDeliveryDate();
+  const isPickup = selectedMethod === "Pick Up";
+  const minDeliveryDate = earliestDeliveryDate(new Date(), isPickup);
   const allowedPayments = allowedPaymentMethods(selectedMethod);
 
   // Clear the delivery date when the selected shipping option is not
@@ -361,7 +362,7 @@ export function CheckoutForm() {
     const dateToSend =
       showDeliveryDate &&
       state.deliveryDate &&
-      isValidDeliveryDate(state.deliveryDate)
+      isValidDeliveryDate(state.deliveryDate, new Date(), isPickup)
         ? state.deliveryDate
         : null;
     const metadataPatch: Record<string, unknown> = {
@@ -518,7 +519,8 @@ export function CheckoutForm() {
     [state.address1, state.address2, state.city].filter(Boolean).join(", ") ||
     "No address entered";
   const reviewDate =
-    state.deliveryDate && isValidDeliveryDate(state.deliveryDate)
+    state.deliveryDate &&
+    isValidDeliveryDate(state.deliveryDate, new Date(), isPickup)
       ? new Intl.DateTimeFormat("en-MU", {
           day: "numeric",
           month: "short",
@@ -689,14 +691,14 @@ export function CheckoutForm() {
             className={`${mobileStep === "delivery" ? "block" : "hidden"} space-y-3 lg:block`}
           >
             <h2 className="font-display text-lg font-semibold text-ink">
-              Preferred delivery date (optional)
+              {isPickup
+                ? "Preferred Pick Up Date (optional)"
+                : "Preferred delivery date (optional)"}
             </h2>
             <p className="font-sans text-xs text-ink-muted">
-              {selectedMethod === "Pick Up"
-                ? "Choose your pickup date."
-                : "Choose your delivery date."}{" "}
-              No same-day delivery. For next-day delivery, order before 1pm the
-              day before. No deliveries on Sundays.
+              {isPickup
+                ? "Choose your pickup date. Same-day pickup is possible. No pickups on Sundays."
+                : "Choose your delivery date. No same-day delivery. For next-day delivery, order before 1pm the day before. No deliveries on Sundays."}
             </p>
             <input
               type="date"
@@ -707,11 +709,11 @@ export function CheckoutForm() {
               className="w-full rounded-md border-[1.5px] border-blush-400 bg-white px-3 py-2.5 font-sans text-sm text-ink outline-none focus:border-coral-500 sm:w-auto"
             />
             {state.deliveryDate &&
-              !isValidDeliveryDate(state.deliveryDate) && (
+              !isValidDeliveryDate(state.deliveryDate, new Date(), isPickup) && (
                 <p className="font-sans text-[11px] text-coral-700">
-                  That date is not available. Please pick another date: no
-                  same-day delivery, next-day cutoff is 1pm the day before, and
-                  no Sundays.
+                  {isPickup
+                    ? "That date is not available — pickups are not offered on Sundays."
+                    : "That date is not available. Please pick another date: no same-day delivery, next-day cutoff is 1pm the day before, and no Sundays."}
                 </p>
               )}
           </section>

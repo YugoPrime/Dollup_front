@@ -123,27 +123,32 @@ function addDaysYmd(ymd: string, days: number): string {
   return fmtYmd(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate());
 }
 
-// Earliest delivery date the customer can pick. Rules:
-//  - No same-day delivery.
-//  - Next-day delivery is available only when the order is placed before
-//    13:00 MU time on the day before delivery.
-//  - No Sundays (dow === 0). Push to Monday.
-export function earliestDeliveryDate(now: Date = new Date()): string {
+// Earliest date the customer can pick. Rules:
+//  - Default (delivery): no same-day, next-day only when ordered before
+//    13:00 MU time, no Sundays.
+//  - allowSameDay (pickup): today is fine, no Sundays (push to Monday).
+export function earliestDeliveryDate(
+  now: Date = new Date(),
+  allowSameDay = false,
+): string {
   const { year, month, day, hour } = muDateParts(now);
   const todayYmd = fmtYmd(year, month, day);
-  let candidate = addDaysYmd(todayYmd, hour < 13 ? 1 : 2);
+  let candidate = allowSameDay
+    ? todayYmd
+    : addDaysYmd(todayYmd, hour < 13 ? 1 : 2);
   if (dowOfYmd(candidate) === 0) candidate = addDaysYmd(candidate, 1);
   return candidate;
 }
 
-// True when the given yyyy-mm-dd is a valid delivery date right now.
+// True when the given yyyy-mm-dd is a valid delivery / pickup date right now.
 export function isValidDeliveryDate(
   ymd: string,
   now: Date = new Date(),
+  allowSameDay = false,
 ): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return false;
   if (dowOfYmd(ymd) === 0) return false;
-  return ymd >= earliestDeliveryDate(now);
+  return ymd >= earliestDeliveryDate(now, allowSameDay);
 }
 
 export const VAT_RATE_PERCENT = 15;
