@@ -218,13 +218,18 @@ export function trackPurchase(order: HttpTypes.StoreOrder): string {
 
 // Send the Purchase event to /api/meta-capi for server-to-server delivery.
 // Returns silently — failures are logged on the server. The route is a no-op
-// when META_CAPI_ACCESS_TOKEN / NEXT_PUBLIC_META_PIXEL_ID aren't set, so this
-// can be called unconditionally.
+// when META_CAPI_ACCESS_TOKEN / NEXT_PUBLIC_META_PIXEL_ID aren't set.
+//
+// Consent gate: CAPI forwards hashed PII (email, phone, name, address) to
+// Meta. We only fire when the user has explicitly accepted consent — neither
+// a rejected choice nor a missing choice qualifies. This keeps the server
+// path aligned with the gtag/fbq consent state managed in applyConsent().
 export async function sendCapiPurchase(
   order: HttpTypes.StoreOrder,
   eventId: string,
 ) {
   if (typeof window === "undefined") return;
+  if (readConsent() !== "accepted") return;
   const currency = order.currency_code ?? CURRENCY_FALLBACK;
   const items = order.items ?? [];
   const ship = order.shipping_address ?? null;

@@ -67,6 +67,7 @@ export function HeroBento({ products }: { products: Product[] }) {
                 : "(max-width: 768px) 30vw, 12vw"
             }
             className="object-cover object-top"
+            priority={key === "feature" || key === "s0"}
             placeholder="blur"
             blurDataURL={tileBlur(key)}
           />

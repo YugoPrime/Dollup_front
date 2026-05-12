@@ -65,8 +65,9 @@ function CheckoutSuccessInner() {
         if (order && purchaseFiredRef.current !== order.id) {
           purchaseFiredRef.current = order.id;
           const eventId = trackPurchase(order);
-          // Best-effort server-side conversion. /api/meta-capi 204s when not
-          // configured, so this is safe to fire unconditionally.
+          // Best-effort server-side conversion. sendCapiPurchase() internally
+          // gates on user consent (rejects + missing choice both no-op) so the
+          // caller does not need to feature-detect.
           void sendCapiPurchase(order, eventId);
         }
       } catch {

@@ -36,7 +36,7 @@ export default function TermsPage() {
           {/* 1. Preamble */}
           <Section number="1" title="Preamble">
             <p>
-              We are pleased to welcome you to our website <strong>shop.dollupboutique.com</strong> (hereafter referred as the &ldquo;Site&rdquo;).
+              We are pleased to welcome you to our website <strong>dollupboutique.com</strong> (hereafter referred as the &ldquo;Site&rdquo;).
             </p>
             <p>
               These conditions are concluded between, on one hand, <strong>Doll Up Boutique Limited</strong> under the BRN <strong>C18159019</strong>, VAT registration <strong>27646277</strong>, and located in Quatre Bornes, Mauritius (hereafter referred as &ldquo;Doll Up Boutique&rdquo;) and, on the other hand, customers wishing to make a purchase via the website (hereafter referred as &ldquo;User&rdquo;).
@@ -152,7 +152,7 @@ export default function TermsPage() {
 
           {/* 11. Liability */}
           <Section number="11" title="Liability">
-            <p>Doll Up Boutique is committed to accurately describing the products sold on shop.dollupboutique.com.</p>
+            <p>Doll Up Boutique is committed to accurately describing the products sold on dollupboutique.com.</p>
             <p>Doll Up Boutique&apos;s liability cannot be incurred in the event that its non-performance of obligations is attributable either to the unpredictable and insurmountable fact of a third party to the contract or to a case of force majeure.</p>
             <p>Doll Up Boutique cannot be held responsible for the breach of contract concluded in the event of a product out of stock or unavailability, of force majeure, or of issues with means of transport and/or communications. Doll Up Boutique will not incur any liability for indirect damages such as loss of operations, loss of profit, loss of chance, or other costs.</p>
             <p>Similarly, Doll Up Boutique cannot be held liable for any inconvenience or damage inherent in the use of the Internet, including service disruption, external intrusion or the presence of computer viruses.</p>
