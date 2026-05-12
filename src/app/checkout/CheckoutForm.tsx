@@ -778,11 +778,9 @@ export function CheckoutForm() {
           {selectedMethod === "Pick Up" ? (
             <div className="rounded-lg border border-blush-100 bg-cream/60 p-4 font-sans text-sm text-ink-soft">
               <p className="mb-1 font-semibold text-ink">
-                Pick up from our Pereybere shop
+                Pick up in Pereybere
               </p>
-              <p>
-                Royal Road, Pereybere — next to the public beach. Mon–Sat, 10:00–18:00. We'll let you know when your order is ready.
-              </p>
+              <p>Location & Times will be confirmed.</p>
             </div>
           ) : (
             <>
