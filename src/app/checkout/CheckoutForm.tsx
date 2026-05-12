@@ -512,10 +512,6 @@ export function CheckoutForm() {
     MOBILE_CHECKOUT_STEPS[mobileStepIndex]?.label ?? "Delivery";
   const selectedDeliveryLabel =
     selectedOption?.name ?? "Delivery not selected";
-  const selectedPaymentLabel =
-    state.paymentMethod === "Cash"
-      ? "Cash on Delivery"
-      : "Juice / Bank Transfer";
   const reviewName =
     `${state.firstName} ${state.lastName}`.trim() || "No name entered";
   const reviewAddress =
@@ -599,6 +595,128 @@ export function CheckoutForm() {
         className="flex flex-col gap-8 lg:block lg:space-y-8"
         onSubmit={(e) => e.preventDefault()}
       >
+        <section
+          className={`${mobileStep === "delivery" ? "block" : "hidden"} space-y-3 lg:block`}
+        >
+          <h2 className="font-display text-lg font-semibold text-ink">
+            Shipping method
+          </h2>
+          {shippingOptions.length === 0 ? (
+            <p className="font-sans text-sm text-ink-muted">
+              Loading shipping options…
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {shippingOptions.map((opt) => {
+                const label = opt.name ?? "";
+                const method = shippingOptionToDeliveryMethod(label);
+                const ShippingIcon =
+                  method === "Pick Up"
+                    ? Store
+                    : method === "Postage" ||
+                        method === "Express Postage" ||
+                        method === "Rodrigues Postage"
+                      ? Mail
+                      : Truck;
+                const hint =
+                  method === "Pick Up"
+                    ? "Collect from Doll Up Boutique."
+                    : method === "Postage"
+                      ? "Registered post across Mauritius."
+                      : method === "Express Postage"
+                        ? "Faster courier dispatch."
+                        : method === "Rodrigues Postage"
+                          ? "Postal delivery to Rodrigues."
+                          : "Door-to-door delivery in Mauritius.";
+                const free =
+                  opt.amount === 0 ||
+                  qualifiesForFreeHomeDelivery(
+                    opt.name ?? "",
+                    cart.item_total ?? cart.subtotal ?? 0,
+                  );
+                return (
+                  <label
+                    key={opt.id}
+                    className={`flex cursor-pointer items-start justify-between gap-3 rounded-md border-[1.5px] px-4 py-3 transition-colors ${
+                      state.shippingOptionId === opt.id
+                        ? "border-coral-500 bg-blush-100"
+                        : "border-blush-400 bg-white hover:border-coral-500"
+                    }`}
+                  >
+                    <span className="flex min-w-0 items-start gap-3">
+                      <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-coral-500/10 text-coral-700">
+                        <ShippingIcon aria-hidden className="h-4 w-4" />
+                      </span>
+                      <input
+                        type="radio"
+                        name="shippingOption"
+                        checked={state.shippingOptionId === opt.id}
+                        onChange={() => set("shippingOptionId", opt.id)}
+                        className="mt-2 h-4 w-4 accent-coral-500"
+                      />
+                      <span className="min-w-0">
+                        <span className="block break-words font-sans text-sm font-medium text-ink">
+                          {label}
+                        </span>
+                        <span className="mt-0.5 block font-sans text-[11px] text-ink-muted">
+                          {hint}
+                        </span>
+                      </span>
+                    </span>
+                    <span className="shrink-0 pt-2 font-sans text-sm font-semibold text-ink">
+                      {free
+                        ? "Free"
+                        : new Intl.NumberFormat("en-MU", {
+                            style: "currency",
+                            currency: cart.currency_code ?? "MUR",
+                            minimumFractionDigits: 0,
+                          }).format(opt.amount ?? 0)}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+          {shippingOptionError ? (
+            <p className="font-sans text-[11px] text-coral-700">
+              {shippingOptionError}
+            </p>
+          ) : null}
+        </section>
+
+        {showDeliveryDate && (
+          <section
+            className={`${mobileStep === "delivery" ? "block" : "hidden"} space-y-3 lg:block`}
+          >
+            <h2 className="font-display text-lg font-semibold text-ink">
+              Preferred delivery date (optional)
+            </h2>
+            <p className="font-sans text-xs text-ink-muted">
+              {selectedMethod === "Pick Up"
+                ? "Choose your pickup date."
+                : "Choose your delivery date."}{" "}
+              No same-day delivery. For next-day delivery, order before 1pm the
+              day before. No deliveries on Sundays.
+            </p>
+            <input
+              type="date"
+              name="deliveryDate"
+              value={state.deliveryDate}
+              min={minDeliveryDate}
+              onChange={(e) => set("deliveryDate", e.target.value)}
+              className="w-full rounded-md border-[1.5px] border-blush-400 bg-white px-3 py-2.5 font-sans text-sm text-ink outline-none focus:border-coral-500 sm:w-auto"
+            />
+            {state.deliveryDate &&
+              !isValidDeliveryDate(state.deliveryDate) && (
+                <p className="font-sans text-[11px] text-coral-700">
+                  That date is not available. Please pick another date: no
+                  same-day delivery, next-day cutoff is 1pm the day before, and
+                  no Sundays.
+                </p>
+              )}
+          </section>
+        )}
+
         <section
           className={`${mobileStep === "details" ? "block" : "hidden"} space-y-4 lg:block`}
         >
@@ -793,129 +911,7 @@ export function CheckoutForm() {
         </section>
 
         <section
-          className={`${mobileStep === "delivery" ? "block" : "hidden"} space-y-3 lg:block`}
-        >
-          <h2 className="font-display text-lg font-semibold text-ink">
-            Shipping method
-          </h2>
-          {shippingOptions.length === 0 ? (
-            <p className="font-sans text-sm text-ink-muted">
-              Loading shipping options…
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {shippingOptions.map((opt) => {
-                const label = opt.name ?? "";
-                const method = shippingOptionToDeliveryMethod(label);
-                const ShippingIcon =
-                  method === "Pick Up"
-                    ? Store
-                    : method === "Postage" ||
-                        method === "Express Postage" ||
-                        method === "Rodrigues Postage"
-                      ? Mail
-                      : Truck;
-                const hint =
-                  method === "Pick Up"
-                    ? "Collect from Doll Up Boutique."
-                    : method === "Postage"
-                      ? "Registered post across Mauritius."
-                      : method === "Express Postage"
-                        ? "Faster courier dispatch."
-                        : method === "Rodrigues Postage"
-                          ? "Postal delivery to Rodrigues."
-                          : "Door-to-door delivery in Mauritius.";
-                const free =
-                  opt.amount === 0 ||
-                  qualifiesForFreeHomeDelivery(
-                    opt.name ?? "",
-                    cart.item_total ?? cart.subtotal ?? 0,
-                  );
-                return (
-                  <label
-                    key={opt.id}
-                    className={`flex cursor-pointer items-start justify-between gap-3 rounded-md border-[1.5px] px-4 py-3 transition-colors ${
-                      state.shippingOptionId === opt.id
-                        ? "border-coral-500 bg-blush-100"
-                        : "border-blush-400 bg-white hover:border-coral-500"
-                    }`}
-                  >
-                    <span className="flex min-w-0 items-start gap-3">
-                      <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-coral-500/10 text-coral-700">
-                        <ShippingIcon aria-hidden className="h-4 w-4" />
-                      </span>
-                      <input
-                        type="radio"
-                        name="shippingOption"
-                        checked={state.shippingOptionId === opt.id}
-                        onChange={() => set("shippingOptionId", opt.id)}
-                        className="mt-2 h-4 w-4 accent-coral-500"
-                      />
-                      <span className="min-w-0">
-                        <span className="block break-words font-sans text-sm font-medium text-ink">
-                          {label}
-                        </span>
-                        <span className="mt-0.5 block font-sans text-[11px] text-ink-muted">
-                          {hint}
-                        </span>
-                      </span>
-                    </span>
-                    <span className="shrink-0 pt-2 font-sans text-sm font-semibold text-ink">
-                      {free
-                        ? "Free"
-                        : new Intl.NumberFormat("en-MU", {
-                            style: "currency",
-                            currency: cart.currency_code ?? "MUR",
-                            minimumFractionDigits: 0,
-                          }).format(opt.amount ?? 0)}
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-          )}
-          {shippingOptionError ? (
-            <p className="font-sans text-[11px] text-coral-700">
-              {shippingOptionError}
-            </p>
-          ) : null}
-        </section>
-
-        {showDeliveryDate && (
-          <section
-            className={`${mobileStep === "delivery" ? "block" : "hidden"} space-y-3 lg:block`}
-          >
-            <h2 className="font-display text-lg font-semibold text-ink">
-              Preferred delivery date (optional)
-            </h2>
-            <p className="font-sans text-xs text-ink-muted">
-              {selectedMethod === "Pick Up"
-                ? "Choose your pickup date."
-                : "Choose your delivery date."}{" "}
-              No same-day delivery. For next-day delivery, order before 1pm the
-              day before. No deliveries on Sundays.
-            </p>
-            <input
-              type="date"
-              name="deliveryDate"
-              value={state.deliveryDate}
-              min={minDeliveryDate}
-              onChange={(e) => set("deliveryDate", e.target.value)}
-              className="w-full rounded-md border-[1.5px] border-blush-400 bg-white px-3 py-2.5 font-sans text-sm text-ink outline-none focus:border-coral-500 sm:w-auto"
-            />
-            {state.deliveryDate &&
-              !isValidDeliveryDate(state.deliveryDate) && (
-                <p className="font-sans text-[11px] text-coral-700">
-                  That date is not available. Please pick another date: no
-                  same-day delivery, next-day cutoff is 1pm the day before, and
-                  no Sundays.
-                </p>
-              )}
-          </section>
-        )}
-
-        <section
-          className={`${mobileStep === "delivery" ? "block" : "hidden"} space-y-3 lg:block`}
+          className={`${mobileStep === "review" ? "block" : "hidden"} space-y-3 lg:block`}
         >
           <h2 className="font-display text-lg font-semibold text-ink">
             Payment method
@@ -1050,23 +1046,6 @@ export function CheckoutForm() {
                   Preferred date: {reviewDate}
                 </p>
               ) : null}
-            </div>
-            <div className="p-4">
-              <div className="mb-1 flex items-center justify-between gap-3">
-                <p className="font-sans text-[11px] font-bold uppercase tracking-[0.14em] text-coral-600">
-                  Payment
-                </p>
-                <button
-                  type="button"
-                  onClick={() => goToMobileStep("delivery")}
-                  className="font-sans text-xs font-semibold text-coral-700"
-                >
-                  Edit
-                </button>
-              </div>
-              <p className="font-sans text-sm font-semibold text-ink">
-                {selectedPaymentLabel}
-              </p>
             </div>
             <div className="p-4">
               <div className="mb-1 flex items-center justify-between gap-3">
