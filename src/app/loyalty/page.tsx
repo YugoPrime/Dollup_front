@@ -17,8 +17,8 @@ export const metadata: Metadata = {
 const PERKS = [
   {
     icon: "★",
-    title: "1 point per Rs 10",
-    body: "Every order earns you points automatically. Redeem on any future purchase — no minimum.",
+    title: "2 points per Rs 100",
+    body: "Every order earns you points automatically. Redeem from 150 points — 1 point = Rs 1 off.",
   },
   {
     icon: "♥",
@@ -51,12 +51,12 @@ const HOW_IT_WORKS = [
   {
     step: "02",
     title: "Earn on every order",
-    body: "Every Rs 10 you spend = 1 point. Points appear in your account within 48h of delivery.",
+    body: "Every Rs 100 you spend = 2 points. Points appear in your account the moment your order is placed.",
   },
   {
     step: "03",
     title: "Redeem at checkout",
-    body: "Use points as discount on any future order. 100 points = Rs 100 off.",
+    body: "Use points as discount on any future order, from 150 points. 1 point = Rs 1 off (capped at 50% of cart).",
   },
   {
     step: "04",

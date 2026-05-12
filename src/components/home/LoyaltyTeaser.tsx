@@ -6,7 +6,7 @@ import { useCustomer } from "@/lib/auth-client";
 import { getMyLoyalty, type LoyaltyAccount } from "@/lib/loyalty-client";
 
 const PERKS = [
-  { icon: "*", body: "Earn **1 point** per Rs 10 spent - redeem on any order." },
+  { icon: "*", body: "Earn **2 points** per Rs 100 - redeem from **150 pts**." },
   { icon: "H", body: "**Birthday surprise** every year on us." },
   { icon: "+", body: "**Priority support** - your DMs jump the queue." },
 ];
