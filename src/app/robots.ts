@@ -1,10 +1,34 @@
 import type { MetadataRoute } from "next";
 
-// Pre-launch: block all crawlers until the catalog is finalised.
-// To open the site for indexing, change rules to `{ userAgent: "*", allow: "/" }`
-// and remove the `disallow` from the layout metadata.
+const ALLOW_INDEXING = process.env.ALLOW_INDEXING === "true";
+
 export default function robots(): MetadataRoute.Robots {
+  if (!ALLOW_INDEXING) {
+    return {
+      rules: [{ userAgent: "*", disallow: ["/"] }],
+    };
+  }
+
   return {
-    rules: [{ userAgent: "*", disallow: ["/"] }],
+    rules: [
+      {
+        userAgent: "*",
+        allow: "/",
+        disallow: [
+          "/account",
+          "/api/",
+          "/auth/",
+          "/checkout",
+          "/forgot-password",
+          "/login",
+          "/private/",
+          "/register",
+          "/reset-password",
+          "/track-order",
+          "/wishlist",
+        ],
+      },
+    ],
+    sitemap: "https://dollupboutique.com/sitemap.xml",
   };
 }

@@ -117,13 +117,13 @@ export async function POST(req: NextRequest) {
     },
   };
 
-  const url = `https://graph.facebook.com/${META_GRAPH_VERSION}/${pixelId}/events?access_token=${encodeURIComponent(accessToken)}`;
+  const url = `https://graph.facebook.com/${META_GRAPH_VERSION}/${pixelId}/events`;
 
   try {
     const upstream = await fetch(url, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ data: [event] }),
+      body: JSON.stringify({ data: [event], access_token: accessToken }),
     });
     const text = await upstream.text();
     if (!upstream.ok) {

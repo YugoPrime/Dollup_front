@@ -12,7 +12,7 @@ export const PRODUCT_TAGS_CACHE_TAG = "product-tags";
 export const PRODUCT_CATEGORIES_CACHE_TAG = "product-categories";
 
 const PRODUCT_LIST_FIELDS =
-  "id,title,handle,thumbnail,metadata,*variants,*variants.calculated_price,*variants.options,+variants.inventory_quantity,+variants.manage_inventory,*options,*options.values,*tags,*categories";
+  "id,title,handle,thumbnail,metadata,updated_at,*variants,*variants.calculated_price,*variants.options,+variants.inventory_quantity,+variants.manage_inventory,*options,*options.values,*tags,*categories";
 
 const PRODUCT_DETAIL_FIELDS =
   "metadata,*variants,*variants.calculated_price,*variants.options,+variants.inventory_quantity,+variants.manage_inventory,*options,*options.values,*images,*tags,*collection,*categories";

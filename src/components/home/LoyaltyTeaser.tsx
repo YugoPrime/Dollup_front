@@ -1,9 +1,4 @@
-"use client";
-
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import { useCustomer } from "@/lib/auth-client";
-import { getMyLoyalty, type LoyaltyAccount } from "@/lib/loyalty-client";
+import { LoyaltyTeaserStatus } from "@/components/home/LoyaltyTeaserStatus";
 
 const PERKS = [
   { icon: "*", body: "Earn **2 points** per Rs 100 - redeem from **150 pts**." },
@@ -25,26 +20,6 @@ function renderPerk(body: string) {
 }
 
 export function LoyaltyTeaser() {
-  const { status, customer } = useCustomer();
-  const [account, setAccount] = useState<LoyaltyAccount | null>(null);
-
-  useEffect(() => {
-    if (status !== "ready" || !customer) return;
-    let cancelled = false;
-    getMyLoyalty()
-      .then((loyalty) => {
-        if (!cancelled) setAccount(loyalty);
-      })
-      .catch(() => {
-        if (!cancelled) setAccount(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [status, customer]);
-
-  const isMember = !!customer && !!account;
-
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-[#FCE9E4] to-cream py-10 md:py-14">
       <div
@@ -53,57 +28,7 @@ export function LoyaltyTeaser() {
       />
       <div className="relative mx-auto max-w-[1080px] px-6 md:px-10">
         <div className="grid items-center gap-10 md:grid-cols-[1fr_1.4fr]">
-          <div className="text-center md:text-left">
-            <p className="mb-2 font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-coral-500">
-              Doll Rewards
-            </p>
-            {isMember ? (
-              <>
-                <h2 className="font-display text-[26px] leading-none text-ink md:text-[38px]">
-                  You have{" "}
-                  <em
-                    className="not-italic text-coral-500"
-                    style={{ fontStyle: "italic" }}
-                  >
-                    {account.points_balance.toLocaleString("en-MU")} pts
-                  </em>
-                </h2>
-                <div className="mt-5 md:text-left">
-                  <Link
-                    href="/account/loyalty"
-                    className="inline-block rounded-full bg-ink px-6 py-3 font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-white"
-                  >
-                    See history
-                  </Link>
-                </div>
-              </>
-            ) : (
-              <>
-                <h2 className="font-display text-[26px] leading-none text-ink md:text-[38px]">
-                  Earn perks
-                  <br className="hidden md:block" />
-                  <em
-                    className="not-italic text-coral-500"
-                    style={{ fontStyle: "italic" }}
-                  >
-                    {" "}
-                    every drop.
-                  </em>
-                </h2>
-                <div className="mt-5 md:text-left">
-                  <Link
-                    href="/loyalty"
-                    className="inline-block rounded-full bg-ink px-6 py-3 font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-white"
-                  >
-                    Join Doll Rewards
-                  </Link>
-                  <p className="mt-2 font-sans text-[10px] tracking-wider text-ink-muted">
-                    Already 1,200+ members | Free to join
-                  </p>
-                </div>
-              </>
-            )}
-          </div>
+          <LoyaltyTeaserStatus />
           <div className="grid gap-3">
             {PERKS.map((perk) => (
               <div

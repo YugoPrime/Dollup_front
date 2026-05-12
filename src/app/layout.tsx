@@ -30,6 +30,7 @@ const SITE_URL = "https://dollupboutique.com";
 const SITE_DESCRIPTION =
   "Doll Up Boutique is a Mauritius fashion boutique for dresses, lingerie, beachwear and accessories, with cash on delivery available island-wide.";
 const DEFAULT_OG_IMAGE = "/og-default.jpg";
+const ALLOW_INDEXING = process.env.ALLOW_INDEXING === "true";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -60,8 +61,12 @@ export const metadata: Metadata = {
     description: SITE_DESCRIPTION,
     images: [DEFAULT_OG_IMAGE],
   },
-  // Pre-launch: keep global noindex until the domain move is complete.
-  robots: { index: false, follow: false, nocache: true },
+  ...(ALLOW_INDEXING
+    ? {}
+    : {
+        // Pre-launch: keep global noindex until the apex domain move is complete.
+        robots: { index: false, follow: false, nocache: true },
+      }),
 };
 
 const organizationJsonLd = {

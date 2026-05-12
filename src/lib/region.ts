@@ -1,9 +1,10 @@
 import "server-only";
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import { sdk, DEFAULT_REGION } from "./medusa";
 import type { HttpTypes } from "@medusajs/types";
 
-export const getRegion = cache(async (): Promise<HttpTypes.StoreRegion> => {
+const getCachedRegion = unstable_cache(async (): Promise<HttpTypes.StoreRegion> => {
   const { regions } = await sdk.store.region.list();
   if (!regions?.length) throw new Error("No Medusa regions configured");
 
@@ -13,4 +14,6 @@ export const getRegion = cache(async (): Promise<HttpTypes.StoreRegion> => {
     ),
   );
   return match ?? regions[0];
-});
+}, ["store-region-v1"], { revalidate: 3600 });
+
+export const getRegion = cache(getCachedRegion);

@@ -20,6 +20,8 @@ Set in Coolify and `.env.local` (gitignored). Pull values from `.env.local` when
 - `NEXT_PUBLIC_MEDUSA_BACKEND_URL` (e.g. `https://api.dollupboutique.com`)
 - `NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY`
 - `NEXT_PUBLIC_DEFAULT_REGION` = `mu`
+- `ALLOW_INDEXING` = `false` before apex launch; set to `true` and redeploy only after `dollupboutique.com` serves this Next app and smoke tests pass.
+- `APEX_DOMAIN_CUTOVER` = `false` before apex launch; set to `true` and redeploy when `shop.dollupboutique.com` and `www.dollupboutique.com` should 301 to `https://dollupboutique.com`.
 
 ## CORS gotcha (recurring blocker)
 Any browser-side Medusa call (cart add, region.list, checkout) requires the calling origin in the backend's `STORE_CORS`. If the cart drawer or checkout shows "Failed to fetch", this is the first place to look.

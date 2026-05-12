@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 const backendUrl = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL;
 const backendHost = backendUrl ? new URL(backendUrl).hostname : undefined;
 const backendOrigin = backendHost ? `https://${backendHost}` : undefined;
+const apexCutoverEnabled = process.env.APEX_DOMAIN_CUTOVER === "true";
 
 // Analytics origins — needed for GTM bootstrap, GA4 collection, Meta Pixel
 // (browser side), and the Meta Pixel image beacon. Kept in CSP whether or not
@@ -80,6 +81,24 @@ const contentSecurityPolicyReportOnly = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  async redirects() {
+    if (!apexCutoverEnabled) return [];
+
+    return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "shop.dollupboutique.com" }],
+        destination: "https://dollupboutique.com/:path*",
+        permanent: true,
+      },
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "www.dollupboutique.com" }],
+        destination: "https://dollupboutique.com/:path*",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

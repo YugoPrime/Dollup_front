@@ -25,7 +25,7 @@ export async function GET(
   const store = await cookies();
   store.set(PRIVATE_UNLOCK_COOKIE, token, {
     path: "/",
-    httpOnly: false,
+    httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     maxAge: TTL_SECONDS,

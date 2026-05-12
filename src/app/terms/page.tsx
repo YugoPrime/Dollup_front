@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Sales Terms & Conditions",
   description:
-    "The legal terms governing sales between Doll Up Boutique Limited and customers using shop.dollupboutique.com.",
+    "The legal terms governing sales between Doll Up Boutique Limited and customers using dollupboutique.com.",
   alternates: { canonical: "/terms" },
   openGraph: {
     title: "Sales Terms & Conditions",

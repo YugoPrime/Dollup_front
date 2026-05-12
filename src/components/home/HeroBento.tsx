@@ -49,6 +49,10 @@ export function HeroBento({ products }: { products: Product[] }) {
 
   const tile = (p: Product, key: string, ratio: string, animClass: string) => {
     const img = p.thumbnail ?? p.images?.[0]?.url;
+    const imageSizes =
+      key === "feature"
+        ? "(min-width: 1200px) 260px, (min-width: 768px) 24vw, 1px"
+        : "(min-width: 1200px) 190px, (min-width: 768px) 17vw, 1px";
     return (
       <Link
         key={`${key}-${p.id}`}
@@ -61,13 +65,9 @@ export function HeroBento({ products }: { products: Product[] }) {
             src={img}
             alt={p.title}
             fill
-            sizes={
-              key === "feature"
-                ? "(max-width: 768px) 60vw, 30vw"
-                : "(max-width: 768px) 30vw, 12vw"
-            }
+            sizes={imageSizes}
             className="object-cover object-top"
-            priority={key === "feature" || key === "s0"}
+            fetchPriority={key === "feature" ? "high" : undefined}
             placeholder="blur"
             blurDataURL={tileBlur(key)}
           />
@@ -147,14 +147,9 @@ export function HeroBento({ products }: { products: Product[] }) {
                     src={img}
                     alt={p!.title}
                     fill
-                    sizes={
-                      i === 0
-                        ? "(max-width: 768px) 33vw, 30vw"
-                        : "(max-width: 768px) 33vw, 12vw"
-                    }
+                    sizes="(max-width: 767px) 33vw, 1px"
                     className="object-cover object-top"
-                    loading="eager"
-                    fetchPriority="high"
+                    fetchPriority={i === 0 ? "high" : undefined}
                     placeholder="blur"
                     blurDataURL={HERO_TILE_BLURS[i] ?? HERO_TILE_1_BLUR}
                   />

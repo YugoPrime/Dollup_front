@@ -7,8 +7,8 @@ export const PRIVATE_UNLOCK_TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
 
 /**
  * Reads the unlock cookie set by /private/[token]. The cookie value is the
- * raw token; a cookie-thief gets the same level of access as someone with
- * the URL. Rotating the token from /settings/store invalidates leaked cookies.
+ * raw token, scoped to server-side reads only via httpOnly. Rotating the token
+ * from /settings/store invalidates any previously issued cookies.
  */
 export async function readPrivateUnlockToken(): Promise<string | null> {
   const store = await cookies();
