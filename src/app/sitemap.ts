@@ -39,11 +39,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const productEntries = products
     .filter((product) => product.handle)
-    // Exclude age-gated / unlisted products. Search engines must not index
-    // anything in Intimates — those pages also serve noindex headers, but
-    // omitting the sitemap entry keeps Google from discovering them in the
-    // first place.
-    .filter((product) => isPubliclyListedStoreProduct(product, { unlocked: false }))
+    // Exclude unlisted + Intimates products from sitemap. Their PDPs also
+    // emit `noindex` headers, but omitting the sitemap entry keeps Google
+    // from discovering them in the first place.
+    .filter((product) =>
+      isPubliclyListedStoreProduct(product, {
+        unlocked: false,
+        excludeIntimates: true,
+      }),
+    )
     .map((product) => ({
       url: `${SITE_URL}/products/${product.handle}`,
       changeFrequency: "weekly" as const,

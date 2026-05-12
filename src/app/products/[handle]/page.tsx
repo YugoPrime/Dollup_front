@@ -83,7 +83,9 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
   };
   // Unlisted products are still directly reachable by URL (per design), but
   // not when there's no unlock cookie. 404 keeps Google + curious visitors out.
-  if (!isPubliclyListedStoreProduct(product, { unlocked, includeIntimates: true })) {
+  // Unlisted products 404 unless the visitor has the private-unlock cookie.
+  // Intimates products always reach the PDP — the age gate handles the rest.
+  if (!isPubliclyListedStoreProduct(product, { unlocked })) {
     notFound();
   }
   const ageRestricted = isAgeRestricted(productLike);
@@ -180,7 +182,9 @@ async function RelatedProductsSection({
     ]);
     related = pool.products
       .filter((p) => p.id !== currentProductId)
-      .filter((p) => isPubliclyListedStoreProduct(p, { unlocked }))
+      .filter((p) =>
+        isPubliclyListedStoreProduct(p, { unlocked, excludeIntimates: true }),
+      )
       .slice(0, 5);
     latestCollectionTag = tag?.value ?? null;
   } catch {

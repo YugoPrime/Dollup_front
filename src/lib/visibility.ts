@@ -45,20 +45,23 @@ export function isUnlisted(product: ProductCategoriesLike): boolean {
 
 /**
  * Returns true if the product should appear in public listings.
- * - Unlisted items: hidden unless caller is unlocked.
- * - Intimates-category items: hidden from generic listings unless
- *   `includeIntimates` is set (used by /private and category-targeted pages).
+ *
+ * The rule is intentionally simple: `metadata.unlisted = true` is the ONLY
+ * thing that hides a product from public surfaces (unless the visitor has
+ * the private-unlock cookie).
+ *
+ * Intimates products are publicly listed by default — the 18+ age gate on
+ * the PDP plus the noindex meta tag handle the "adult" concern without
+ * needing to hide the inventory itself. Surfaces that should still strip
+ * Intimates (sitemap, related-products rail, story planner, mystery box)
+ * pass `excludeIntimates: true` explicitly.
  */
 export function isPubliclyListed(
   product: ProductCategoriesLike,
-  opts: { unlocked: boolean; includeIntimates?: boolean } = { unlocked: false },
+  opts: { unlocked: boolean; excludeIntimates?: boolean } = { unlocked: false },
 ): boolean {
   if (isUnlisted(product) && !opts.unlocked) return false;
-  if (
-    isInIntimatesCategory(product) &&
-    !opts.includeIntimates &&
-    !opts.unlocked
-  ) {
+  if (opts.excludeIntimates && isInIntimatesCategory(product) && !opts.unlocked) {
     return false;
   }
   return true;
@@ -66,14 +69,14 @@ export function isPubliclyListed(
 
 export function filterPublic<T extends ProductCategoriesLike>(
   products: T[],
-  opts: { unlocked: boolean; includeIntimates?: boolean },
+  opts: { unlocked: boolean; excludeIntimates?: boolean },
 ): T[] {
   return products.filter((p) => isPubliclyListed(p, opts));
 }
 
 export function isPubliclyListedStoreProduct(
   product: HttpTypes.StoreProduct,
-  opts: { unlocked: boolean; includeIntimates?: boolean } = { unlocked: false },
+  opts: { unlocked: boolean; excludeIntimates?: boolean } = { unlocked: false },
 ): boolean {
   return isPubliclyListed(product as unknown as ProductCategoriesLike, opts);
 }
