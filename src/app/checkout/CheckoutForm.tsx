@@ -160,7 +160,7 @@ export function CheckoutForm() {
 
   const markTouched = (name: string) => {
     setTouched((t) => new Set(t).add(name));
-    setErrors(validateCheckout(state));
+    setErrors(validateCheckout(state, selectedMethod));
   };
 
   const showError = (name: string) =>
@@ -290,7 +290,7 @@ export function CheckoutForm() {
   }
 
   function continueFromDelivery() {
-    const validation = validateCheckout(state);
+    const validation = validateCheckout(state, selectedMethod);
     const stepErrors =
       shippingOptions.length === 0
         ? {
@@ -312,7 +312,7 @@ export function CheckoutForm() {
   }
 
   function continueFromDetails() {
-    const validation = validateCheckout(state);
+    const validation = validateCheckout(state, selectedMethod);
     const stepErrors = pickErrors(validation, DETAILS_ERROR_FIELDS);
 
     setErrors(validation);
@@ -345,7 +345,7 @@ export function CheckoutForm() {
   }
 
   async function handleSubmit() {
-    const validation = validateCheckout(state);
+    const validation = validateCheckout(state, selectedMethod);
     setErrors(validation);
     setTouched(new Set(Object.keys(validation)));
     if (Object.keys(validation).length > 0) {
@@ -377,8 +377,8 @@ export function CheckoutForm() {
     try {
       await clientSdk.store.cart.update(cart.id, {
         email: state.email,
-        shipping_address: toMedusaAddress(state, "shipping"),
-        billing_address: toMedusaAddress(state, "billing"),
+        shipping_address: toMedusaAddress(state, "shipping", selectedMethod),
+        billing_address: toMedusaAddress(state, "billing", selectedMethod),
         metadata: metadataPatch,
       });
 
@@ -657,53 +657,66 @@ export function CheckoutForm() {
               error={showError("lastName")}
             />
           </div>
-          <Field
-            label="Address"
-            name="address1"
-            required
-            autoComplete="address-line1"
-            value={state.address1}
-            onChange={(v) => set("address1", v)}
-            onBlur={() => markTouched("address1")}
-            error={showError("address1")}
-          />
-          <Field
-            label="Apartment, suite, landmark (optional)"
-            name="address2"
-            autoComplete="address-line2"
-            value={state.address2}
-            onChange={(v) => set("address2", v)}
-          />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field
-              label="City / Town"
-              name="city"
-              required
-              autoComplete="address-level2"
-              value={state.city}
-              onChange={(v) => set("city", v)}
-              onBlur={() => markTouched("city")}
-              error={showError("city")}
-            />
-            <Field
-              label="Postal code (optional)"
-              name="postalCode"
-              autoComplete="postal-code"
-              value={state.postalCode}
-              onChange={(v) => set("postalCode", v)}
-            />
-          </div>
-          <label className="block">
-            <span className="mb-1.5 block font-sans text-xs font-semibold text-ink">
-              Country
-            </span>
-            <input
-              type="text"
-              value="Mauritius"
-              readOnly
-              className="w-full rounded-md border-[1.5px] border-blush-400 bg-blush-100 px-3 py-2.5 font-sans text-sm text-ink-muted"
-            />
-          </label>
+          {selectedMethod === "Pick Up" ? (
+            <div className="rounded-lg border border-blush-100 bg-cream/60 p-4 font-sans text-sm text-ink-soft">
+              <p className="mb-1 font-semibold text-ink">
+                Pick up from our Pereybere shop
+              </p>
+              <p>
+                Royal Road, Pereybere — next to the public beach. Mon–Sat, 10:00–18:00. We'll let you know when your order is ready.
+              </p>
+            </div>
+          ) : (
+            <>
+              <Field
+                label="Address"
+                name="address1"
+                required
+                autoComplete="address-line1"
+                value={state.address1}
+                onChange={(v) => set("address1", v)}
+                onBlur={() => markTouched("address1")}
+                error={showError("address1")}
+              />
+              <Field
+                label="Apartment, suite, landmark (optional)"
+                name="address2"
+                autoComplete="address-line2"
+                value={state.address2}
+                onChange={(v) => set("address2", v)}
+              />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field
+                  label="City / Town"
+                  name="city"
+                  required
+                  autoComplete="address-level2"
+                  value={state.city}
+                  onChange={(v) => set("city", v)}
+                  onBlur={() => markTouched("city")}
+                  error={showError("city")}
+                />
+                <Field
+                  label="Postal code (optional)"
+                  name="postalCode"
+                  autoComplete="postal-code"
+                  value={state.postalCode}
+                  onChange={(v) => set("postalCode", v)}
+                />
+              </div>
+              <label className="block">
+                <span className="mb-1.5 block font-sans text-xs font-semibold text-ink">
+                  Country
+                </span>
+                <input
+                  type="text"
+                  value="Mauritius"
+                  readOnly
+                  className="w-full rounded-md border-[1.5px] border-blush-400 bg-blush-100 px-3 py-2.5 font-sans text-sm text-ink-muted"
+                />
+              </label>
+            </>
+          )}
         </section>
 
         <section

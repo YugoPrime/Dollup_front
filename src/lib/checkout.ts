@@ -247,15 +247,34 @@ export const EMPTY_CHECKOUT_STATE: CheckoutFormState = {
 
 export type FieldErrors = Partial<Record<string, string>>;
 
-export function validateCheckout(state: CheckoutFormState): FieldErrors {
+// Pickup orders skip address collection on the form. Used by toMedusaAddress
+// to substitute a real address so Medusa cart-complete (which requires
+// address_1 + city + country_code) doesn't reject the order.
+export const PICKUP_ADDRESS = {
+  address_1: "Royal Road, Pereybere",
+  city: "Pereybere",
+  country_code: "mu",
+} as const;
+
+export function validateCheckout(
+  state: CheckoutFormState,
+  deliveryMethod: DmDeliveryMethod | null = null,
+): FieldErrors {
   const errors: FieldErrors = {};
+  const isPickup = deliveryMethod === "Pick Up";
   const required: [keyof CheckoutFormState, string][] = [
     ["email", "Email is required"],
     ["phone", "Phone is required"],
     ["firstName", "First name is required"],
     ["lastName", "Last name is required"],
-    ["address1", "Address is required"],
-    ["city", "City is required"],
+    // Pickup customers don't need to give us a delivery address — they
+    // come to the Pereybere shop. We substitute a placeholder server-side.
+    ...((isPickup
+      ? []
+      : [
+          ["address1", "Address is required"],
+          ["city", "City is required"],
+        ]) as [keyof CheckoutFormState, string][]),
   ];
   for (const [key, msg] of required) {
     if (!String(state[key] ?? "").trim()) errors[key as string] = msg;
@@ -302,19 +321,25 @@ export function pickShippingOption(
 export function toMedusaAddress(
   state: CheckoutFormState,
   kind: "shipping" | "billing",
+  deliveryMethod: DmDeliveryMethod | null = null,
 ): HttpTypes.StoreAddAddress {
   const useBilling = kind === "billing" && !state.billingSameAsShipping;
   const src = useBilling ? state.billing : state;
+  // Pickup orders: customer skipped the address fields, but Medusa requires
+  // a real address. Substitute the Pereybere shop address. Billing falls
+  // back to it too unless the customer explicitly entered a different one
+  // (i.e. unchecked "billing same as shipping").
+  const isPickup = deliveryMethod === "Pick Up" && !useBilling;
   return {
     first_name: src.firstName,
     last_name: src.lastName,
-    address_1: src.address1,
-    address_2: src.address2 || undefined,
-    city: src.city,
+    address_1: isPickup ? PICKUP_ADDRESS.address_1 : src.address1,
+    address_2: isPickup ? undefined : (src.address2 || undefined),
+    city: isPickup ? PICKUP_ADDRESS.city : src.city,
     // District field removed from checkout UI; send "N/A" so any backend
     // workflow that still reads `province` gets a non-empty value.
-    province: src.province || "N/A",
-    postal_code: src.postalCode || undefined,
+    province: isPickup ? "N/A" : (src.province || "N/A"),
+    postal_code: isPickup ? undefined : (src.postalCode || undefined),
     country_code: "mu",
     phone: kind === "shipping" ? state.phone : undefined,
   };
