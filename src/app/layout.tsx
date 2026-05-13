@@ -117,6 +117,7 @@ export default function RootLayout({
   return (
     <html
       lang="en-MU"
+      data-scroll-behavior="smooth"
       className={`${playfair.variable} ${dmSans.variable} h-full antialiased`}
     >
       <head>
