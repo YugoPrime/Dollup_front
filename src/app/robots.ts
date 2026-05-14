@@ -4,8 +4,11 @@ const ALLOW_INDEXING = process.env.ALLOW_INDEXING === "true";
 
 export default function robots(): MetadataRoute.Robots {
   if (!ALLOW_INDEXING) {
+    // Allow /feed/ even pre-launch so the Meta Commerce + Google Merchant
+    // scheduled feed crawlers can reach /feed/meta.xml. Everything else stays
+    // blocked from indexing.
     return {
-      rules: [{ userAgent: "*", disallow: ["/"] }],
+      rules: [{ userAgent: "*", allow: "/feed/", disallow: ["/"] }],
     };
   }
 
