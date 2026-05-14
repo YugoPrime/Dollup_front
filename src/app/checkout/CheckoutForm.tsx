@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   Banknote,
   Building2,
+  CalendarDays,
   ChevronLeft,
   Mail,
   Store,
@@ -30,6 +31,7 @@ import {
   earliestDeliveryDate,
   EMPTY_CHECKOUT_STATE,
   isValidDeliveryDate,
+  nextValidDeliveryDates,
   qualifiesForFreeHomeDelivery,
   shippingOptionToDeliveryMethod,
   validateCheckout,
@@ -203,6 +205,7 @@ export function CheckoutForm() {
   const showDeliveryDate = deliveryDateApplies(selectedMethod);
   const isPickup = selectedMethod === "Pick Up";
   const minDeliveryDate = earliestDeliveryDate(new Date(), isPickup);
+  const quickDeliveryDates = nextValidDeliveryDates(3, new Date(), isPickup);
   const allowedPayments = allowedPaymentMethods(selectedMethod);
 
   // Clear the delivery date when the selected shipping option is not
@@ -692,30 +695,101 @@ export function CheckoutForm() {
           <section
             className={`${mobileStep === "delivery" ? "block" : "hidden"} space-y-3 lg:block`}
           >
-            <h2 className="font-display text-lg font-semibold text-ink">
-              {isPickup
-                ? "Preferred Pick Up Date (optional)"
-                : "Preferred delivery date (optional)"}
-            </h2>
+            <div className="flex items-baseline justify-between gap-3">
+              <h2 className="font-display text-lg font-semibold text-ink">
+                {isPickup ? "Preferred pickup date" : "Preferred delivery date"}
+              </h2>
+              <span className="font-sans text-[11px] uppercase tracking-wide text-ink-muted">
+                Optional
+              </span>
+            </div>
             <p className="font-sans text-xs text-ink-muted">
               {isPickup
-                ? "Choose your pickup date. Same-day pickup is possible. No pickups on Sundays."
-                : "Choose your delivery date. No same-day delivery. For next-day delivery, order before 1pm the day before. No deliveries on Sundays."}
+                ? "Same-day pickup OK. Closed Sundays."
+                : "No same-day delivery. Order before 1pm for next day. Closed Sundays."}
             </p>
-            <input
-              type="date"
-              name="deliveryDate"
-              value={state.deliveryDate}
-              min={minDeliveryDate}
-              onChange={(e) => set("deliveryDate", e.target.value)}
-              className="w-full rounded-md border-[1.5px] border-blush-400 bg-white px-3 py-2.5 font-sans text-sm text-ink outline-none focus:border-coral-500 sm:w-auto"
-            />
+
+            <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:px-0 sm:pb-0 sm:flex-wrap">
+              {quickDeliveryDates.map((ymd) => {
+                const isSelected = state.deliveryDate === ymd;
+                const d = new Date(`${ymd}T00:00:00`);
+                const weekday = new Intl.DateTimeFormat("en-MU", {
+                  weekday: "short",
+                }).format(d);
+                const dayMonth = new Intl.DateTimeFormat("en-MU", {
+                  day: "numeric",
+                  month: "short",
+                }).format(d);
+                return (
+                  <button
+                    key={ymd}
+                    type="button"
+                    onClick={() =>
+                      set("deliveryDate", isSelected ? "" : ymd)
+                    }
+                    aria-pressed={isSelected}
+                    className={`shrink-0 rounded-full border px-3 py-1.5 font-sans text-xs transition-colors ${
+                      isSelected
+                        ? "border-coral-500 bg-coral-500 text-white"
+                        : "border-blush-300 bg-white text-ink-soft hover:border-coral-300 hover:text-ink"
+                    }`}
+                  >
+                    <span className="font-semibold">{weekday}</span>{" "}
+                    <span className={isSelected ? "text-white/90" : "text-ink-muted"}>
+                      {dayMonth}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <label
+              htmlFor="deliveryDate"
+              className={`relative flex items-center gap-2 rounded-lg border-[1.5px] bg-white px-3 py-3 transition-colors focus-within:border-coral-500 ${
+                state.deliveryDate &&
+                !isValidDeliveryDate(state.deliveryDate, new Date(), isPickup)
+                  ? "border-coral-500"
+                  : "border-blush-300"
+              }`}
+            >
+              <CalendarDays
+                aria-hidden
+                className="h-4 w-4 shrink-0 text-coral-500"
+              />
+              <span className="font-sans text-xs text-ink-muted">
+                Or pick another date
+              </span>
+              <input
+                id="deliveryDate"
+                type="date"
+                name="deliveryDate"
+                value={state.deliveryDate}
+                min={minDeliveryDate}
+                onChange={(e) => set("deliveryDate", e.target.value)}
+                className="ml-auto bg-transparent font-sans text-sm text-ink outline-none"
+              />
+            </label>
+
+            {state.deliveryDate &&
+              isValidDeliveryDate(state.deliveryDate, new Date(), isPickup) && (
+                <p className="font-sans text-[12px] text-ink-soft">
+                  {isPickup ? "Pickup on " : "Delivery on "}
+                  <span className="font-semibold text-ink">
+                    {new Intl.DateTimeFormat("en-MU", {
+                      weekday: "long",
+                      day: "numeric",
+                      month: "long",
+                    }).format(new Date(`${state.deliveryDate}T00:00:00`))}
+                  </span>
+                </p>
+              )}
+
             {state.deliveryDate &&
               !isValidDeliveryDate(state.deliveryDate, new Date(), isPickup) && (
                 <p className="font-sans text-[11px] text-coral-700">
                   {isPickup
-                    ? "That date is not available — pickups are not offered on Sundays."
-                    : "That date is not available. Please pick another date: no same-day delivery, next-day cutoff is 1pm the day before, and no Sundays."}
+                    ? "That date is not available — no pickups on Sundays."
+                    : "That date is not available. No same-day delivery, next-day cutoff is 1pm, no Sundays."}
                 </p>
               )}
           </section>

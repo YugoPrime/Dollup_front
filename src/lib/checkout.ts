@@ -151,6 +151,23 @@ export function isValidDeliveryDate(
   return ymd >= earliestDeliveryDate(now, allowSameDay);
 }
 
+// Returns the next `count` valid delivery / pickup dates starting from the
+// earliest available one, skipping Sundays. Powers the quick-pick chips on
+// mobile checkout so customers can confirm a date in one tap.
+export function nextValidDeliveryDates(
+  count: number,
+  now: Date = new Date(),
+  allowSameDay = false,
+): string[] {
+  const out: string[] = [];
+  let candidate = earliestDeliveryDate(now, allowSameDay);
+  while (out.length < count) {
+    if (dowOfYmd(candidate) !== 0) out.push(candidate);
+    candidate = addDaysYmd(candidate, 1);
+  }
+  return out;
+}
+
 export const VAT_RATE_PERCENT = 15;
 
 export function computeVatAmount(totalMur: number): number {
