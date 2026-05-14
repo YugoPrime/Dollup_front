@@ -67,7 +67,7 @@ export function HeroBento({ products }: { products: Product[] }) {
             fill
             sizes={imageSizes}
             className="object-cover object-top"
-            fetchPriority={key === "feature" ? "high" : undefined}
+            priority={key === "feature"}
             placeholder="blur"
             blurDataURL={tileBlur(key)}
           />
@@ -149,7 +149,7 @@ export function HeroBento({ products }: { products: Product[] }) {
                     fill
                     sizes="(max-width: 767px) 33vw, 1px"
                     className="object-cover object-top"
-                    fetchPriority={i === 0 ? "high" : undefined}
+                    priority={i === 0}
                     placeholder="blur"
                     blurDataURL={HERO_TILE_BLURS[i] ?? HERO_TILE_1_BLUR}
                   />
