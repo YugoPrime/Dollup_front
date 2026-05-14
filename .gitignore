@@ -53,3 +53,6 @@ next-env.d.ts
 
 # lookbook source originals (heavy unoptimized) — re-optimize via scripts/optimize-lookbook.mjs
 /src/app/lookbook/Model */
+
+# local dev process logs
+/.logs/
