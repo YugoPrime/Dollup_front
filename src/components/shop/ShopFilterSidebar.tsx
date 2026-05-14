@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 
 type RawCategory = { id: string; name: string; handle: string; parent_category_id: string | null };
 
@@ -48,16 +48,27 @@ export function ShopFilterSidebar({
 }) {
   const router = useRouter();
   const params = useSearchParams();
+  const [isPending, startTransition] = useTransition();
+  const [pendingKey, setPendingKey] = useState<string | null>(null);
 
   const has = (key: string, val: string) => params.get(key) === val;
-  const setParam = (key: string, val: string | null) => {
+  const setParam = (key: string, val: string | null, pendingId?: string) => {
+    setPendingKey(pendingId ?? key);
     const next = new URLSearchParams(params.toString());
     if (val == null) next.delete(key);
     else next.set(key, val);
     next.delete("page");
-    router.push(`/shop?${next.toString()}`);
+    startTransition(() => {
+      router.push(`/shop?${next.toString()}`);
+    });
   };
-  const clearAll = () => router.push("/shop");
+  const clearAll = () => {
+    setPendingKey("clear-all");
+    startTransition(() => {
+      router.push("/shop");
+    });
+  };
+  const showSpinner = (id: string) => isPending && pendingKey === id;
 
   // Build a top-level + subcategory tree. "Women" is treated as a wrapper:
   // its children get elevated to top-level (Clothing, Accessories, Beachwear).
@@ -105,13 +116,16 @@ export function ShopFilterSidebar({
   }, [params, facets.priceMin, facets.priceMax]);
 
   const commitPrice = () => {
+    setPendingKey("price");
     const next = new URLSearchParams(params.toString());
     if (pMin > facets.priceMin) next.set("price_min", String(pMin));
     else next.delete("price_min");
     if (pMax < facets.priceMax) next.set("price_max", String(pMax));
     else next.delete("price_max");
     next.delete("page");
-    router.push(`/shop?${next.toString()}`);
+    startTransition(() => {
+      router.push(`/shop?${next.toString()}`);
+    });
   };
 
   return (
@@ -120,8 +134,12 @@ export function ShopFilterSidebar({
         <h3 className="font-display text-[18px] leading-none text-ink">Filters</h3>
         <button
           onClick={clearAll}
-          className="font-sans text-[11px] font-bold uppercase tracking-wider text-coral-500 hover:text-coral-700"
+          disabled={isPending}
+          className="flex items-center gap-1.5 font-sans text-[11px] font-bold uppercase tracking-wider text-coral-500 hover:text-coral-700 disabled:opacity-70"
         >
+          {showSpinner("clear-all") && (
+            <Spinner className="h-3.5 w-3.5 text-coral-500" />
+          )}
           Clear all
         </button>
       </header>
@@ -131,10 +149,14 @@ export function ShopFilterSidebar({
           <input
             type="checkbox"
             checked={has("on_sale", "1")}
-            onChange={() => setParam("on_sale", has("on_sale", "1") ? null : "1")}
+            disabled={isPending}
+            onChange={() => setParam("on_sale", has("on_sale", "1") ? null : "1", "on_sale")}
             className="accent-coral-500"
           />
           On sale
+          {showSpinner("on_sale") && (
+            <Spinner className="h-3.5 w-3.5 text-coral-500" />
+          )}
         </label>
       </Group>
 
@@ -143,24 +165,44 @@ export function ShopFilterSidebar({
           {visible.map(({ root, children }) => (
             <div key={root.handle}>
               <button
-                onClick={() => setParam("category", activeCategory === root.handle ? null : root.handle)}
-                className={`block w-full text-left font-sans text-[13px] font-medium transition-colors hover:text-coral-500 ${
+                onClick={() =>
+                  setParam(
+                    "category",
+                    activeCategory === root.handle ? null : root.handle,
+                    `cat:${root.handle}`,
+                  )
+                }
+                disabled={isPending}
+                className={`flex w-full items-center justify-between text-left font-sans text-[13px] font-medium transition-colors hover:text-coral-500 ${
                   activeCategory === root.handle ? "text-coral-500" : "text-ink"
                 }`}
               >
-                {root.name}
+                <span>{root.name}</span>
+                {showSpinner(`cat:${root.handle}`) && (
+                  <Spinner className="h-3.5 w-3.5 text-coral-500" />
+                )}
               </button>
               {children.length > 0 && (
                 <div className="ml-3 mt-1 space-y-0.5 border-l border-blush-100 pl-2.5">
                   {children.map((c) => (
                     <button
                       key={c.handle}
-                      onClick={() => setParam("category", activeCategory === c.handle ? null : c.handle)}
-                      className={`block w-full text-left font-sans text-[12px] transition-colors hover:text-coral-500 ${
+                      onClick={() =>
+                        setParam(
+                          "category",
+                          activeCategory === c.handle ? null : c.handle,
+                          `cat:${c.handle}`,
+                        )
+                      }
+                      disabled={isPending}
+                      className={`flex w-full items-center justify-between text-left font-sans text-[12px] transition-colors hover:text-coral-500 ${
                         activeCategory === c.handle ? "font-semibold text-coral-500" : "text-ink-soft"
                       }`}
                     >
-                      {c.name}
+                      <span>{c.name}</span>
+                      {showSpinner(`cat:${c.handle}`) && (
+                        <Spinner className="h-3 w-3 text-coral-500" />
+                      )}
                     </button>
                   ))}
                 </div>
@@ -173,19 +215,31 @@ export function ShopFilterSidebar({
       {facets.sizes.length > 0 && (
         <Group label="Size">
           <div className="grid grid-cols-4 gap-1.5">
-            {facets.sizes.map((s) => (
-              <button
-                key={s}
-                onClick={() => setParam("size", has("size", s) ? null : s)}
-                className={`rounded-md border py-1.5 font-sans text-[11px] font-semibold transition-colors ${
-                  has("size", s)
-                    ? "border-ink bg-ink text-white"
-                    : "border-blush-400 bg-white text-ink hover:border-coral-500 hover:text-coral-500"
-                }`}
-              >
-                {s}
-              </button>
-            ))}
+            {facets.sizes.map((s) => {
+              const active = has("size", s);
+              const loading = showSpinner(`size:${s}`);
+              return (
+                <button
+                  key={s}
+                  onClick={() => setParam("size", active ? null : s, `size:${s}`)}
+                  disabled={isPending}
+                  aria-pressed={active}
+                  className={`flex min-h-8 items-center justify-center rounded-md border py-1.5 font-sans text-[11px] font-semibold transition-colors ${
+                    active
+                      ? "border-ink bg-ink text-white"
+                      : "border-blush-400 bg-white text-ink hover:border-coral-500 hover:text-coral-500"
+                  } ${isPending && !loading ? "opacity-80" : ""}`}
+                >
+                  {loading ? (
+                    <Spinner
+                      className={`h-3.5 w-3.5 ${active ? "text-white" : "text-ink"}`}
+                    />
+                  ) : (
+                    s
+                  )}
+                </button>
+              );
+            })}
           </div>
         </Group>
       )}
@@ -196,17 +250,37 @@ export function ShopFilterSidebar({
             {facets.colors.map((c) => {
               const hex = COLOR_HEX[c] ?? "#8a7773";
               const active = has("color", c);
+              const loading = showSpinner(`color:${c}`);
+              const light = ["white", "cream", "blush", "nude", "yellow", "pink"].includes(c);
               return (
                 <button
                   key={c}
-                  onClick={() => setParam("color", active ? null : c)}
+                  onClick={() => setParam("color", active ? null : c, `color:${c}`)}
+                  disabled={isPending}
                   aria-label={c}
+                  aria-pressed={active}
                   title={c}
-                  className={`h-7 w-7 rounded-full border-2 border-white transition ${
-                    active ? "ring-2 ring-coral-500" : "ring-1 ring-blush-400 hover:ring-coral-500"
-                  }`}
+                  className={`relative flex h-7 w-7 items-center justify-center rounded-full border-2 border-white transition ${
+                    active || loading
+                      ? "ring-2 ring-coral-500"
+                      : "ring-1 ring-blush-400 hover:ring-coral-500"
+                  } ${isPending && !loading ? "opacity-80" : ""}`}
                   style={{ background: hex }}
-                />
+                >
+                  {loading && (
+                    <>
+                      <span
+                        className={`absolute inset-0 rounded-full ${
+                          light ? "bg-ink/10" : "bg-white/25"
+                        }`}
+                        aria-hidden
+                      />
+                      <Spinner
+                        className={`relative h-3.5 w-3.5 ${light ? "text-ink" : "text-white"}`}
+                      />
+                    </>
+                  )}
+                </button>
               );
             })}
           </div>
@@ -256,5 +330,28 @@ function Group({ label, children }: { label: string; children: React.ReactNode }
       <h4 className="mb-2.5 font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-ink-muted">{label}</h4>
       {children}
     </section>
+  );
+}
+
+function Spinner({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={`animate-spin ${className}`} aria-hidden>
+      <circle
+        cx="12"
+        cy="12"
+        r="9"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeOpacity="0.25"
+      />
+      <path
+        d="M21 12a9 9 0 0 0-9-9"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }

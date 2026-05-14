@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { FocusTrapLayer } from "@/components/a11y/FocusTrapLayer";
 
 export type SheetCategory = { id: string; name: string; handle: string; parent_category_id: string | null };
@@ -32,6 +32,8 @@ export function ShopFilterSheet({
 }) {
   const router = useRouter();
   const params = useSearchParams();
+  const [isPending, startTransition] = useTransition();
+  const [pendingKey, setPendingKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -42,13 +44,17 @@ export function ShopFilterSheet({
     };
   }, [open]);
 
-  const setParam = (key: string, value: string | null) => {
+  const setParam = (key: string, value: string | null, pendingId?: string) => {
+    setPendingKey(pendingId ?? key);
     const next = new URLSearchParams(params.toString());
     if (value == null) next.delete(key);
     else next.set(key, value);
     next.delete("page");
-    router.push(`/shop?${next.toString()}`);
+    startTransition(() => {
+      router.push(`/shop?${next.toString()}`);
+    });
   };
+  const showSpinner = (id: string) => isPending && pendingKey === id;
   const has = (key: string, val: string) => params.get(key) === val;
   const activeCategory = params.get("category") ?? "";
   const activeSize = params.get("size") ?? "";
@@ -108,21 +114,27 @@ export function ShopFilterSheet({
   }, [open]);
 
   const commitPrice = () => {
+    setPendingKey("price");
     const next = new URLSearchParams(params.toString());
     if (pMin > facets.priceMin) next.set("price_min", String(pMin));
     else next.delete("price_min");
     if (pMax < facets.priceMax) next.set("price_max", String(pMax));
     else next.delete("price_max");
     next.delete("page");
-    router.push(`/shop?${next.toString()}`);
+    startTransition(() => {
+      router.push(`/shop?${next.toString()}`);
+    });
   };
 
   const clearAll = () => {
+    setPendingKey("clear-all");
     const next = new URLSearchParams(params.toString());
     for (const k of ["on_sale", "category", "size", "color", "price_min", "price_max", "page"]) {
       next.delete(k);
     }
-    router.push(next.toString() ? `/shop?${next.toString()}` : "/shop");
+    startTransition(() => {
+      router.push(next.toString() ? `/shop?${next.toString()}` : "/shop");
+    });
   };
 
   if (!open) return null;
@@ -150,9 +162,12 @@ export function ShopFilterSheet({
           </div>
           <button
             onClick={clearAll}
-            disabled={totalActive === 0}
-            className="font-sans text-[11px] font-bold uppercase tracking-wider text-coral-500 disabled:text-ink-muted/40"
+            disabled={totalActive === 0 || isPending}
+            className="flex items-center gap-1.5 font-sans text-[11px] font-bold uppercase tracking-wider text-coral-500 disabled:text-ink-muted/40"
           >
+            {showSpinner("clear-all") && (
+              <Spinner className="h-3.5 w-3.5 text-coral-500" />
+            )}
             Clear all
           </button>
         </div>
@@ -165,12 +180,13 @@ export function ShopFilterSheet({
             onToggle={() => setOpenSection((s) => (s === "offers" ? null : "offers"))}
           >
             <button
-              onClick={() => setParam("on_sale", onSale ? null : "1")}
+              onClick={() => setParam("on_sale", onSale ? null : "1", "on_sale")}
+              disabled={isPending}
               className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors ${
                 onSale
                   ? "border-coral-500 bg-coral-500/10 text-coral-500"
                   : "border-blush-300 bg-white text-ink"
-              }`}
+              } ${isPending ? "opacity-90" : ""}`}
             >
               <span className="font-sans text-[13px] font-semibold">On sale</span>
               <span
@@ -179,10 +195,14 @@ export function ShopFilterSheet({
                 }`}
                 aria-hidden
               >
-                {onSale && (
-                  <svg viewBox="0 0 12 12" className="h-3 w-3 text-white">
-                    <path d="M2 6.5l2.5 2.5L10 3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                {showSpinner("on_sale") ? (
+                  <Spinner className="h-3 w-3 text-white" />
+                ) : (
+                  onSale && (
+                    <svg viewBox="0 0 12 12" className="h-3 w-3 text-white">
+                      <path d="M2 6.5l2.5 2.5L10 3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )
                 )}
               </span>
             </button>
@@ -199,7 +219,14 @@ export function ShopFilterSheet({
               {visible.map(({ root, children }) => (
                 <div key={root.handle}>
                   <button
-                    onClick={() => setParam("category", activeCategory === root.handle ? null : root.handle)}
+                    onClick={() =>
+                      setParam(
+                        "category",
+                        activeCategory === root.handle ? null : root.handle,
+                        `cat:${root.handle}`,
+                      )
+                    }
+                    disabled={isPending}
                     className={`flex min-h-11 w-full items-center justify-between rounded-lg px-3 text-left font-sans text-[14px] font-medium transition-colors ${
                       activeCategory === root.handle
                         ? "bg-coral-500/10 text-coral-500"
@@ -207,14 +234,27 @@ export function ShopFilterSheet({
                     }`}
                   >
                     <span>{root.name}</span>
-                    {activeCategory === root.handle && <span aria-hidden>×</span>}
+                    {showSpinner(`cat:${root.handle}`) ? (
+                      <Spinner className="h-4 w-4 text-coral-500" />
+                    ) : (
+                      activeCategory === root.handle && (
+                        <CloseIcon className="h-4 w-4 text-coral-500" />
+                      )
+                    )}
                   </button>
                   {children.length > 0 && (
                     <div className="ml-3 mt-0.5 space-y-0.5 border-l border-blush-100 pl-2.5">
                       {children.map((c) => (
                         <button
                           key={c.handle}
-                          onClick={() => setParam("category", activeCategory === c.handle ? null : c.handle)}
+                          onClick={() =>
+                            setParam(
+                              "category",
+                              activeCategory === c.handle ? null : c.handle,
+                              `cat:${c.handle}`,
+                            )
+                          }
+                          disabled={isPending}
                           className={`flex min-h-10 w-full items-center justify-between rounded-md px-3 text-left font-sans text-[12px] transition-colors ${
                             activeCategory === c.handle
                               ? "font-semibold text-coral-500"
@@ -222,7 +262,13 @@ export function ShopFilterSheet({
                           }`}
                         >
                           <span>{c.name}</span>
-                          {activeCategory === c.handle && <span aria-hidden>×</span>}
+                          {showSpinner(`cat:${c.handle}`) ? (
+                            <Spinner className="h-4 w-4 text-coral-500" />
+                          ) : (
+                            activeCategory === c.handle && (
+                              <CloseIcon className="h-3.5 w-3.5 text-coral-500" />
+                            )
+                          )}
                         </button>
                       ))}
                     </div>
@@ -243,17 +289,24 @@ export function ShopFilterSheet({
               <div className="grid grid-cols-4 gap-2">
                 {facets.sizes.map((s) => {
                   const active = has("size", s);
+                  const loading = showSpinner(`size:${s}`);
                   return (
                     <button
                       key={s}
-                      onClick={() => setParam("size", active ? null : s)}
-                      className={`min-h-12 rounded-xl border font-sans text-[12px] font-semibold transition-colors ${
+                      onClick={() => setParam("size", active ? null : s, `size:${s}`)}
+                      disabled={isPending}
+                      aria-pressed={active}
+                      className={`relative flex min-h-12 items-center justify-center rounded-xl border font-sans text-[12px] font-semibold transition-colors ${
                         active
                           ? "border-ink bg-ink text-white"
                           : "border-blush-300 bg-white text-ink"
-                      }`}
+                      } ${isPending && !loading ? "opacity-80" : ""}`}
                     >
-                      {s}
+                      {loading ? (
+                        <Spinner className={`h-4 w-4 ${active ? "text-white" : "text-ink"}`} />
+                      ) : (
+                        s
+                      )}
                     </button>
                   );
                 })}
@@ -273,26 +326,45 @@ export function ShopFilterSheet({
                 {facets.colors.map((c) => {
                   const hex = COLOR_HEX[c] ?? "#8a7773";
                   const active = has("color", c);
+                  const loading = showSpinner(`color:${c}`);
+                  const light = isLight(c);
                   return (
                     <button
                       key={c}
-                      onClick={() => setParam("color", active ? null : c)}
+                      onClick={() => setParam("color", active ? null : c, `color:${c}`)}
+                      disabled={isPending}
                       aria-label={c}
                       aria-pressed={active}
-                      className="flex flex-col items-center gap-1.5"
+                      className={`flex flex-col items-center gap-1.5 ${
+                        isPending && !loading ? "opacity-80" : ""
+                      }`}
                     >
                       <span
                         className={`relative flex h-12 w-12 items-center justify-center rounded-full border-2 border-white transition ${
-                          active
+                          active || loading
                             ? "ring-2 ring-coral-500 ring-offset-2 ring-offset-white"
                             : "ring-1 ring-blush-300"
                         }`}
                         style={{ background: hex }}
                       >
-                        {active && (
-                          <svg viewBox="0 0 12 12" className={`h-4 w-4 ${isLight(c) ? "text-ink" : "text-white"}`}>
-                            <path d="M2 6.5l2.5 2.5L10 3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
+                        {loading ? (
+                          <>
+                            <span
+                              className={`absolute inset-0 rounded-full ${
+                                light ? "bg-ink/10" : "bg-white/25"
+                              }`}
+                              aria-hidden
+                            />
+                            <Spinner
+                              className={`relative h-5 w-5 ${light ? "text-ink" : "text-white"}`}
+                            />
+                          </>
+                        ) : (
+                          active && (
+                            <svg viewBox="0 0 12 12" className={`h-4 w-4 ${light ? "text-ink" : "text-white"}`}>
+                              <path d="M2 6.5l2.5 2.5L10 3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          )
                         )}
                       </span>
                       <span className={`font-sans text-[10px] capitalize ${active ? "font-semibold text-coral-500" : "text-ink-soft"}`}>
@@ -352,9 +424,11 @@ export function ShopFilterSheet({
         <div className="border-t border-blush-100 bg-white px-5 pt-3 pb-[max(16px,env(safe-area-inset-bottom))]">
           <button
             onClick={onClose}
-            className="w-full rounded-full bg-ink py-4 font-sans text-[12px] font-bold uppercase tracking-[0.14em] text-white active:scale-[0.99]"
+            disabled={isPending}
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-ink py-4 font-sans text-[12px] font-bold uppercase tracking-[0.14em] text-white active:scale-[0.99] disabled:opacity-80"
           >
-            Show results
+            {isPending && <Spinner className="h-4 w-4 text-white" />}
+            {isPending ? "Updating…" : "Show results"}
           </button>
         </div>
       </div>
@@ -426,4 +500,40 @@ function toTitle(s: string) {
 
 function isLight(color: string) {
   return ["white", "cream", "blush", "nude", "yellow", "pink"].includes(color);
+}
+
+function Spinner({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={`animate-spin ${className}`} aria-hidden>
+      <circle
+        cx="12"
+        cy="12"
+        r="9"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeOpacity="0.25"
+      />
+      <path
+        d="M21 12a9 9 0 0 0-9-9"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function CloseIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 12 12" className={className} aria-hidden>
+      <path
+        d="M3 3L9 9M9 3L3 9"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
 }
