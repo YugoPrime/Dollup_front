@@ -12,7 +12,7 @@ export const PRODUCT_TAGS_CACHE_TAG = "product-tags";
 export const PRODUCT_CATEGORIES_CACHE_TAG = "product-categories";
 
 const PRODUCT_LIST_FIELDS =
-  "id,title,handle,thumbnail,metadata,updated_at,*variants,*variants.calculated_price,*variants.options,+variants.inventory_quantity,+variants.manage_inventory,*options,*options.values,*tags,*categories";
+  "id,title,handle,thumbnail,metadata,updated_at,*variants,*variants.calculated_price,*variants.options,+variants.inventory_quantity,+variants.manage_inventory,*options,*options.values,*images,*tags,*categories";
 
 // Medusa v2 strips any field not explicitly listed here — including base scalars
 // like title/handle/thumbnail. Omitting them breaks PDP h1, og:title, canonical,
@@ -55,47 +55,11 @@ const cachedListProducts = unstable_cache(
 
 async function listProductsUncached(args: ListProductsArgs = {}) {
   const region = await getRegion();
-
-  // SKU/handle search keeps its own fast path so the parallel handle lookup
-  // (parent-SKU shortcut) still works. q-only callers don't paginate deep
-  // enough for the unlisted-after-slice bug to matter; the shop page's
-  // post-filter strips unlisted from search results anyway.
-  if (
-    args.q &&
-    !args.onSale &&
-    !args.size &&
-    !args.color &&
-    args.priceMin == null &&
-    args.priceMax == null &&
-    !args.sortPrice
-  ) {
-    const limit = args.limit ?? 24;
-    const offset = args.offset ?? 0;
-    const baseQuery: HttpTypes.StoreProductListParams = {
-      limit,
-      offset,
-      region_id: region.id,
-      fields: PRODUCT_LIST_FIELDS,
-      q: args.q,
-    };
-    if (args.category) {
-      baseQuery.category_id = Array.isArray(args.category)
-        ? args.category
-        : [args.category];
-    }
-    if (args.collection) baseQuery.collection_id = [args.collection];
-    if (args.tag) baseQuery.tag_id = [args.tag];
-    if (args.order) baseQuery.order = args.order;
-    return listWithSkuFallback(args, region, baseQuery);
-  }
-
-  // Everything else routes through the wide-fetch path so we can strip
-  // `metadata.unlisted` BEFORE slicing to the page window. Without this,
-  // a category with many hidden products (e.g. Intimates, where >50% have
-  // `unlisted=true`) shows fewer rows than the per-page limit. See the
-  // bug fixed in 2026-05-12: only 10 of 15 public Intimates products
-  // reached the grid because the Store API returned the unlisted ones
-  // first by -created_at.
+  // All listings — including `q` search — route through the wide-fetch path.
+  // Medusa Store API's `q` is a single-substring ILIKE on title/handle/description,
+  // so "red dress" finds nothing in a catalog whose titles are "White Dress" with
+  // a red color variant, or "Cute Red Floral Dress" (word order). Tokenized search
+  // runs in-memory across title + handle + category + tag + variant.option.value.
   return listWithFacetFilters(args, region);
 }
 
@@ -120,47 +84,18 @@ function normalizeListProductArgs(args: ListProductsArgs): ListProductsArgs {
   };
 }
 
-// Store API's q only matches title/description, so a customer typing the parent
-// SKU (e.g. "IS520") finds nothing. Handles in this catalog are the lowercased
-// parent SKU (see inventory-audit/scripts/import-medusa.ts handleFromRef), so we
-// run a parallel exact-handle lookup and prepend it to the q result.
-async function listWithSkuFallback(
-  args: ListProductsArgs,
-  region: Awaited<ReturnType<typeof getRegion>>,
-  baseQuery: HttpTypes.StoreProductListParams,
-) {
-  const q = (args.q ?? "").trim();
-  // Skip handle lookup for multi-word queries — handles are single tokens.
-  const handleQuery = !q.includes(" ") ? q.toLowerCase() : null;
-
-  const handlePromise = handleQuery
-    ? sdk.store.product.list({
-        handle: handleQuery,
-        region_id: region.id,
-        fields: PRODUCT_LIST_FIELDS,
-        limit: 1,
-      })
-    : Promise.resolve({ products: [] as HttpTypes.StoreProduct[], count: 0 });
-
-  const [main, byHandle] = await Promise.all([
-    sdk.store.product.list(baseQuery),
-    handlePromise,
-  ]);
-
-  const products = [...main.products];
-  const handleHit = byHandle.products?.[0];
-  let extra = 0;
-  if (handleHit && !products.some((p) => p.id === handleHit.id)) {
-    products.unshift(handleHit);
-    extra = 1;
-  }
-  return { products, count: main.count + extra, region };
-}
-
 // Unified facet filter: Medusa Store API has no native filters for on-sale,
-// option values (size/color), or price range. So we page through the catalog
-// (cap 1200) applying the cheap server-side filters first (category/tag/q) and
-// then apply each enabled facet in memory. Slice to the requested page at the end.
+// option values (size/color), price range, or tokenized search across variant
+// options. So we page through the catalog (cap 1200) applying the cheap
+// server-side filters (category/tag/collection/order) first, then apply each
+// enabled facet — and the tokenized search — in memory. Slice to the requested
+// page at the end.
+//
+// `q` is NOT forwarded to Medusa: its server-side `q` is a single-substring
+// ILIKE on title/handle/description, so multi-word queries like "red dress"
+// return zero rows when titles are "White Dress" with a red color variant or
+// "Cute Red Floral Dress" (word order mismatch). The tokenized matcher below
+// covers all of those.
 async function listWithFacetFilters(
   args: ListProductsArgs,
   region: Awaited<ReturnType<typeof getRegion>>,
@@ -171,7 +106,6 @@ async function listWithFacetFilters(
     limit: 100,
     offset: 0,
   };
-  if (args.q) baseFilters.q = args.q;
   if (args.category) {
     baseFilters.category_id = Array.isArray(args.category) ? args.category : [args.category];
   }
@@ -189,6 +123,19 @@ async function listWithFacetFilters(
   }
 
   let filtered = all;
+
+  // Smart query parse: pulls size keywords ("small", "S", "free size") out as
+  // an exact size filter, drops noise words ("size", "color", "in", "with",
+  // "and"), then text-matches the remainder against title, handle, category,
+  // tag, variant title/sku, variant option values (canonicalized for color, so
+  // "burgundy" matches the misspelled "Burgandy" variant), and the manual
+  // `metadata.search_terms` enrichment field.
+  if (args.q) {
+    const parsed = parseSearchQuery(args.q);
+    if (parsed.sizes.length > 0 || parsed.textTokens.length > 0) {
+      filtered = filtered.filter((p) => productMatchesParsedQuery(p, parsed));
+    }
+  }
 
   // Strip `metadata.unlisted=true` BEFORE pagination slicing so categories
   // with many hidden products still return a full per-page window of public
@@ -270,6 +217,150 @@ async function listWithFacetFilters(
 }
 
 // --- helpers shared by listWithFacetFilters and getShopFacets ---
+
+// Words that carry no search intent on their own — they're verbal glue around
+// real attributes ("dress IN size small", "lingerie WITH lace"). Removed
+// before matching so the user can type natural phrases.
+const SEARCH_NOISE_WORDS = new Set([
+  "size", "color", "colour",
+  "in", "with", "and", "&",
+  "the", "a", "an",
+  "of", "for", "to",
+]);
+
+// Multi-word phrases (matched before tokenization) that resolve to a canonical
+// size. Lets "free size" or "extra small" stay together instead of splitting
+// into individual tokens that match nothing.
+const SIZE_PHRASE_MAP: Array<[RegExp, string]> = [
+  [/\bfree\s+size\b/, "Free Size"],
+  [/\bone\s+size\b/, "Free Size"],
+  [/\bextra\s+small\b/, "XS"],
+  [/\bextra\s+large\b/, "XL"],
+];
+
+// Single tokens that resolve directly to a canonical size. "small" → S,
+// "xxl" → 2XL, etc. Distinct from the general SIZE_ALIASES used by the
+// facet filter because some short tokens like "s" are too noisy to treat
+// as a size unless the user already typed an explicit shape hint — but the
+// shop search is intent-led, so we lean inclusive here.
+const SIZE_WORD_MAP: Record<string, string> = {
+  small: "S", medium: "M", large: "L",
+  xs: "XS", s: "S", m: "M", l: "L", xl: "XL",
+  "2xl": "2XL", xxl: "2XL", "3xl": "3XL", xxxl: "3XL", "4xl": "4XL",
+  freesize: "Free Size", "free-size": "Free Size",
+  onesize: "Free Size", "one-size": "Free Size",
+};
+
+type ParsedSearchQuery = {
+  sizes: string[];
+  textTokens: string[];
+};
+
+function parseSearchQuery(q: string): ParsedSearchQuery {
+  let normalized = q.toLowerCase();
+  const sizes: string[] = [];
+
+  // Extract multi-word size phrases first so they don't break apart.
+  for (const [pattern, code] of SIZE_PHRASE_MAP) {
+    if (pattern.test(normalized)) {
+      sizes.push(code);
+      normalized = normalized.replace(pattern, " ");
+    }
+  }
+
+  const rawTokens = normalized
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter(Boolean);
+
+  const textTokens: string[] = [];
+  for (const token of rawTokens) {
+    if (SEARCH_NOISE_WORDS.has(token)) continue;
+    const sizeCode = SIZE_WORD_MAP[token];
+    if (sizeCode) {
+      sizes.push(sizeCode);
+      continue;
+    }
+    textTokens.push(token);
+  }
+
+  return {
+    sizes: [...new Set(sizes)],
+    textTokens,
+  };
+}
+
+function productMatchesParsedQuery(
+  p: HttpTypes.StoreProduct,
+  parsed: ParsedSearchQuery,
+): boolean {
+  // Size filter: every parsed size must exist among the product's variant size options.
+  if (parsed.sizes.length > 0) {
+    const productSizes = new Set<string>();
+    for (const v of p.variants ?? []) {
+      for (const o of v.options ?? []) {
+        if (isSizeOption(o)) {
+          const canon = canonicalSize(o.value ?? "");
+          if (canon) productSizes.add(canon);
+        }
+      }
+    }
+    if (!parsed.sizes.every((s) => productSizes.has(s))) return false;
+  }
+
+  if (parsed.textTokens.length === 0) return true;
+
+  const haystack: string[] = [];
+  if (p.title) haystack.push(p.title.toLowerCase());
+  if (p.handle) haystack.push(p.handle.toLowerCase());
+  for (const c of p.categories ?? []) {
+    if (c.name) haystack.push(c.name.toLowerCase());
+    if (c.handle) haystack.push(c.handle.toLowerCase());
+  }
+  for (const t of p.tags ?? []) {
+    const v = (t as { value?: string | null }).value;
+    if (v) haystack.push(v.toLowerCase());
+  }
+  for (const v of p.variants ?? []) {
+    if (v.title) haystack.push(v.title.toLowerCase());
+    if (v.sku) haystack.push(v.sku.toLowerCase());
+    for (const o of v.options ?? []) {
+      const val = (o as { value?: string | null }).value;
+      if (!val) continue;
+      const lc = val.toLowerCase();
+      haystack.push(lc);
+      // Push canonicalized color so "burgundy" matches a "Burgandy" variant
+      // even though the raw spelling differs.
+      if (isColorOption(o)) {
+        const canon = canonicalColor(lc);
+        if (canon) haystack.push(canon);
+      }
+    }
+  }
+
+  // Manual enrichment: products can opt-in extra search terms via
+  // metadata.search_terms (string with commas/pipes, or string[]). Lets the
+  // admin tag a "White Dress" with `metadata.search_terms = "white, satin"`
+  // for products where neither title nor variants carry the color word.
+  const meta = (p.metadata ?? {}) as { search_terms?: unknown };
+  if (typeof meta.search_terms === "string" && meta.search_terms.trim()) {
+    for (const term of meta.search_terms.split(/[,|]/)) {
+      const t = term.trim().toLowerCase();
+      if (t) haystack.push(t);
+    }
+  } else if (Array.isArray(meta.search_terms)) {
+    for (const term of meta.search_terms) {
+      if (typeof term === "string") {
+        const t = term.trim().toLowerCase();
+        if (t) haystack.push(t);
+      }
+    }
+  }
+
+  return parsed.textTokens.every((token) =>
+    haystack.some((field) => field.includes(token)),
+  );
+}
 
 type PriceRecord = {
   calculated_amount?: number | null;
@@ -357,7 +448,8 @@ async function computeShopFacets(args: {
     limit: 100,
     offset: 0,
   };
-  if (args.q) baseFilters.q = args.q;
+  // `q` is filtered in memory (see listWithFacetFilters for rationale) so the
+  // sidebar facets match the grid the customer is actually seeing.
   if (args.category) {
     baseFilters.category_id = Array.isArray(args.category) ? args.category : [args.category];
   }
@@ -372,6 +464,12 @@ async function computeShopFacets(args: {
   }
 
   let scoped = all;
+  if (args.q) {
+    const parsed = parseSearchQuery(args.q);
+    if (parsed.sizes.length > 0 || parsed.textTokens.length > 0) {
+      scoped = scoped.filter((p) => productMatchesParsedQuery(p, parsed));
+    }
+  }
   if (args.onSale) {
     scoped = scoped.filter((p) =>
       (p.variants ?? []).some((v) => {
