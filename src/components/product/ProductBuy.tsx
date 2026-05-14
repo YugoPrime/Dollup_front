@@ -3,6 +3,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { HttpTypes } from "@medusajs/types";
 import { useCart } from "@/components/cart/CartProvider";
+// import { SizeRecommender } from "@/components/product/SizeRecommender"; // paused — re-enable when ready
 import { formatPrice, getDisplayPrice, formatDiscountPercent } from "@/lib/format";
 import { toggleWishlist, useIsInWishlist } from "@/lib/wishlist-client";
 import { trackViewItem } from "@/lib/analytics";
@@ -13,9 +14,11 @@ const LOW_STOCK_THRESHOLD = 5;
 export function ProductBuy({
   product,
   freeShippingThreshold,
+  sizeChartHtml,
 }: {
   product: Product;
   freeShippingThreshold: number;
+  sizeChartHtml?: string | null;
 }) {
   const { addItem, loading } = useCart();
   const wished = useIsInWishlist(product.id);
@@ -45,8 +48,7 @@ export function ProductBuy({
   }, [variants, options, selected]);
 
   const price = matchedVariant ? getDisplayPrice({ variants: [matchedVariant] }) : getDisplayPrice(product);
-  const inStock =
-    matchedVariant && (!matchedVariant.manage_inventory || (matchedVariant.inventory_quantity ?? 0) > 0);
+  const inStock = matchedVariant && isVariantBuyable(matchedVariant);
   const lowStockQty =
     matchedVariant?.manage_inventory &&
     matchedVariant.inventory_quantity != null &&
@@ -59,6 +61,37 @@ export function ProductBuy({
   const colorOption = options.find((o) => (o.title ?? "").toLowerCase() === "color");
   const sizeOption = options.find((o) => (o.title ?? "").toLowerCase() === "size");
   const otherOptions = options.filter((o) => o !== colorOption && o !== sizeOption);
+  const sizeValues = useMemo(
+    () => ((sizeOption?.values ?? []).map((v) => v.value).filter(Boolean) as string[]),
+    [sizeOption],
+  );
+  const candidateSizeValues = useMemo(() => {
+    if (!sizeOption) return [];
+    const sizeOptionId = sizeOption.id;
+    const candidates = new Set<string>();
+
+    for (const variant of variants) {
+      let sizeValue: string | null = null;
+      let matchesSelectedOptions = true;
+      for (const option of variant.options ?? []) {
+        if (!option.option_id) continue;
+        if (option.option_id === sizeOptionId) {
+          sizeValue = option.value ?? null;
+          continue;
+        }
+
+        const selectedValue = selected[option.option_id];
+        if (selectedValue && selectedValue !== option.value) {
+          matchesSelectedOptions = false;
+          break;
+        }
+      }
+
+      if (matchesSelectedOptions && sizeValue) candidates.add(sizeValue);
+    }
+
+    return sizeValues.filter((size) => candidates.has(size));
+  }, [selected, sizeOption, sizeValues, variants]);
 
   // Fire GA4 view_item once per (product, variant) pair. Re-runs on variant
   // change so analytics reflect what the customer is actually looking at.
@@ -158,13 +191,24 @@ export function ProductBuy({
       )}
 
       {sizeOption && (
-        <OptionGroup
-          title="Size"
-          values={(sizeOption.values ?? []).map((v) => v.value).filter(Boolean) as string[]}
-          selected={selected[sizeOption.id]}
-          onSelect={(v) => setSelected((s) => ({ ...s, [sizeOption.id]: v }))}
-          variant="size"
-        />
+        <>
+          <OptionGroup
+            title="Size"
+            values={sizeValues}
+            selected={selected[sizeOption.id]}
+            onSelect={(v) => setSelected((s) => ({ ...s, [sizeOption.id]: v }))}
+            variant="size"
+          />
+          {/* SizeRecommender paused — re-enable when ready
+          <SizeRecommender
+            sizeChartHtml={sizeChartHtml ?? null}
+            sizeValues={sizeValues}
+            candidateSizes={candidateSizeValues}
+            selectedSize={selected[sizeOption.id]}
+            onSelectSize={(v) => setSelected((s) => ({ ...s, [sizeOption.id]: v }))}
+          />
+          */}
+        </>
       )}
 
       {otherOptions.map((opt) => (
@@ -315,4 +359,8 @@ function colorNameToHex(name: string): string {
     gray: "#8a7773", brown: "#5e4030",
   };
   return map[name.toLowerCase()] ?? "#8a7773";
+}
+
+function isVariantBuyable(variant: HttpTypes.StoreProductVariant): boolean {
+  return !variant.manage_inventory || (variant.inventory_quantity ?? 0) > 0;
 }

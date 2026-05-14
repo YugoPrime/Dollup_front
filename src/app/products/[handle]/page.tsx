@@ -139,6 +139,7 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
           <ProductBuy
             product={product}
             freeShippingThreshold={freeShippingThreshold}
+            sizeChartHtml={sizeChartHtml}
           />
           <div className="mt-6">
             <ProductAccordion
