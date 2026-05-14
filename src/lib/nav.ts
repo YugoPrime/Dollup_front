@@ -16,7 +16,7 @@ export const NAV_LINKS: NavLink[] = [
       { label: "Jumpsuits", href: "/shop?category=jumpsuits" },
       { label: "Top", href: "/shop?category=tops" },
       { label: "Bottom", href: "/shop?category=bottoms" },
-      { label: "Winter", href: "/shop?tag=winter" },
+      { label: "Winter", href: "/shop?category=winter" },
     ],
   },
   { label: "Lingerie", href: "/shop?category=lingerie" },
