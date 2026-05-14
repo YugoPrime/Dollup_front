@@ -49,9 +49,26 @@ export function HeaderMobileMenu() {
                 <Link
                   href={link.href}
                   onClick={() => setMenuOpen(false)}
-                  className="block px-6 py-3.5 font-sans text-sm font-medium text-ink"
+                  className="flex items-center px-6 py-3.5 font-sans text-sm font-medium text-ink"
                 >
                   {link.label}
+                  {link.badge === "hot" ? (
+                    <span
+                      aria-label="Hot"
+                      className="ml-2 inline-flex items-center gap-0.5 rounded-full bg-gradient-to-r from-coral-500 to-coral-700 px-1.5 py-[2px] font-sans text-[9px] font-bold uppercase leading-none tracking-wider text-white shadow-[0_1px_2px_rgba(229,96,74,0.35)]"
+                    >
+                      <svg
+                        width="9"
+                        height="9"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        aria-hidden="true"
+                      >
+                        <path d="M13.5 1.5c.3 3.5-1.3 5.6-3 7.5-1.8 2-3.5 4-3.5 7a8 8 0 0 0 16 0c0-4-2.4-7.3-5.1-9.7.4 2.4-.5 3.9-1.8 4.5-.2-3-1-6.5-2.6-9.3zm-.8 12.4c.6 1.4 2.2 1.8 2.7 3.4.4 1.4-.6 2.7-2 2.7-1.7 0-3-1.4-2.5-3 .3-1 1.2-1.7 1.8-3.1z" />
+                      </svg>
+                      Hot
+                    </span>
+                  ) : null}
                 </Link>
                 {link.children && (
                   <div className="bg-blush-100/40 pl-4">

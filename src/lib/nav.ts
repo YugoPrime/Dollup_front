@@ -1,6 +1,7 @@
 export type NavLink = {
   label: string;
   href: string;
+  badge?: "hot";
   children?: { label: string; href: string }[];
 };
 
@@ -19,7 +20,7 @@ export const NAV_LINKS: NavLink[] = [
     ],
   },
   { label: "Lingerie", href: "/shop?category=lingerie" },
-  { label: "Intimates", href: "/shop?category=intimates" },
+  { label: "Intimates", href: "/shop?category=intimates", badge: "hot" },
   { label: "Beachwear", href: "/shop?category=beachwear" },
   { label: "Accessories", href: "/shop?category=accessories" },
   { label: "Sale", href: "/shop?on_sale=1" },
