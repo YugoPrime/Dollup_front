@@ -148,6 +148,12 @@ async function listWithFacetFilters(
     );
   }
 
+  // Hide products where every variant is out of stock. Keep the product if
+  // at least one variant has inventory (size/color the shopper can still buy).
+  filtered = filtered.filter((p) =>
+    (p.variants ?? []).some((v) => isVariantInStock(v)),
+  );
+
   if (args.onSale) {
     filtered = filtered.filter((p) =>
       (p.variants ?? []).some((v) => {
