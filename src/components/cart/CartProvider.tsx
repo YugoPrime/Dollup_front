@@ -74,18 +74,49 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const id = getStoredCartId();
-    if (!id) return;
-    (async () => {
-      try {
-        const { cart } = await clientSdk.store.cart.retrieve(id, {
-          fields: CART_FIELDS,
-        });
-        if (cart && !cart.completed_at) setCart(cart);
-        else clearStoredCartId();
-      } catch {
-        clearStoredCartId();
+    if (id) {
+      (async () => {
+        try {
+          const { cart } = await clientSdk.store.cart.retrieve(id, {
+            fields: CART_FIELDS,
+          });
+          if (cart && !cart.completed_at) setCart(cart);
+          else clearStoredCartId();
+        } catch {
+          clearStoredCartId();
+        }
+      })();
+      return;
+    }
+    // No cart yet — pre-create one during browser idle so the user's first
+    // "Add to Bag" doesn't pay the region.list + cart.create round-trip cost.
+    // Gated behind requestIdleCallback so brief bouncers don't pollute the DB.
+    let cancelled = false;
+    const idle = (cb: () => void): number =>
+      typeof window.requestIdleCallback === "function"
+        ? window.requestIdleCallback(cb, { timeout: 2500 })
+        : (window.setTimeout(cb, 1500) as unknown as number);
+    const cancelIdle = (handle: number) => {
+      if (typeof window.cancelIdleCallback === "function") {
+        window.cancelIdleCallback(handle);
+      } else {
+        window.clearTimeout(handle);
       }
-    })();
+    };
+    const handle = idle(async () => {
+      if (cancelled) return;
+      try {
+        const created = await ensureCart(undefined);
+        if (!cancelled) setCart(created);
+      } catch {
+        // Best-effort: a failed pre-create just falls back to lazy
+        // ensureCart() inside addItem on the user's first interaction.
+      }
+    });
+    return () => {
+      cancelled = true;
+      cancelIdle(handle);
+    };
   }, []);
 
   const refresh = useCallback(async () => {
@@ -99,6 +130,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const addItem = useCallback(
     async (variantId: string, quantity = 1) => {
+      // Open the drawer before the network round-trip so the user sees instant
+      // feedback. CartDrawer renders an "Adding to your bag..." state when
+      // loading && no items yet (covers the brand-new-visitor case where
+      // ensureCart() hasn't returned yet).
+      setOpen(true);
       setLoading(true);
       try {
         const current = cart ?? (await ensureCart(undefined));
@@ -123,7 +159,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             currency: updated.currency_code ?? "MUR",
           });
         }
-        setOpen(true);
       } finally {
         setLoading(false);
       }
@@ -153,10 +188,28 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const removeItem = useCallback(
     async (lineId: string) => {
       if (!cart) return;
+      // Optimistic local removal so the line disappears immediately, then
+      // reconcile with the server. deleteLineItem's response includes the
+      // updated parent cart (Medusa v2), so we avoid a second refresh round
+      // trip in the happy path.
+      const previousCart = cart;
+      setCart({
+        ...cart,
+        items: cart.items?.filter((i) => i.id !== lineId) ?? [],
+      });
       setLoading(true);
       try {
-        await clientSdk.store.cart.deleteLineItem(cart.id, lineId);
-        await refresh();
+        const res = (await clientSdk.store.cart.deleteLineItem(
+          cart.id,
+          lineId,
+        )) as { parent?: Cart };
+        if (res.parent) setCart(res.parent);
+        else await refresh();
+      } catch (e) {
+        // Roll back the optimistic removal on failure so the user sees their
+        // line again rather than a silent loss.
+        setCart(previousCart);
+        throw e;
       } finally {
         setLoading(false);
       }

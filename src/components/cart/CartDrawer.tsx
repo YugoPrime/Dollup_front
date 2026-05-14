@@ -106,19 +106,31 @@ export function CartDrawer() {
         </header>
 
         {items.length === 0 ? (
-          <div className="flex flex-1 flex-col items-center justify-center p-10 text-center">
-            <p className="font-display text-lg font-semibold text-ink mb-2">Your bag is empty</p>
-            <p className="font-sans text-[13px] text-ink-muted mb-6">
-              Add something beautiful to get started.
-            </p>
-            <Link
-              href="/shop"
-              onClick={() => setOpen(false)}
-              className="rounded bg-coral-500 px-7 py-2.5 text-[13px] font-semibold text-white hover:bg-coral-700"
-            >
-              Shop Now
-            </Link>
-          </div>
+          loading ? (
+            <div className="flex flex-1 flex-col items-center justify-center p-10 text-center">
+              <div
+                className="h-9 w-9 animate-spin rounded-full border-2 border-blush-300 border-t-coral-500"
+                aria-hidden="true"
+              />
+              <p className="mt-4 font-sans text-[13px] text-ink-muted">
+                Adding to your bag…
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-1 flex-col items-center justify-center p-10 text-center">
+              <p className="font-display text-lg font-semibold text-ink mb-2">Your bag is empty</p>
+              <p className="font-sans text-[13px] text-ink-muted mb-6">
+                Add something beautiful to get started.
+              </p>
+              <Link
+                href="/shop"
+                onClick={() => setOpen(false)}
+                className="rounded bg-coral-500 px-7 py-2.5 text-[13px] font-semibold text-white hover:bg-coral-700"
+              >
+                Shop Now
+              </Link>
+            </div>
+          )
         ) : (
           <>
             <div className="flex-1 overflow-y-auto px-6 py-4">
