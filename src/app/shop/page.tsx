@@ -7,6 +7,7 @@ import {
   expandCategoryWithDescendants,
   getLatestCollectionTag,
   getShopFacets,
+  getCategoryHandlesWithStock,
 } from "@/lib/products";
 import { ProductCard } from "@/components/ProductCard";
 import { ShopFilterSidebar } from "@/components/shop/ShopFilterSidebar";
@@ -77,11 +78,16 @@ export default async function ShopPage({
   const priceMax = sp.price_max ? Number(sp.price_max) : undefined;
   const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
 
-  const [allCategories, latestCollection, unlocked] = await Promise.all([
+  const [allCategories, latestCollection, unlocked, stockedHandlesSet] = await Promise.all([
     listCategories(),
     getLatestCollectionTag().catch(() => null),
     isPrivateUnlocked().catch(() => false),
+    getCategoryHandlesWithStock().catch(() => new Set<string>()),
   ]);
+  // Serialize to array so it crosses the client boundary cleanly. Empty set ⇒
+  // upstream Medusa hiccup; the components fall back to "show everything" when
+  // they receive an empty list, so the sidebar/sheet never blank-out the tree.
+  const stockedHandles = Array.from(stockedHandlesSet);
   const latestTag = latestCollection?.value ?? null;
   // Trim trailing slashes so /shop?category=beachwear/ still matches "beachwear".
   const normalizedHandle = categoryHandle?.replace(/\/+$/, "") ?? null;
@@ -226,6 +232,7 @@ export default async function ShopPage({
           handle: c.handle,
           parent_category_id: c.parent_category_id,
         }))}
+        stockedHandles={stockedHandles}
         facets={facets}
       >
         {products.length === 0 ? (
@@ -251,6 +258,7 @@ export default async function ShopPage({
             handle: c.handle,
             parent_category_id: c.parent_category_id,
           }))}
+          stockedHandles={stockedHandles}
           facets={facets}
         />
         <div>

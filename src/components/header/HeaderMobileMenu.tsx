@@ -3,14 +3,14 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useState } from "react";
-import { NAV_LINKS } from "@/lib/nav";
+import type { NavLink } from "@/lib/nav";
 
 const FocusTrapLayer = dynamic(
   () => import("@/components/a11y/FocusTrapLayer").then((m) => m.FocusTrapLayer),
   { ssr: false, loading: () => null },
 );
 
-export function HeaderMobileMenu() {
+export function HeaderMobileMenu({ navLinks }: { navLinks: NavLink[] }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -44,7 +44,7 @@ export function HeaderMobileMenu() {
           onDeactivate={() => setMenuOpen(false)}
         >
           <nav id="mobile-menu" className="flex flex-col border-t border-blush-400 bg-white">
-            {NAV_LINKS.map((link) => (
+            {navLinks.map((link) => (
               <div key={link.label} className="border-b border-blush-100">
                 <Link
                   href={link.href}

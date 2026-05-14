@@ -1,13 +1,24 @@
 import Link from "next/link";
 import Image from "next/image";
-import { NAV_LINKS } from "@/lib/nav";
+import { NAV_LINKS, filterNavLinksByStockedHandles, type NavLink } from "@/lib/nav";
+import { getCategoryHandlesWithStock } from "@/lib/products";
 import { HeaderNavItem } from "@/components/header/HeaderNavItem";
 import { HeaderSearchDesktop, HeaderSearchMobile } from "@/components/header/HeaderSearch";
 import { HeaderAccountMenu } from "@/components/header/HeaderAccountMenu";
 import { HeaderCartButton } from "@/components/header/HeaderCartButton";
 import { HeaderMobileMenu } from "@/components/header/HeaderMobileMenu";
 
-export function Header() {
+export async function Header() {
+  // Hide menu entries for categories that are completely out of stock. Falls
+  // back to the full static list if Medusa is slow or errors so the header
+  // never disappears.
+  let visibleNav: NavLink[] = NAV_LINKS;
+  try {
+    const stocked = await getCategoryHandlesWithStock();
+    visibleNav = filterNavLinksByStockedHandles(NAV_LINKS, stocked);
+  } catch (err) {
+    console.error("Header nav stock-filter failed; using full list:", err);
+  }
   return (
     <header className="sticky top-0 z-[100] border-b border-blush-400 bg-white">
       {/* Mobile: single line, no wrap */}
@@ -35,7 +46,7 @@ export function Header() {
         </Link>
 
         <nav className="hidden flex-1 items-center justify-center gap-7 md:flex">
-          {NAV_LINKS.map((link) => (
+          {visibleNav.map((link) => (
             <HeaderNavItem key={link.label} link={link} />
           ))}
         </nav>
@@ -59,7 +70,7 @@ export function Header() {
         </div>
 
         {/* Mobile-only hamburger pinned right */}
-        <HeaderMobileMenu />
+        <HeaderMobileMenu navLinks={visibleNav} />
       </div>
 
       <HeaderSearchMobile />

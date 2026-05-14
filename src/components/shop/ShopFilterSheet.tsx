@@ -23,11 +23,16 @@ export function ShopFilterSheet({
   open,
   onClose,
   categories,
+  stockedHandles,
   facets,
 }: {
   open: boolean;
   onClose: () => void;
   categories: SheetCategory[];
+  // Category handles that currently have at least one in-stock product. Empty
+  // array (or undefined) ⇒ filter disabled so the tree never blanks out when
+  // the upstream stock fetch fails.
+  stockedHandles?: string[];
   facets: SheetFacets;
 }) {
   const router = useRouter();
@@ -62,6 +67,11 @@ export function ShopFilterSheet({
   const onSale = params.get("on_sale") === "1";
 
   const visible = useMemo(() => {
+    const stocked = new Set(stockedHandles ?? []);
+    const stockFilterActive = stocked.size > 0;
+    const inStock = (handle: string) =>
+      !stockFilterActive || stocked.has(handle);
+
     const womenParent = categories.find((c) => c.handle === "women");
     const womenChildren = womenParent
       ? categories.filter((c) => c.parent_category_id === womenParent.id)
@@ -75,12 +85,15 @@ export function ShopFilterSheet({
     }
     return womenChildren
       .filter((c) => !HIDDEN_HANDLES.has(c.handle))
+      .filter((c) => inStock(c.handle))
       .sort((a, b) => a.name.localeCompare(b.name))
       .map((root) => ({
         root,
-        children: (childrenByParent.get(root.id) ?? []).sort((a, b) => a.name.localeCompare(b.name)),
+        children: (childrenByParent.get(root.id) ?? [])
+          .filter((c) => inStock(c.handle))
+          .sort((a, b) => a.name.localeCompare(b.name)),
       }));
-  }, [categories]);
+  }, [categories, stockedHandles]);
 
   const initialMin = Number(params.get("price_min") ?? facets.priceMin) || facets.priceMin;
   const initialMax = Number(params.get("price_max") ?? facets.priceMax) || facets.priceMax;

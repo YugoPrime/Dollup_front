@@ -60,3 +60,41 @@ export const FOOTER_LEGAL = [
   { label: "Returns Policy", href: "/returns" },
 ];
 
+// Pulls the `category` query-string slug out of `/shop?category=<handle>` hrefs.
+// Returns null for non-category links (e.g. `?sort=new`, `?on_sale=1`) so the
+// stock-filter leaves them alone.
+function categoryHandleFromHref(href: string): string | null {
+  const queryStart = href.indexOf("?");
+  if (queryStart === -1) return null;
+  const params = new URLSearchParams(href.slice(queryStart + 1));
+  return params.get("category");
+}
+
+// Drops nav entries whose target category has no in-stock products. Non-category
+// links (New Arrivals, Sale) pass through. A parent stays when any of its
+// children remain, even if the parent's own category is empty.
+export function filterNavLinksByStockedHandles(
+  links: NavLink[],
+  stocked: Set<string>,
+): NavLink[] {
+  const out: NavLink[] = [];
+  for (const link of links) {
+    const ownHandle = categoryHandleFromHref(link.href);
+    const ownHasStock = ownHandle == null || stocked.has(ownHandle);
+    const filteredChildren = link.children
+      ? link.children.filter((c) => {
+          const h = categoryHandleFromHref(c.href);
+          return h == null || stocked.has(h);
+        })
+      : undefined;
+    const hasChildrenLeft = !!filteredChildren && filteredChildren.length > 0;
+    if (!ownHasStock && !hasChildrenLeft) continue;
+    out.push(
+      filteredChildren !== undefined
+        ? { ...link, children: filteredChildren }
+        : link,
+    );
+  }
+  return out;
+}
+

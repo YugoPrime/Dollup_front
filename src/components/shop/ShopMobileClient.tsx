@@ -8,10 +8,12 @@ import { ShopStickyBar } from "./ShopStickyBar";
 export function ShopMobileClient({
   children,
   categories,
+  stockedHandles,
   facets,
 }: {
   children: React.ReactNode;
   categories: SheetCategory[];
+  stockedHandles?: string[];
   facets: SheetFacets;
 }) {
   const [open, setOpen] = useState(false);
@@ -21,7 +23,13 @@ export function ShopMobileClient({
       {/* Reserve space so the fixed Filters/Sort bar (52px) above the bottom nav doesn't cover the last row / pagination */}
       <div className="pb-[60px]">{children}</div>
       <ShopStickyBar onOpenFilters={() => setOpen(true)} />
-      <ShopFilterSheet open={open} onClose={() => setOpen(false)} categories={categories} facets={facets} />
+      <ShopFilterSheet
+        open={open}
+        onClose={() => setOpen(false)}
+        categories={categories}
+        stockedHandles={stockedHandles}
+        facets={facets}
+      />
     </div>
   );
 }

@@ -41,9 +41,14 @@ const COLOR_HEX: Record<string, string> = {
 
 export function ShopFilterSidebar({
   categories,
+  stockedHandles,
   facets,
 }: {
   categories: RawCategory[];
+  // Category handles that currently have at least one in-stock product. Empty
+  // array (or undefined) ⇒ filter disabled (e.g. upstream fetch failed) so we
+  // show everything rather than blanking the tree.
+  stockedHandles?: string[];
   facets: Facets;
 }) {
   const router = useRouter();
@@ -74,7 +79,15 @@ export function ShopFilterSidebar({
   // its children get elevated to top-level (Clothing, Accessories, Beachwear).
   // Any OTHER top-level categories (Intimates, etc.) are kept alongside them
   // — without this they'd be invisible whenever "Women" has children.
+  //
+  // Empty `stockedHandles` ⇒ skip the in-stock filter so we don't blank the
+  // tree when upstream stock data is unavailable.
   const visible = useMemo(() => {
+    const stocked = new Set(stockedHandles ?? []);
+    const stockFilterActive = stocked.size > 0;
+    const inStock = (handle: string) =>
+      !stockFilterActive || stocked.has(handle);
+
     const tree: { root: RawCategory; children: RawCategory[] }[] = [];
     const childrenByParent = new Map<string | null, RawCategory[]>();
     for (const c of categories) {
@@ -93,14 +106,17 @@ export function ShopFilterSidebar({
     );
     const topLevel = [...womenChildren, ...otherTopLevel]
       .filter((c) => !HIDDEN_HANDLES.has(c.handle))
+      .filter((c) => inStock(c.handle))
       .sort((a, b) => a.name.localeCompare(b.name));
 
     for (const root of topLevel) {
-      const kids = childrenByParent.get(root.id) ?? [];
-      tree.push({ root, children: kids.sort((a, b) => a.name.localeCompare(b.name)) });
+      const kids = (childrenByParent.get(root.id) ?? [])
+        .filter((c) => inStock(c.handle))
+        .sort((a, b) => a.name.localeCompare(b.name));
+      tree.push({ root, children: kids });
     }
     return tree;
-  }, [categories]);
+  }, [categories, stockedHandles]);
 
   const activeCategory = params.get("category") ?? "";
 

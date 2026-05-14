@@ -632,6 +632,74 @@ export async function listCategories() {
   return cachedCategories();
 }
 
+// Returns the set of category handles that contain at least one publicly-listed,
+// in-stock product. Ancestor handles are included too: if "dresses" has stock,
+// "clothing" and "women" come along so the parent stays visible in nav/sidebar.
+// Used to hide empty categories from the header menu and shop filter sidebar.
+export async function getCategoryHandlesWithStock(): Promise<Set<string>> {
+  return cachedCategoryHandlesWithStock();
+}
+
+const cachedCategoryHandlesWithStock = unstable_cache(
+  async (): Promise<Set<string>> => {
+    const region = await getRegion();
+    const fields =
+      "id,metadata,*categories,+variants.inventory_quantity,+variants.manage_inventory";
+
+    const all: HttpTypes.StoreProduct[] = [];
+    const MAX_BATCHES = 12;
+    for (let i = 0; i < MAX_BATCHES; i++) {
+      const res = await sdk.store.product.list({
+        region_id: region.id,
+        fields,
+        limit: 100,
+        offset: i * 100,
+      });
+      all.push(...res.products);
+      if (res.products.length < 100) break;
+    }
+
+    const categories = await cachedCategories();
+    const parentById = new Map<string, string | null>();
+    const handleById = new Map<string, string>();
+    const idByHandle = new Map<string, string>();
+    for (const c of categories) {
+      parentById.set(c.id, c.parent_category_id);
+      handleById.set(c.id, c.handle);
+      idByHandle.set(c.handle, c.id);
+    }
+
+    const stocked = new Set<string>();
+    const markWithAncestors = (handle: string) => {
+      if (stocked.has(handle)) return;
+      stocked.add(handle);
+      const id = idByHandle.get(handle);
+      if (!id) return;
+      let parentId = parentById.get(id) ?? null;
+      while (parentId) {
+        const parentHandle = handleById.get(parentId);
+        if (!parentHandle || stocked.has(parentHandle)) break;
+        stocked.add(parentHandle);
+        parentId = parentById.get(parentId) ?? null;
+      }
+    };
+
+    for (const p of all) {
+      if (isUnlisted(p as unknown as { metadata?: unknown })) continue;
+      const hasStock = (p.variants ?? []).some((v) => isVariantInStock(v));
+      if (!hasStock) continue;
+      for (const c of p.categories ?? []) {
+        if (c?.handle) markWithAncestors(c.handle);
+      }
+    }
+    return stocked;
+  },
+  ["category-handles-with-stock-v1"],
+  // 5 min — stock barely moves faster than that and the cache auto-busts on
+  // `revalidateTag(PRODUCTS_CACHE_TAG)` whenever a product mutates.
+  { tags: [PRODUCTS_CACHE_TAG], revalidate: 300 },
+);
+
 export async function listCollections() {
   const { collections } = await sdk.store.collection.list({
     fields: "id,title,handle",
