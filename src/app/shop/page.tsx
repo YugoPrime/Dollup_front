@@ -234,7 +234,7 @@ export default async function ShopPage({
           <>
             <div className="grid grid-cols-2 gap-2.5 px-4 py-3">
               {products.map((p) => (
-                <ProductCard key={p.id} product={p} latestCollectionTag={latestTag} />
+                <ProductCard key={p.id} product={p} latestCollectionTag={latestTag} selectedColor={colorFilter ?? null} />
               ))}
             </div>
             <Pagination page={page} total={total} sp={sp} />
@@ -260,7 +260,7 @@ export default async function ShopPage({
             <>
               <div className="grid grid-cols-4 gap-4">
                 {products.map((p) => (
-                  <ProductCard key={p.id} product={p} latestCollectionTag={latestTag} />
+                  <ProductCard key={p.id} product={p} latestCollectionTag={latestTag} selectedColor={colorFilter ?? null} />
                 ))}
               </div>
               <Pagination page={page} total={total} sp={sp} />

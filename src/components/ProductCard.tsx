@@ -75,14 +75,37 @@ function colorNameToHex(name: string): string {
   return map[name.toLowerCase()] ?? "#8a7773";
 }
 
+function pickImageForColor(product: Product, color: string | null): string | null {
+  const fallback = product.thumbnail ?? product.images?.[0]?.url ?? null;
+  if (!color) return fallback;
+  const needle = color.toLowerCase();
+  const slug = needle.replace(/\s+/g, "-");
+  const images = product.images ?? [];
+  const match = images.find((img) => {
+    const url = (img.url ?? "").toLowerCase();
+    if (!url) return false;
+    return (
+      url.includes(`/${needle}`) ||
+      url.includes(`-${needle}`) ||
+      url.includes(`_${needle}`) ||
+      url.includes(`${needle}.`) ||
+      url.includes(`/${slug}`) ||
+      url.includes(`-${slug}`)
+    );
+  });
+  return match?.url ?? fallback;
+}
+
 export function ProductCard({
   product,
   latestCollectionTag = null,
   imageSizes = "(max-width: 768px) 50vw, 25vw",
+  selectedColor = null,
 }: {
   product: Product;
   latestCollectionTag?: string | null;
   imageSizes?: string;
+  selectedColor?: string | null;
 }) {
   const price = getDisplayPrice(product);
   const inStockVariant = product.variants?.find(
@@ -93,7 +116,7 @@ export function ProductCard({
   const lowStockMsg = getLowStockMessage(product);
   const discountPct = formatDiscountPercent(price.amount, price.original);
 
-  const thumb = product.thumbnail ?? product.images?.[0]?.url ?? null;
+  const thumb = pickImageForColor(product, selectedColor);
   const colors = getColorOptions(product);
   const isMultiVariant = (product.variants?.length ?? 0) > 1;
 
