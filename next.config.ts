@@ -135,6 +135,8 @@ const nextConfig: NextConfig = {
     ];
   },
   images: {
+    loader: "custom",
+    loaderFile: "./src/lib/image-loader.ts",
     formats: ["image/avif", "image/webp"],
     minimumCacheTTL: 60 * 60 * 24 * 30,
     remotePatterns: [
