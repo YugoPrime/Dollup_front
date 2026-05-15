@@ -358,8 +358,5 @@ function formatDate(iso: string | Date | undefined | null): string {
 function orderStatusLabel(o: HttpTypes.StoreOrder): string {
   if (o.fulfillment_status === "delivered") return "Delivered";
   if (o.fulfillment_status === "shipped") return "Shipped";
-  if (o.payment_status === "captured" || o.payment_status === "authorized") {
-    return "Paid";
-  }
   return "Pending";
 }
