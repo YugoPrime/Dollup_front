@@ -149,3 +149,11 @@ input:focus, textarea:focus, select:focus {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* Consent banner: rendered in SSR for FCP, hidden before paint for returning
+   visitors. The inline script in <head> (CONSENT_BOOTSTRAP_SCRIPT) reads the
+   dub_consent_v1 cookie and sets this attribute on <html> synchronously, so
+   the browser never paints the banner when consent is already recorded. */
+html[data-consent-known] [data-consent-banner] {
+  display: none;
+}

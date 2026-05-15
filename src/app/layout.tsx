@@ -10,6 +10,7 @@ import { WishlistAuthSync } from "@/components/wishlist/WishlistAuthSync";
 import { TagManager, TagManagerNoScript } from "@/components/analytics/TagManager";
 import { RouteChangeTracker } from "@/components/analytics/RouteChangeTracker";
 import { ConsentBanner } from "@/components/analytics/ConsentBanner";
+import { CONSENT_BOOTSTRAP_SCRIPT } from "@/lib/analytics";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -123,6 +124,10 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://api.dollupboutique.com" crossOrigin="" />
         <link rel="preconnect" href="https://cdn.dollupboutique.com" crossOrigin="" />
+        <script
+          id="dub-consent-bootstrap"
+          dangerouslySetInnerHTML={{ __html: CONSENT_BOOTSTRAP_SCRIPT }}
+        />
         <TagManager />
       </head>
       <body className="min-h-full flex flex-col">

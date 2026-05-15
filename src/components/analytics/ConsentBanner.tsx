@@ -1,42 +1,38 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import {
   applyConsent,
-  readConsent,
   writeConsent,
   type ConsentChoice,
 } from "@/lib/analytics";
 
 const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID;
 
-// Minimal Google Consent Mode v2 banner. Hidden when:
-//   - GTM is not configured (no point asking for analytics consent if no
-//     analytics is loaded).
-//   - The user has already chosen.
+// Minimal Google Consent Mode v2 banner. Rendered in the SSR HTML so it's
+// available at FCP; an inline <head> script in RootLayout reads the consent
+// cookie before first paint and adds data-consent-known to <html> for
+// returning visitors, which CSS uses to hide [data-consent-banner] before the
+// browser paints it. That keeps the banner from being a late-paint LCP
+// candidate. The `dismissed` state handles the in-session click.
+//
 // Defaults are denied (set in TagManager beforeInteractive script), so this
 // banner only ever transitions from denied -> granted on Accept, or confirms
 // the existing denied state on Reject.
 export function ConsentBanner() {
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    if (!GTM_ID) return;
-    if (readConsent() !== null) return;
-    setVisible(true);
-  }, []);
-
-  if (!visible) return null;
+  const [dismissed, setDismissed] = useState(false);
+  if (!GTM_ID || dismissed) return null;
 
   const choose = (choice: ConsentChoice) => {
     writeConsent(choice);
     applyConsent(choice);
-    setVisible(false);
+    setDismissed(true);
   };
 
   return (
     <div
+      data-consent-banner
       role="dialog"
       aria-live="polite"
       aria-label="Cookie consent"

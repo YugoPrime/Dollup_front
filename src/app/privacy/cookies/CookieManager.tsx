@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import {
-  CONSENT_STORAGE_KEY,
   applyConsent,
+  clearConsent,
   readConsent,
   writeConsent,
   type ConsentChoice,
@@ -33,13 +33,7 @@ export function CookieManager() {
   };
 
   const reset = () => {
-    if (typeof window !== "undefined") {
-      try {
-        window.localStorage.removeItem(CONSENT_STORAGE_KEY);
-      } catch {
-        /* localStorage unavailable */
-      }
-    }
+    clearConsent();
     setStatus("none");
     setConfirmation(
       "Your choice has been cleared. The cookie banner will reappear on your next page load so you can choose again.",

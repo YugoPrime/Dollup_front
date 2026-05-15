@@ -284,24 +284,68 @@ function generateEventId(orderId: string): string {
 // ---------- Consent ----------
 
 export type ConsentChoice = "accepted" | "rejected";
-export const CONSENT_STORAGE_KEY = "dub_consent_v1";
+
+// Stored as a cookie (was previously localStorage) so an inline <head> script
+// in RootLayout can read it before first paint and hide the banner via CSS,
+// keeping the banner out of the LCP race for returning visitors.
+export const CONSENT_COOKIE_NAME = "dub_consent_v1";
+// Back-compat alias — existing callers import CONSENT_STORAGE_KEY.
+export const CONSENT_STORAGE_KEY = CONSENT_COOKIE_NAME;
+
+const CONSENT_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365; // 1 year
+
+// Tiny script injected inline in <head> by RootLayout. Runs synchronously
+// before first paint; if the consent cookie is present, marks <html> so CSS
+// can hide the banner before the browser ever paints it.
+export const CONSENT_BOOTSTRAP_SCRIPT = `try{var m=document.cookie.match(/(?:^|;\\s*)${CONSENT_COOKIE_NAME}=([^;]*)/);if(m&&(m[1]==='accepted'||m[1]==='rejected')){document.documentElement.setAttribute('data-consent-known',m[1]);}}catch(e){}`;
+
+function parseConsentCookie(cookieJar: string): ConsentChoice | null {
+  const match = cookieJar.match(
+    new RegExp(`(?:^|;\\s*)${CONSENT_COOKIE_NAME}=([^;]*)`),
+  );
+  if (!match) return null;
+  return match[1] === "accepted" || match[1] === "rejected"
+    ? (match[1] as ConsentChoice)
+    : null;
+}
 
 export function readConsent(): ConsentChoice | null {
-  if (typeof window === "undefined") return null;
+  if (typeof document === "undefined") return null;
   try {
-    const v = window.localStorage.getItem(CONSENT_STORAGE_KEY);
-    return v === "accepted" || v === "rejected" ? v : null;
+    return parseConsentCookie(document.cookie);
   } catch {
     return null;
   }
 }
 
 export function writeConsent(choice: ConsentChoice) {
-  if (typeof window === "undefined") return;
+  if (typeof document === "undefined") return;
   try {
-    window.localStorage.setItem(CONSENT_STORAGE_KEY, choice);
+    const isSecure =
+      typeof window !== "undefined" && window.location.protocol === "https:";
+    const parts = [
+      `${CONSENT_COOKIE_NAME}=${choice}`,
+      `Max-Age=${CONSENT_COOKIE_MAX_AGE_SECONDS}`,
+      "Path=/",
+      "SameSite=Lax",
+    ];
+    if (isSecure) parts.push("Secure");
+    document.cookie = parts.join("; ");
+    // Sync the html attribute so client-side navigation between routes (which
+    // doesn't re-run the inline bootstrap script) still hides the banner.
+    document.documentElement.setAttribute("data-consent-known", choice);
   } catch {
-    // localStorage disabled — tags will stay in default (denied) state.
+    // cookies disabled — tags will stay in default (denied) state.
+  }
+}
+
+export function clearConsent() {
+  if (typeof document === "undefined") return;
+  try {
+    document.cookie = `${CONSENT_COOKIE_NAME}=; Max-Age=0; Path=/; SameSite=Lax`;
+    document.documentElement.removeAttribute("data-consent-known");
+  } catch {
+    /* cookies disabled */
   }
 }
 
