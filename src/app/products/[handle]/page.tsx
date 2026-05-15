@@ -178,15 +178,21 @@ async function RelatedProductsSection({
 
   try {
     const [pool, tag] = await Promise.all([
-      listProducts({ limit: 16, order: "-created_at" }),
+      listProducts({ limit: 30, order: "-created_at" }),
       getLatestCollectionTag().catch(() => null),
     ]);
-    related = pool.products
+    const candidates = pool.products
       .filter((p) => p.id !== currentProductId)
       .filter((p) =>
         isPubliclyListedStoreProduct(p, { unlocked, excludeIntimates: true }),
-      )
-      .slice(0, 5);
+      );
+    // Fisher-Yates shuffle so each PDP cache rebuild (revalidate=60) gets a
+    // fresh random mix instead of the same 5 newest products everywhere.
+    for (let i = candidates.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+    }
+    related = candidates.slice(0, 5);
     latestCollectionTag = tag?.value ?? null;
   } catch {
     return null;
