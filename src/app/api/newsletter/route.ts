@@ -30,43 +30,66 @@ type Body = {
 };
 
 export async function POST(req: NextRequest) {
-  let body: Body;
+  // DIAGNOSTIC WRAPPER — surfaces the real error instead of crashing into a
+  // Cloudflare 502. Revert this whole try/catch once we've identified the
+  // underlying failure.
   try {
-    body = (await req.json()) as Body;
-  } catch {
-    return json({ error: "invalid_json" }, 400);
+    let body: Body;
+    try {
+      body = (await req.json()) as Body;
+    } catch {
+      return json({ error: "invalid_json" }, 400);
+    }
+
+    if (body.website && body.website.trim().length > 0) {
+      return json({ ok: true });
+    }
+
+    const email = (body.email ?? "").trim().toLowerCase();
+    if (!isValidEmail(email)) {
+      return json({ error: "invalid_email" }, 400);
+    }
+
+    const resendResult = await createResendContact(email);
+
+    const consent = req.cookies.get(CONSENT_COOKIE_NAME)?.value;
+    if (consent === "accepted") {
+      fireMetaCapiLead(req, email).catch((err) => {
+        console.warn("[newsletter] meta capi background error", err);
+      });
+    }
+
+    if (!resendResult.ok && resendResult.code !== "duplicate") {
+      return json(
+        {
+          error: "subscribe_failed",
+          debug: resendResult.debug ?? null,
+        },
+        502,
+      );
+    }
+
+    return json({ ok: true, duplicate: resendResult.code === "duplicate" });
+  } catch (err) {
+    const e = err as Error;
+    console.error("[newsletter] handler crashed", e);
+    return json(
+      {
+        error: "handler_crashed",
+        message: e?.message ?? String(err),
+        name: e?.name ?? null,
+        stack: e?.stack?.split("\n").slice(0, 5) ?? null,
+      },
+      500,
+    );
   }
-
-  // Honeypot: silently succeed so bots think it worked, but do nothing.
-  if (body.website && body.website.trim().length > 0) {
-    return json({ ok: true });
-  }
-
-  const email = (body.email ?? "").trim().toLowerCase();
-  if (!isValidEmail(email)) {
-    return json({ error: "invalid_email" }, 400);
-  }
-
-  const resendResult = await createResendContact(email);
-
-  // Server-side consent gate — only ship hashed PII to Meta if the visitor
-  // has explicitly accepted the cookie banner.
-  const consent = req.cookies.get(CONSENT_COOKIE_NAME)?.value;
-  if (consent === "accepted") {
-    // Don't await — Meta is best-effort; never let it block the response.
-    fireMetaCapiLead(req, email).catch((err) => {
-      console.warn("[newsletter] meta capi background error", err);
-    });
-  }
-
-  if (!resendResult.ok && resendResult.code !== "duplicate") {
-    return json({ error: "subscribe_failed" }, 502);
-  }
-
-  return json({ ok: true, duplicate: resendResult.code === "duplicate" });
 }
 
-type ResendResult = { ok: boolean; code?: "duplicate" | "disabled" };
+type ResendResult = {
+  ok: boolean;
+  code?: "duplicate" | "disabled";
+  debug?: Record<string, unknown>;
+};
 
 async function createResendContact(email: string): Promise<ResendResult> {
   const apiKey = process.env.RESEND_API_KEY;
@@ -78,8 +101,6 @@ async function createResendContact(email: string): Promise<ResendResult> {
     return { ok: true, code: "disabled" };
   }
 
-  // Step 1: try creating the contact. New Resend API — single global /contacts
-  // endpoint, segments passed in the body.
   const createBody: Record<string, unknown> = {
     email,
     unsubscribed: false,
@@ -109,11 +130,30 @@ async function createResendContact(email: string): Promise<ResendResult> {
       isDuplicate = true;
     } else {
       console.warn("[newsletter] resend create rejected", res.status, text);
-      return { ok: false };
+      return {
+        ok: false,
+        debug: {
+          step: "create",
+          status: res.status,
+          body: text.slice(0, 500),
+          segment_id_set: Boolean(segmentId),
+        },
+      };
     }
   } catch (err) {
+    const e = err as Error;
     console.warn("[newsletter] resend create network error", err);
-    return { ok: false };
+    return {
+      ok: false,
+      debug: {
+        step: "create_network",
+        message: e?.message ?? String(err),
+        name: e?.name ?? null,
+        cause: (e as Error & { cause?: unknown })?.cause
+          ? String((e as Error & { cause?: unknown }).cause)
+          : null,
+      },
+    };
   }
 
   // Step 2: contact already exists. Make sure they're in our segment so
