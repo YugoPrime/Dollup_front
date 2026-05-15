@@ -14,7 +14,7 @@ const PASSTHROUGH_PREFIXES = [
 // resize batch has processed every product. Otherwise variant URLs will 404.
 const USE_VARIANTS = process.env.NEXT_PUBLIC_USE_R2_VARIANTS === "true";
 const VARIANT_WIDTHS = [400, 800, 1200, 1600] as const;
-const CDN_PRODUCT_RE = /^(https:\/\/cdn\.dollupboutique\.com\/products\/[^/]+\/[^/?#]+)\.(jpe?g|png)(\?.*)?$/i;
+const CDN_PRODUCT_RE = /^(https:\/\/cdn\.dollupboutique\.com\/(?:products\/[^/]+|homepage\/babe-essentials)\/[^/?#]+)\.(jpe?g|png)(\?.*)?$/i;
 
 function pickVariantWidth(requested: number): number {
   for (const w of VARIANT_WIDTHS) {
