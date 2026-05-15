@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import type { HttpTypes } from "@medusajs/types";
 import { formatPrice, getDisplayPrice, formatDiscountPercent } from "@/lib/format";
+import { colorNameToHex } from "@/lib/colors";
 import {
   ProductCardQuickAdd,
   ProductCardWishlistButton,
@@ -53,26 +54,6 @@ function getVariantPickerLabel(product: Product): string {
   if (hasSize) return "Select size";
   if (hasColor) return "Select color";
   return "Select options";
-}
-
-function colorNameToHex(name: string): string {
-  const map: Record<string, string> = {
-    black: "#1c1010",
-    white: "#ffffff",
-    coral: "#E5604A",
-    blush: "#F2DDD8",
-    cream: "#FAF6F4",
-    nude: "#F2DDD8",
-    pink: "#F8D5CD",
-    red: "#B8412C",
-    green: "#3a5a40",
-    blue: "#85C1E9",
-    yellow: "#F4D03F",
-    grey: "#8a7773",
-    gray: "#8a7773",
-    brown: "#5e4030",
-  };
-  return map[name.toLowerCase()] ?? "#8a7773";
 }
 
 function pickImageForColor(product: Product, color: string | null): string | null {

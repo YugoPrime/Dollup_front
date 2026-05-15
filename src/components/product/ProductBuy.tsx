@@ -7,6 +7,7 @@ import { useCart } from "@/components/cart/CartProvider";
 import { formatPrice, getDisplayPrice, formatDiscountPercent } from "@/lib/format";
 import { toggleWishlist, useIsInWishlist } from "@/lib/wishlist-client";
 import { trackViewItem } from "@/lib/analytics";
+import { colorNameToHex } from "@/lib/colors";
 
 type Product = HttpTypes.StoreProduct;
 const LOW_STOCK_THRESHOLD = 5;
@@ -349,16 +350,6 @@ function OptionGroup({
       )}
     </div>
   );
-}
-
-function colorNameToHex(name: string): string {
-  const map: Record<string, string> = {
-    black: "#1c1010", white: "#ffffff", coral: "#E5604A", blush: "#F2DDD8",
-    cream: "#FAF6F4", nude: "#F2DDD8", pink: "#F8D5CD", red: "#B8412C",
-    green: "#3a5a40", blue: "#85C1E9", yellow: "#F4D03F", grey: "#8a7773",
-    gray: "#8a7773", brown: "#5e4030",
-  };
-  return map[name.toLowerCase()] ?? "#8a7773";
 }
 
 function isVariantBuyable(variant: HttpTypes.StoreProductVariant): boolean {
