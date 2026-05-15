@@ -81,11 +81,13 @@ export function ProductCard({
   product,
   latestCollectionTag = null,
   imageSizes = "(max-width: 768px) 50vw, 25vw",
+  imagePriority = false,
   selectedColor = null,
 }: {
   product: Product;
   latestCollectionTag?: string | null;
   imageSizes?: string;
+  imagePriority?: boolean;
   selectedColor?: string | null;
 }) {
   const price = getDisplayPrice(product);
@@ -136,6 +138,7 @@ export function ProductCard({
             alt={product.title}
             fill
             sizes={imageSizes}
+            priority={imagePriority}
             className="object-cover object-top"
           />
         )}

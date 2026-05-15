@@ -149,7 +149,6 @@ export function HeroBento({ products }: { products: Product[] }) {
                     fill
                     sizes="(max-width: 767px) 33vw, 1px"
                     className="object-cover object-top"
-                    priority={i === 0}
                     placeholder="blur"
                     blurDataURL={HERO_TILE_BLURS[i] ?? HERO_TILE_1_BLUR}
                   />

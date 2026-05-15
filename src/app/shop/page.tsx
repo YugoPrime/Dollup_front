@@ -224,7 +224,6 @@ export default async function ShopPage({
         </div>
       </div>
 
-      {/* Mobile shell: chips, grid, sticky bar, sheet */}
       <ShopMobileClient
         categories={allCategories.map((c) => ({
           id: c.id,
@@ -234,23 +233,9 @@ export default async function ShopPage({
         }))}
         stockedHandles={stockedHandles}
         facets={facets}
-      >
-        {products.length === 0 ? (
-          <EmptyState />
-        ) : (
-          <>
-            <div className="grid grid-cols-2 gap-2.5 px-4 py-3">
-              {products.map((p) => (
-                <ProductCard key={p.id} product={p} latestCollectionTag={latestTag} selectedColor={colorFilter ?? null} />
-              ))}
-            </div>
-            <Pagination page={page} total={total} sp={sp} />
-          </>
-        )}
-      </ShopMobileClient>
+      />
 
-      {/* Desktop body */}
-      <div className="mx-auto hidden max-w-[1280px] gap-6 px-8 pb-12 pt-6 md:grid md:grid-cols-[260px_1fr] md:items-start">
+      <div className="mx-auto grid max-w-[1280px] gap-6 px-4 pb-[72px] pt-3 md:grid-cols-[260px_1fr] md:items-start md:px-8 md:pb-12 md:pt-6">
         <ShopFilterSidebar
           categories={allCategories.map((c) => ({
             id: c.id,
@@ -266,9 +251,15 @@ export default async function ShopPage({
             <EmptyState />
           ) : (
             <>
-              <div className="grid grid-cols-4 gap-4">
-                {products.map((p) => (
-                  <ProductCard key={p.id} product={p} latestCollectionTag={latestTag} selectedColor={colorFilter ?? null} />
+              <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-4">
+                {products.map((p, index) => (
+                  <ProductCard
+                    key={p.id}
+                    product={p}
+                    latestCollectionTag={latestTag}
+                    selectedColor={colorFilter ?? null}
+                    imagePriority={index < 2}
+                  />
                 ))}
               </div>
               <Pagination page={page} total={total} sp={sp} />

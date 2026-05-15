@@ -12,7 +12,12 @@ export const PRODUCT_TAGS_CACHE_TAG = "product-tags";
 export const PRODUCT_CATEGORIES_CACHE_TAG = "product-categories";
 
 const PRODUCT_LIST_FIELDS =
-  "id,title,handle,thumbnail,metadata,created_at,updated_at,*variants,*variants.calculated_price,*variants.options,+variants.inventory_quantity,+variants.manage_inventory,*options,*options.values,*images,*tags,*categories,*collection";
+  "id,title,handle,thumbnail,metadata,created_at,updated_at," +
+  "variants.id,variants.title,variants.sku,variants.manage_inventory,+variants.inventory_quantity," +
+  "variants.calculated_price.calculated_amount,variants.calculated_price.original_amount,variants.calculated_price.currency_code," +
+  "variants.options.value,variants.options.option.title," +
+  "options.title,options.values.value,images.url,tags.id,tags.value," +
+  "categories.id,categories.name,categories.handle,categories.parent_category_id,collection.id";
 
 const CATALOG_BATCH_SIZE = 100;
 const CATALOG_MAX_BATCHES = 12;
@@ -57,7 +62,7 @@ async function fetchAllStoreProducts(
 
 const cachedAllStoreProducts = unstable_cache(
   fetchAllStoreProducts,
-  ["all-store-products-v1"],
+  ["all-store-products-v2"],
   { tags: [PRODUCTS_CACHE_TAG], revalidate: CATALOG_REVALIDATE_SECONDS },
 );
 
@@ -692,11 +697,11 @@ export async function listCategories() {
 // "clothing" and "women" come along so the parent stays visible in nav/sidebar.
 // Used to hide empty categories from the header menu and shop filter sidebar.
 export async function getCategoryHandlesWithStock(): Promise<Set<string>> {
-  return cachedCategoryHandlesWithStock();
+  return new Set(await cachedCategoryHandlesWithStock());
 }
 
 const cachedCategoryHandlesWithStock = unstable_cache(
-  async (): Promise<Set<string>> => {
+  async (): Promise<string[]> => {
     const region = await getRegion();
     // Reads the shared catalog snapshot — the per-caller wide fetch this used
     // to do is now consolidated into cachedAllStoreProducts.
@@ -735,9 +740,9 @@ const cachedCategoryHandlesWithStock = unstable_cache(
         if (c?.handle) markWithAncestors(c.handle);
       }
     }
-    return stocked;
+    return [...stocked];
   },
-  ["category-handles-with-stock-v1"],
+  ["category-handles-with-stock-v2"],
   // 5 min — stock barely moves faster than that and the cache auto-busts on
   // `revalidateTag(PRODUCTS_CACHE_TAG)` whenever a product mutates.
   { tags: [PRODUCTS_CACHE_TAG], revalidate: 300 },

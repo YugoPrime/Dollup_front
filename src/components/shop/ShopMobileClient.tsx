@@ -11,7 +11,7 @@ export function ShopMobileClient({
   stockedHandles,
   facets,
 }: {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   categories: SheetCategory[];
   stockedHandles?: string[];
   facets: SheetFacets;
@@ -20,8 +20,9 @@ export function ShopMobileClient({
   return (
     <div className="md:hidden">
       <ShopFilterChips onOpenFilters={() => setOpen(true)} />
-      {/* Reserve space so the fixed Filters/Sort bar (52px) above the bottom nav doesn't cover the last row / pagination */}
-      <div className="pb-[60px]">{children}</div>
+      {children ? (
+        <div className="pb-[60px]">{children}</div>
+      ) : null}
       <ShopStickyBar onOpenFilters={() => setOpen(true)} />
       <ShopFilterSheet
         open={open}
