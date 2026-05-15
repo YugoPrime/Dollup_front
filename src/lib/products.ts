@@ -12,7 +12,68 @@ export const PRODUCT_TAGS_CACHE_TAG = "product-tags";
 export const PRODUCT_CATEGORIES_CACHE_TAG = "product-categories";
 
 const PRODUCT_LIST_FIELDS =
-  "id,title,handle,thumbnail,metadata,updated_at,*variants,*variants.calculated_price,*variants.options,+variants.inventory_quantity,+variants.manage_inventory,*options,*options.values,*images,*tags,*categories";
+  "id,title,handle,thumbnail,metadata,created_at,updated_at,*variants,*variants.calculated_price,*variants.options,+variants.inventory_quantity,+variants.manage_inventory,*options,*options.values,*images,*tags,*categories,*collection";
+
+const CATALOG_BATCH_SIZE = 100;
+const CATALOG_MAX_BATCHES = 12;
+const CATALOG_REVALIDATE_SECONDS = 300;
+
+// Single shared catalog snapshot. Previously listProducts, getShopFacets and
+// getCategoryHandlesWithStock each paged through the full catalog (3 × up to
+// 5 sequential round-trips on cache miss). Now one snapshot is fetched per
+// region with parallel batches, cached 5 min, and reused by all three
+// callers — which derive their result with cheap in-memory filtering.
+async function fetchAllStoreProducts(
+  regionId: string,
+): Promise<HttpTypes.StoreProduct[]> {
+  const first = await sdk.store.product.list({
+    region_id: regionId,
+    fields: PRODUCT_LIST_FIELDS,
+    limit: CATALOG_BATCH_SIZE,
+    offset: 0,
+  });
+  const total = typeof first.count === "number" ? first.count : first.products.length;
+  if (first.products.length >= total || first.products.length < CATALOG_BATCH_SIZE) {
+    return first.products;
+  }
+  const totalBatches = Math.min(
+    Math.ceil(total / CATALOG_BATCH_SIZE),
+    CATALOG_MAX_BATCHES,
+  );
+  const rest = await Promise.all(
+    Array.from({ length: totalBatches - 1 }, (_, i) =>
+      sdk.store.product
+        .list({
+          region_id: regionId,
+          fields: PRODUCT_LIST_FIELDS,
+          limit: CATALOG_BATCH_SIZE,
+          offset: (i + 1) * CATALOG_BATCH_SIZE,
+        })
+        .then((r) => r.products),
+    ),
+  );
+  return [...first.products, ...rest.flat()];
+}
+
+const cachedAllStoreProducts = unstable_cache(
+  fetchAllStoreProducts,
+  ["all-store-products-v1"],
+  { tags: [PRODUCTS_CACHE_TAG], revalidate: CATALOG_REVALIDATE_SECONDS },
+);
+
+function getProductCollectionId(p: HttpTypes.StoreProduct): string | null {
+  const direct = (p as { collection_id?: string | null }).collection_id;
+  if (typeof direct === "string" && direct) return direct;
+  const nested = (p as { collection?: { id?: string | null } | null }).collection;
+  return nested?.id ?? null;
+}
+
+function getProductCreatedAt(p: HttpTypes.StoreProduct): number {
+  const raw = (p as { created_at?: string | null }).created_at;
+  if (!raw) return 0;
+  const t = new Date(raw).getTime();
+  return Number.isFinite(t) ? t : 0;
+}
 
 // Medusa v2 strips any field not explicitly listed here — including base scalars
 // like title/handle/thumbnail. Omitting them breaks PDP h1, og:title, canonical,
@@ -86,43 +147,44 @@ function normalizeListProductArgs(args: ListProductsArgs): ListProductsArgs {
 
 // Unified facet filter: Medusa Store API has no native filters for on-sale,
 // option values (size/color), price range, or tokenized search across variant
-// options. So we page through the catalog (cap 1200) applying the cheap
-// server-side filters (category/tag/collection/order) first, then apply each
-// enabled facet — and the tokenized search — in memory. Slice to the requested
-// page at the end.
+// options. We read the shared catalog snapshot and apply every filter —
+// category / tag / collection / order included — in memory. Cheap on a
+// ~500-product catalog, and the snapshot is reused across listProducts,
+// getShopFacets, and getCategoryHandlesWithStock so the page renders without
+// re-fetching the catalog per concern.
 //
-// `q` is NOT forwarded to Medusa: its server-side `q` is a single-substring
-// ILIKE on title/handle/description, so multi-word queries like "red dress"
-// return zero rows when titles are "White Dress" with a red color variant or
-// "Cute Red Floral Dress" (word order mismatch). The tokenized matcher below
-// covers all of those.
+// `q` is parsed locally rather than forwarded to Medusa: Store API's `q` is a
+// single-substring ILIKE on title/handle/description, so multi-word queries
+// like "red dress" return zero rows when titles are "White Dress" with a red
+// color variant or "Cute Red Floral Dress" (word order mismatch). The
+// tokenized matcher below covers all of those.
 async function listWithFacetFilters(
   args: ListProductsArgs,
   region: Awaited<ReturnType<typeof getRegion>>,
 ) {
-  const baseFilters: HttpTypes.StoreProductListParams = {
-    region_id: region.id,
-    fields: PRODUCT_LIST_FIELDS,
-    limit: 100,
-    offset: 0,
-  };
+  const all = await cachedAllStoreProducts(region.id);
+
+  let filtered: HttpTypes.StoreProduct[] = all;
+
   if (args.category) {
-    baseFilters.category_id = Array.isArray(args.category) ? args.category : [args.category];
+    const ids = new Set(Array.isArray(args.category) ? args.category : [args.category]);
+    filtered = filtered.filter((p) =>
+      (p.categories ?? []).some((c) => ids.has(c.id)),
+    );
   }
-  if (args.collection) baseFilters.collection_id = [args.collection];
-  if (args.tag) baseFilters.tag_id = [args.tag];
-  // Skip Store-side `order` if we're going to re-sort by price below — saves a wasted sort.
-  if (args.order && !args.sortPrice) baseFilters.order = args.order;
-
-  const all: HttpTypes.StoreProduct[] = [];
-  const MAX_BATCHES = 12;
-  for (let i = 0; i < MAX_BATCHES; i++) {
-    const res = await sdk.store.product.list({ ...baseFilters, offset: i * 100 });
-    all.push(...res.products);
-    if (res.products.length < 100) break;
+  if (args.collection) {
+    filtered = filtered.filter((p) => getProductCollectionId(p) === args.collection);
   }
-
-  let filtered = all;
+  if (args.tag) {
+    filtered = filtered.filter((p) => (p.tags ?? []).some((t) => t.id === args.tag));
+  }
+  // Honour `-created_at` here (the only order key callers use). Skip when a
+  // price re-sort will run later, since that overrides the order anyway.
+  if (args.order === "-created_at" && !args.sortPrice) {
+    filtered = [...filtered].sort(
+      (a, b) => getProductCreatedAt(b) - getProductCreatedAt(a),
+    );
+  }
 
   // Smart query parse: pulls size keywords ("small", "S", "free size") out as
   // an exact size filter, drops noise words ("size", "color", "in", "with",
@@ -448,28 +510,21 @@ async function computeShopFacets(args: {
   onSale?: boolean;
 }): Promise<ShopFacets> {
   const region = await getRegion();
-  const baseFilters: HttpTypes.StoreProductListParams = {
-    region_id: region.id,
-    fields: PRODUCT_LIST_FIELDS,
-    limit: 100,
-    offset: 0,
-  };
-  // `q` is filtered in memory (see listWithFacetFilters for rationale) so the
-  // sidebar facets match the grid the customer is actually seeing.
+  // Reads the shared catalog snapshot; category/tag/q/onSale are applied in
+  // memory so the sidebar facets match the grid the customer is actually
+  // seeing.
+  const all = await cachedAllStoreProducts(region.id);
+
+  let scoped: HttpTypes.StoreProduct[] = all;
   if (args.category) {
-    baseFilters.category_id = Array.isArray(args.category) ? args.category : [args.category];
+    const ids = new Set(Array.isArray(args.category) ? args.category : [args.category]);
+    scoped = scoped.filter((p) =>
+      (p.categories ?? []).some((c) => ids.has(c.id)),
+    );
   }
-  if (args.tag) baseFilters.tag_id = [args.tag];
-
-  const all: HttpTypes.StoreProduct[] = [];
-  const MAX_BATCHES = 12;
-  for (let i = 0; i < MAX_BATCHES; i++) {
-    const res = await sdk.store.product.list({ ...baseFilters, offset: i * 100 });
-    all.push(...res.products);
-    if (res.products.length < 100) break;
+  if (args.tag) {
+    scoped = scoped.filter((p) => (p.tags ?? []).some((t) => t.id === args.tag));
   }
-
-  let scoped = all;
   if (args.q) {
     const parsed = parseSearchQuery(args.q);
     if (parsed.sizes.length > 0 || parsed.textTokens.length > 0) {
@@ -643,21 +698,9 @@ export async function getCategoryHandlesWithStock(): Promise<Set<string>> {
 const cachedCategoryHandlesWithStock = unstable_cache(
   async (): Promise<Set<string>> => {
     const region = await getRegion();
-    const fields =
-      "id,metadata,*categories,+variants.inventory_quantity,+variants.manage_inventory";
-
-    const all: HttpTypes.StoreProduct[] = [];
-    const MAX_BATCHES = 12;
-    for (let i = 0; i < MAX_BATCHES; i++) {
-      const res = await sdk.store.product.list({
-        region_id: region.id,
-        fields,
-        limit: 100,
-        offset: i * 100,
-      });
-      all.push(...res.products);
-      if (res.products.length < 100) break;
-    }
+    // Reads the shared catalog snapshot — the per-caller wide fetch this used
+    // to do is now consolidated into cachedAllStoreProducts.
+    const all = await cachedAllStoreProducts(region.id);
 
     const categories = await cachedCategories();
     const parentById = new Map<string, string | null>();
