@@ -8,6 +8,7 @@ import {
   Building2,
   CalendarDays,
   ChevronLeft,
+  LogIn,
   Mail,
   Store,
   Truck,
@@ -792,6 +793,38 @@ export function CheckoutForm() {
                     : "That date is not available. No same-day delivery, next-day cutoff is 1pm, no Sundays."}
                 </p>
               )}
+          </section>
+        )}
+
+        {!customer && authStatus === "ready" && (
+          <section
+            className={`${mobileStep === "details" ? "block" : "hidden"} lg:block`}
+            aria-labelledby="checkout-login-reminder-title"
+          >
+            <div className="flex flex-col gap-3 rounded-lg border border-coral-300 bg-blush-100/70 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-coral-500/10 text-coral-700">
+                  <LogIn aria-hidden className="h-4 w-4" />
+                </span>
+                <div>
+                  <p
+                    id="checkout-login-reminder-title"
+                    className="font-sans text-sm font-semibold text-ink"
+                  >
+                    Already have an account?
+                  </p>
+                  <p className="font-sans text-xs text-ink-muted">
+                    Sign in for faster checkout with your saved addresses and orders.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/login?redirect=%2Fcheckout"
+                className="shrink-0 self-start rounded-md border border-coral-500 px-4 py-2 text-center font-sans text-xs font-semibold text-coral-700 transition-colors hover:bg-coral-500 hover:text-white sm:self-auto"
+              >
+                Log in
+              </Link>
+            </div>
           </section>
         )}
 
