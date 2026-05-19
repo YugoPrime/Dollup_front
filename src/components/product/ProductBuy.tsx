@@ -8,6 +8,7 @@ import { formatPrice, getDisplayPrice, formatDiscountPercent } from "@/lib/forma
 import { toggleWishlist, useIsInWishlist } from "@/lib/wishlist-client";
 import { trackViewItem } from "@/lib/analytics";
 import { colorNameToHex } from "@/lib/colors";
+import { PDP_SELECT_SIZE_EVENT } from "@/components/product/PdpQuickInfoMobile";
 
 type Product = HttpTypes.StoreProduct;
 const LOW_STOCK_THRESHOLD = 5;
@@ -93,6 +94,24 @@ export function ProductBuy({
 
     return sizeValues.filter((size) => candidates.has(size));
   }, [selected, sizeOption, sizeValues, variants]);
+
+  // The mobile quick-info pill row sits above the gallery and fires this event
+  // so a tap there preselects the size and scrolls to the buy box.
+  useEffect(() => {
+    if (!sizeOption) return;
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ value?: string }>).detail;
+      const value = detail?.value;
+      if (!value) return;
+      const allowed = (sizeOption.values ?? [])
+        .map((v) => v.value)
+        .filter(Boolean) as string[];
+      if (!allowed.includes(value)) return;
+      setSelected((s) => ({ ...s, [sizeOption.id]: value }));
+    };
+    window.addEventListener(PDP_SELECT_SIZE_EVENT, handler);
+    return () => window.removeEventListener(PDP_SELECT_SIZE_EVENT, handler);
+  }, [sizeOption]);
 
   // Fire GA4 view_item once per (product, variant) pair. Re-runs on variant
   // change so analytics reflect what the customer is actually looking at.

@@ -9,6 +9,8 @@ import { ProductBuy } from "@/components/product/ProductBuy";
 import { ProductAccordion } from "@/components/product/ProductAccordion";
 import { YouMayAlsoLike } from "@/components/product/YouMayAlsoLike";
 import { StickyATC } from "@/components/product/StickyATC";
+import { PdpQuickInfoMobile } from "@/components/product/PdpQuickInfoMobile";
+import { extractProductCode, getSizeAvailability } from "@/lib/product-meta";
 import { getStoreConfig } from "@/lib/store-config";
 import { splitProductDescription } from "@/lib/product-description";
 import { isPrivateUnlocked } from "@/lib/private-unlock";
@@ -96,6 +98,9 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
       : "eligible orders";
   const { main: descriptionHtml, sizeChart: sizeChartHtml } =
     splitProductDescription(product.description ?? null);
+  const productCode = extractProductCode(product);
+  const { sizes: sizeAvailability } = getSizeAvailability(product);
+  const quickInfoPrice = getDisplayPrice(product);
 
   return (
     <div>
@@ -131,7 +136,19 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
         )}
         <span className="mx-1.5 text-blush-400">/</span>
         <span className="text-ink">{product.title}</span>
+        {productCode && (
+          <span className="ml-2 font-sans text-[10px] font-semibold text-ink-muted">
+            <span className="text-blush-400">·</span>{" "}
+            <span className="text-ink-muted">{productCode}</span>
+          </span>
+        )}
       </nav>
+
+      <PdpQuickInfoMobile
+        price={quickInfoPrice}
+        sizes={sizeAvailability}
+        buyAnchorId="pdp-buy-anchor"
+      />
 
       <div className="mx-auto grid max-w-[1280px] gap-6 px-0 pb-8 md:grid-cols-[1fr_480px] md:gap-8 md:px-8 md:pb-12">
         <ProductGallery product={product} />
