@@ -183,11 +183,12 @@ export function MysteryBoxClient({ poolsBySize, regionId }: Props) {
             const available =
               countSelectableSlots(poolsBySize[option] ?? []) >=
               MYSTERY_BOX_SLOT_COUNT;
+            const disabled = !available || spinning;
             return (
               <button
                 key={option}
                 type="button"
-                disabled={!available}
+                disabled={disabled}
                 onClick={() => {
                   setSize(option);
                   setBox(null);
@@ -200,6 +201,7 @@ export function MysteryBoxClient({ poolsBySize, regionId }: Props) {
                     ? "border-coral-500 bg-coral-500 text-white"
                     : "border-blush-400 text-ink-soft hover:border-coral-300 hover:text-coral-500",
                   !available && "cursor-not-allowed opacity-30",
+                  spinning && available && "cursor-wait",
                 ]
                   .filter(Boolean)
                   .join(" ")}
@@ -235,6 +237,7 @@ export function MysteryBoxClient({ poolsBySize, regionId }: Props) {
           <SpinWheel
             pool={pool}
             selected={box?.slots ?? null}
+            spinKey={box?.id ?? null}
             spinning={spinning}
             onSpinEnd={handleSpinEnd}
           />
@@ -246,9 +249,10 @@ export function MysteryBoxClient({ poolsBySize, regionId }: Props) {
             </p>
             <button
               type="button"
+              aria-busy={spinning}
               disabled={spinning || !canSpin}
               onClick={startSpin}
-              className="inline-flex min-h-12 items-center gap-2 rounded-full bg-coral-500 px-8 py-3 font-sans text-[12px] font-bold uppercase tracking-[0.16em] text-white shadow-[0_10px_24px_rgba(214,103,78,0.28)] transition-colors hover:bg-coral-700 disabled:opacity-40"
+              className="inline-flex min-h-12 items-center gap-2 rounded-full bg-coral-500 px-8 py-3 font-sans text-[12px] font-bold uppercase tracking-[0.16em] text-white shadow-[0_10px_24px_rgba(214,103,78,0.28)] transition-all hover:bg-coral-700 hover:shadow-[0_14px_30px_rgba(214,103,78,0.34)] active:translate-y-px active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-coral-500 disabled:hover:shadow-[0_10px_24px_rgba(214,103,78,0.28)] disabled:active:translate-y-0 disabled:active:scale-100"
             >
               {spinning ? "Spinning..." : box ? "Spin again" : "Spin"}
               {!spinning ? (

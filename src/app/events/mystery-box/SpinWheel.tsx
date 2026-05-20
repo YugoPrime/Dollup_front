@@ -1,25 +1,34 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { MysteryBoxSlot } from "@/lib/mystery-box";
 
 type Props = {
   pool: MysteryBoxSlot[];
   selected: MysteryBoxSlot[] | null;
+  spinKey: string | null;
   spinning: boolean;
   onSpinEnd: () => void;
 };
 
 const COLUMN_COUNT = 5;
-const TILES_DESKTOP = 24;
-const TILES_MOBILE = 10;
+const TILES_DESKTOP = 18;
+const TILES_MOBILE = 8;
 const DURATION_DESKTOP_MS = 2200;
 const DURATION_MOBILE_MS = 1500;
 const STAGGER_DESKTOP_MS = 120;
 const STAGGER_MOBILE_MS = 60;
+const SPIN_SETTLE_BUFFER_MS = 140;
+const REEL_POOL_DESKTOP = 16;
+const REEL_POOL_MOBILE = 10;
 
-export function SpinWheel({ pool, selected, spinning, onSpinEnd }: Props) {
+export function SpinWheel({
+  pool,
+  selected,
+  spinKey,
+  spinning,
+  onSpinEnd,
+}: Props) {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -34,21 +43,79 @@ export function SpinWheel({ pool, selected, spinning, onSpinEnd }: Props) {
   const spinDurationMs = isMobile ? DURATION_MOBILE_MS : DURATION_DESKTOP_MS;
   const staggerMs = isMobile ? STAGGER_MOBILE_MS : STAGGER_DESKTOP_MS;
   const finalOffsetPct = ((tilesPerColumn - 1) / tilesPerColumn) * 100;
+  const reelPoolSize = isMobile ? REEL_POOL_MOBILE : REEL_POOL_DESKTOP;
+
+  const reelSlots = useMemo(() => {
+    const seen = new Set<string>();
+    const slots: MysteryBoxSlot[] = [];
+
+    for (const slot of pool) {
+      const key = slot.thumbnail ?? slot.variantId;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      slots.push(slot);
+      if (slots.length >= reelPoolSize) break;
+    }
+
+    return slots;
+  }, [pool, reelPoolSize]);
+
+  useEffect(() => {
+    const urls = Array.from(
+      new Set(
+        reelSlots
+          .map((slot) => slot.thumbnail)
+          .filter((url): url is string => Boolean(url)),
+      ),
+    );
+    if (urls.length === 0) return;
+
+    const warmed: HTMLImageElement[] = [];
+    const timeout = window.setTimeout(() => {
+      urls.forEach((url) => {
+        const img = new window.Image();
+        img.decoding = "async";
+        img.fetchPriority = "low";
+        img.src = url;
+        void img.decode?.().catch(() => undefined);
+        warmed.push(img);
+      });
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeout);
+      warmed.length = 0;
+    };
+  }, [reelSlots]);
 
   const fallbackColumns = useMemo(
     () =>
       Array.from({ length: COLUMN_COUNT }, (_, col) => {
-        const slot = pool[col % Math.max(pool.length, 1)];
+        const slot = reelSlots[col % Math.max(reelSlots.length, 1)];
         return slot ? [slot] : [];
       }),
-    [pool],
+    [reelSlots],
   );
-  const [columns, setColumns] = useState<MysteryBoxSlot[][]>(fallbackColumns);
-  const calledRef = useRef(false);
+  const columns = useMemo(() => {
+    const reelSource = reelSlots.length > 0 ? reelSlots : pool;
+    if (!selected || reelSource.length === 0) return fallbackColumns;
+
+    return selected.map((finalSlot, colIdx) => {
+      const cycle: MysteryBoxSlot[] = [];
+      for (let i = 0; i < tilesPerColumn - 1; i++) {
+        cycle.push(reelSource[(colIdx * 5 + i * 3) % reelSource.length]);
+      }
+      cycle.push(finalSlot);
+      return cycle;
+    });
+  }, [fallbackColumns, pool, reelSlots, selected, tilesPerColumn]);
+  const [activeSpinKey, setActiveSpinKey] = useState<string | null>(null);
+  const spinRunRef = useRef(0);
 
   useEffect(() => {
-    if (!spinning || !selected || pool.length === 0) return;
-    calledRef.current = false;
+    if (!spinning || !selected || !spinKey || pool.length === 0) return;
+    const runId = spinRunRef.current + 1;
+    spinRunRef.current = runId;
 
     // Prewarm landing thumbnails so the final tile is decoded by the time the
     // strip settles — kills the "pop in at the end" stutter on mobile.
@@ -56,40 +123,54 @@ export function SpinWheel({ pool, selected, spinning, onSpinEnd }: Props) {
       if (!slot.thumbnail) return;
       const img = new window.Image();
       img.decoding = "async";
+      img.fetchPriority = "high";
       img.src = slot.thumbnail;
+      void img.decode?.().catch(() => undefined);
     });
 
-    const next = selected.map((finalSlot, colIdx) => {
-      const cycle: MysteryBoxSlot[] = [];
-      for (let i = 0; i < tilesPerColumn - 1; i++) {
-        cycle.push(pool[(colIdx * 7 + i * 3) % pool.length]);
-      }
-      cycle.push(finalSlot);
-      return cycle;
+    let firstFrame = 0;
+    let secondFrame = 0;
+    let timeout = 0;
+
+    firstFrame = window.requestAnimationFrame(() => {
+      secondFrame = window.requestAnimationFrame(() => {
+        if (spinRunRef.current !== runId) return;
+        setActiveSpinKey(spinKey);
+
+        // Wait for the LAST column to finish (it has the biggest stagger).
+        const totalMs =
+          spinDurationMs +
+          (selected.length - 1) * staggerMs +
+          SPIN_SETTLE_BUFFER_MS;
+        timeout = window.setTimeout(() => {
+          if (spinRunRef.current === runId) {
+            onSpinEnd();
+          }
+        }, totalMs);
+      });
     });
-    setColumns(next);
 
-    // Wait for the LAST column to finish (it has the biggest stagger).
-    const totalMs = spinDurationMs + (selected.length - 1) * staggerMs + 100;
-    const timeout = window.setTimeout(() => {
-      if (!calledRef.current) {
-        calledRef.current = true;
-        onSpinEnd();
-      }
-    }, totalMs);
-
-    return () => window.clearTimeout(timeout);
-  }, [spinning, selected, pool, onSpinEnd, tilesPerColumn, spinDurationMs, staggerMs]);
-
-  useEffect(() => {
-    if (!selected && !spinning) {
-      setColumns(fallbackColumns);
-    }
-  }, [fallbackColumns, selected, spinning]);
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+      window.cancelAnimationFrame(secondFrame);
+      window.clearTimeout(timeout);
+    };
+  }, [
+    spinning,
+    selected,
+    spinKey,
+    pool,
+    onSpinEnd,
+    spinDurationMs,
+    staggerMs,
+  ]);
 
   const landed = Boolean(selected) && !spinning;
+  const activeSpinMatches =
+    spinning && spinKey !== null && activeSpinKey === spinKey;
+  const showFinalPosition = activeSpinMatches || landed;
   const transformValue =
-    spinning || landed
+    showFinalPosition
       ? `translate3d(0, -${finalOffsetPct}%, 0)`
       : "translate3d(0, 0, 0)";
 
@@ -141,10 +222,10 @@ export function SpinWheel({ pool, selected, spinning, onSpinEnd }: Props) {
               <div
                 style={{
                   transform: transformValue,
-                  transition: spinning
+                  transition: activeSpinMatches
                     ? `transform ${spinDurationMs + columnIndex * staggerMs}ms cubic-bezier(0.15, 0.8, 0.25, 1)`
                     : "none",
-                  willChange: spinning ? "transform" : "auto",
+                  willChange: activeSpinMatches ? "transform" : "auto",
                   backfaceVisibility: "hidden",
                 }}
               >
@@ -156,25 +237,15 @@ export function SpinWheel({ pool, selected, spinning, onSpinEnd }: Props) {
                       className="relative h-[140px] overflow-hidden sm:h-[220px] lg:h-[260px]"
                     >
                       {slot.thumbnail ? (
-                        isLanding ? (
-                          <Image
-                            src={slot.thumbnail}
-                            alt=""
-                            fill
-                            sizes="(min-width: 1024px) 210px, (min-width: 640px) 18vw, 32vw"
-                            className="object-cover"
-                          />
-                        ) : (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={slot.thumbnail}
-                            alt=""
-                            loading="eager"
-                            decoding="async"
-                            fetchPriority="low"
-                            className="absolute inset-0 h-full w-full object-cover"
-                          />
-                        )
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={slot.thumbnail}
+                          alt=""
+                          loading="eager"
+                          decoding="async"
+                          fetchPriority={isLanding ? "high" : "low"}
+                          className="absolute inset-0 h-full w-full object-cover"
+                        />
                       ) : (
                         <div className="h-full w-full bg-blush-300" />
                       )}

@@ -954,10 +954,18 @@ export async function listEssentials(): Promise<HttpTypes.StoreProduct[]> {
 
 const MYSTERY_BOX_POOL_LIMIT = 200;
 
-export async function listInStockProductsForSize(
-  size: CanonicalSize,
+export async function listInStockProductsForSizes(
+  sizes: CanonicalSize[],
   regionId: string,
-): Promise<MysteryBoxSlot[]> {
+): Promise<Partial<Record<CanonicalSize, MysteryBoxSlot[]>>> {
+  const uniqueSizes = [...new Set(sizes)];
+  const sizeSet = new Set<string>(uniqueSizes);
+  const pools = Object.fromEntries(
+    uniqueSizes.map((size) => [size, [] as MysteryBoxSlot[]]),
+  ) as Partial<Record<CanonicalSize, MysteryBoxSlot[]>>;
+
+  if (uniqueSizes.length === 0) return pools;
+
   const { products } = await sdk.store.product.list({
     region_id: regionId,
     limit: MYSTERY_BOX_POOL_LIMIT,
@@ -969,8 +977,6 @@ export async function listInStockProductsForSize(
       "variants.calculated_price.calculated_amount," +
       "variants.options.value",
   });
-
-  const pool: MysteryBoxSlot[] = [];
 
   for (const product of products) {
     if (product.discountable === false) continue;
@@ -988,17 +994,20 @@ export async function listInStockProductsForSize(
         if (!Number.isFinite(qty) || qty < 1) continue;
       }
 
-      const matchesSize = (variant.options ?? []).some((option) => {
-        return canonicalSize(option.value ?? "") === size;
-      });
-      if (!matchesSize) continue;
+      const size = (variant.options ?? [])
+        .map((option) => canonicalSize(option.value ?? ""))
+        .find(
+          (value): value is CanonicalSize =>
+            typeof value === "string" && sizeSet.has(value),
+        );
+      if (!size) continue;
 
       const price = Number(
         variant.calculated_price?.calculated_amount ?? 0,
       );
       if (!Number.isFinite(price) || price <= 0) continue;
 
-      pool.push({
+      pools[size]?.push({
         productId: product.id,
         variantId: variant.id,
         sku: variant.sku ?? product.handle ?? product.id,
@@ -1013,7 +1022,15 @@ export async function listInStockProductsForSize(
     }
   }
 
-  return pool;
+  return pools;
+}
+
+export async function listInStockProductsForSize(
+  size: CanonicalSize,
+  regionId: string,
+): Promise<MysteryBoxSlot[]> {
+  const pools = await listInStockProductsForSizes([size], regionId);
+  return pools[size] ?? [];
 }
 
 // Variants are imported with `metadata.image_urls` (see

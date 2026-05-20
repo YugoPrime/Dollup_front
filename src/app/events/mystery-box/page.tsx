@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { Gift, Heart, ShoppingBag, Tag, Target } from "lucide-react";
 import { getRegion } from "@/lib/region";
-import { listInStockProductsForSize } from "@/lib/products";
+import { listInStockProductsForSizes } from "@/lib/products";
 import type { CanonicalSize, MysteryBoxSlot } from "@/lib/mystery-box";
 import { MysteryBoxClient } from "./MysteryBoxClient";
 
@@ -40,18 +40,12 @@ export default async function MysteryBoxPage() {
     );
   }
 
-  const pools = await Promise.all(
-    SIZES.map(async (size): Promise<[CanonicalSize, MysteryBoxSlot[]]> => {
-      try {
-        return [size, await listInStockProductsForSize(size, region.id)];
-      } catch {
-        return [size, []];
-      }
-    }),
-  );
-  const poolsBySize = Object.fromEntries(pools) as Partial<
-    Record<CanonicalSize, MysteryBoxSlot[]>
-  >;
+  let poolsBySize: Partial<Record<CanonicalSize, MysteryBoxSlot[]>>;
+  try {
+    poolsBySize = await listInStockProductsForSizes(SIZES, region.id);
+  } catch {
+    poolsBySize = {};
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-cream-50 via-cream to-blush-100 px-6 py-10 text-ink md:px-10 md:py-14">
