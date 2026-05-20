@@ -3,6 +3,7 @@ import Image from "next/image";
 import { FOOTER_SHOP, FOOTER_HELP, FOOTER_ABOUT, FOOTER_LEGAL } from "@/lib/nav";
 import { getStoreConfig } from "@/lib/store-config";
 import { NewsletterForm } from "./NewsletterForm";
+import { FeedbackLink } from "@/components/feedback/FeedbackLink";
 
 export async function Footer() {
   const cfg = await getStoreConfig();
@@ -137,6 +138,7 @@ export async function Footer() {
             {l.label}
           </Link>
         ))}
+        <FeedbackLink className="font-sans text-[11px] text-ink-muted transition-colors hover:text-coral-500" />
       </div>
     </footer>
   );

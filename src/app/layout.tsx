@@ -10,7 +10,6 @@ import { WishlistAuthSync } from "@/components/wishlist/WishlistAuthSync";
 import { TagManager, TagManagerNoScript } from "@/components/analytics/TagManager";
 import { RouteChangeTracker } from "@/components/analytics/RouteChangeTracker";
 import { ConsentBanner } from "@/components/analytics/ConsentBanner";
-import { FeedbackBubble } from "@/components/feedback/FeedbackBubble";
 import { CONSENT_BOOTSTRAP_SCRIPT } from "@/lib/analytics";
 
 const playfair = Playfair_Display({
@@ -152,7 +151,6 @@ export default function RootLayout({
           </main>
           <Footer />
           <MobileBottomNav />
-          <FeedbackBubble />
         </CartProvider>
         <Suspense fallback={null}>
           <RouteChangeTracker />
