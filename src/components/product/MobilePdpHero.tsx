@@ -324,8 +324,9 @@ export function MobilePdpHero({
           </button>
         </div>
 
-        {/* Title overlay — small, bottom-left, sits above the color row. */}
-        <div className="pointer-events-none absolute inset-x-5 bottom-[208px]">
+        {/* Title overlay — sits just above the color/size-chart row, hugging
+            the bottom so the model stays visible. */}
+        <div className="pointer-events-none absolute inset-x-5 bottom-[140px]">
           <h1
             className="font-display text-[18px] font-semibold leading-tight text-white"
             style={{ textShadow: "0 2px 8px rgba(0,0,0,0.55)" }}
@@ -334,65 +335,67 @@ export function MobilePdpHero({
           </h1>
         </div>
 
-        {/* Color thumbnails floated on hero (only when >1 color). Placed
-            higher than before so there's air between colors and the size
-            row beneath. */}
-        {showColorRow ? (
-          <div
-            className="absolute inset-x-4 bottom-[144px] flex items-center gap-2 overflow-x-auto"
-            style={{ scrollbarWidth: "none" }}
-          >
-            {colorOptions.map((c) => {
-              const active = currentColor === c.value;
-              return (
-                <button
-                  key={c.value}
-                  type="button"
-                  onClick={() =>
-                    colorOption &&
-                    setSelected((s) => ({ ...s, [colorOption.id]: c.value }))
-                  }
-                  disabled={!c.available}
-                  aria-label={c.value}
-                  aria-pressed={active}
-                  className={`relative h-[52px] w-[44px] shrink-0 overflow-hidden rounded-xl border-2 transition-colors ${
-                    active ? "border-white" : "border-white/40"
-                  }`}
-                  style={
-                    active
-                      ? { boxShadow: "0 2px 8px rgba(0,0,0,0.35)" }
-                      : undefined
-                  }
-                >
-                  {c.preview ? (
-                    <Image
-                      src={c.preview}
-                      alt={c.value}
-                      fill
-                      sizes="44px"
-                      className="object-cover object-top"
-                    />
-                  ) : (
-                    <span className="block h-full w-full bg-blush-100" />
-                  )}
-                  {!c.available ? (
-                    <span className="absolute inset-0 flex items-center justify-center bg-white/65 font-sans text-[9px] font-bold uppercase tracking-wider text-ink">
-                      Out
-                    </span>
-                  ) : null}
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
+        {/* Color thumbs (left) + SIZE CHART pill (right) sit on the SAME line
+            just above the size selector. Color row is hidden when the product
+            has 0/1 colors — the SIZE CHART pill still aligns to the right. */}
+        <div className="absolute inset-x-4 bottom-[84px] flex items-center justify-between gap-3">
+          {showColorRow ? (
+            <div
+              className="flex items-center gap-2 overflow-x-auto"
+              style={{ scrollbarWidth: "none" }}
+            >
+              {colorOptions.map((c) => {
+                const active = currentColor === c.value;
+                return (
+                  <button
+                    key={c.value}
+                    type="button"
+                    onClick={() =>
+                      colorOption &&
+                      setSelected((s) => ({ ...s, [colorOption.id]: c.value }))
+                    }
+                    disabled={!c.available}
+                    aria-label={c.value}
+                    aria-pressed={active}
+                    className={`relative h-[52px] w-[44px] shrink-0 overflow-hidden rounded-xl border-2 transition-colors ${
+                      active ? "border-white" : "border-white/40"
+                    }`}
+                    style={
+                      active
+                        ? { boxShadow: "0 2px 8px rgba(0,0,0,0.35)" }
+                        : undefined
+                    }
+                  >
+                    {c.preview ? (
+                      <Image
+                        src={c.preview}
+                        alt={c.value}
+                        fill
+                        sizes="44px"
+                        className="object-cover object-top"
+                      />
+                    ) : (
+                      <span className="block h-full w-full bg-blush-100" />
+                    )}
+                    {!c.available ? (
+                      <span className="absolute inset-0 flex items-center justify-center bg-white/65 font-sans text-[9px] font-bold uppercase tracking-wider text-ink">
+                        Out
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <span />
+          )}
 
-        {/* Size-chart anchor pill — sits just above the size selector. */}
-        {sizeChartHtml ? (
-          <button
-            type="button"
-            onClick={scrollToSizeChart}
-            className="absolute right-4 bottom-[84px] z-10 flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-ink shadow-[0_2px_8px_rgba(0,0,0,0.12)]"
-          >
+          {sizeChartHtml ? (
+            <button
+              type="button"
+              onClick={scrollToSizeChart}
+              className="z-10 flex shrink-0 items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-ink shadow-[0_2px_8px_rgba(0,0,0,0.12)]"
+            >
             <svg
               width="13"
               height="13"
@@ -420,8 +423,9 @@ export function MobilePdpHero({
             >
               <path d="M6 9l6 6 6-6" />
             </svg>
-          </button>
-        ) : null}
+            </button>
+          ) : null}
+        </div>
 
         {/* Frosted size selector on the hero — lower opacity so the image
             still reads through clearly. */}
