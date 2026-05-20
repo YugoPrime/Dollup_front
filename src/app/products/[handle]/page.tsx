@@ -8,8 +8,8 @@ import { ProductGallery } from "@/components/product/ProductGallery";
 import { ProductBuy } from "@/components/product/ProductBuy";
 import { ProductAccordion } from "@/components/product/ProductAccordion";
 import { YouMayAlsoLike } from "@/components/product/YouMayAlsoLike";
-import { StickyATC } from "@/components/product/StickyATC";
 import { PdpQuickInfoMobile } from "@/components/product/PdpQuickInfoMobile";
+import { MobilePdpHero } from "@/components/product/MobilePdpHero";
 import { extractProductCode, getSizeAvailability } from "@/lib/product-meta";
 import { getStoreConfig } from "@/lib/store-config";
 import { splitProductDescription } from "@/lib/product-description";
@@ -119,7 +119,7 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
           />
         </>
       )}
-      <nav aria-label="Breadcrumb" className="px-4 py-3 font-sans text-[10px] font-bold uppercase tracking-wider text-ink-muted md:px-8 md:py-4">
+      <nav aria-label="Breadcrumb" className="hidden px-4 py-3 font-sans text-[10px] font-bold uppercase tracking-wider text-ink-muted md:block md:px-8 md:py-4">
         <Link href="/" className="hover:text-coral-500">Home</Link>
         <span className="mx-1.5 text-blush-400">/</span>
         <Link href="/shop" className="hover:text-coral-500">Shop</Link>
@@ -144,13 +144,20 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
         )}
       </nav>
 
-      <PdpQuickInfoMobile
-        price={quickInfoPrice}
-        sizes={sizeAvailability}
-        buyAnchorId="pdp-buy-anchor"
-      />
+      {/* Mobile-only: full-bleed hero w/ overlay copy, color thumbnails,
+          frosted size pill, sticky bottom CTA. Replaces the breadcrumb +
+          quick-info + gallery + buy box on screens < md. */}
+      <MobilePdpHero product={product} />
 
-      <div className="mx-auto grid max-w-[1280px] gap-6 px-0 pb-8 md:grid-cols-[1fr_480px] md:gap-8 md:px-8 md:pb-12">
+      <div className="hidden md:block">
+        <PdpQuickInfoMobile
+          price={quickInfoPrice}
+          sizes={sizeAvailability}
+          buyAnchorId="pdp-buy-anchor"
+        />
+      </div>
+
+      <div className="mx-auto hidden max-w-[1280px] gap-6 px-0 pb-8 md:grid md:grid-cols-[1fr_480px] md:gap-8 md:px-8 md:pb-12">
         <ProductGallery product={product} />
         <div className="px-4 md:sticky md:top-[140px] md:px-0" id="pdp-buy-anchor">
           <ProductBuy
@@ -178,7 +185,6 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
         </Suspense>
       )}
 
-      <StickyATC product={product} watchElementId="pdp-buy-anchor" />
     </div>
   );
 }
