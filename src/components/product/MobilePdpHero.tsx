@@ -10,6 +10,7 @@ import { toggleWishlist, useIsInWishlist } from "@/lib/wishlist-client";
 import { trackViewItem } from "@/lib/analytics";
 import { extractProductCode } from "@/lib/product-meta";
 import { PDP_FALLBACK_BLUR } from "@/lib/blur-data";
+import { ProductAccordion } from "@/components/product/ProductAccordion";
 
 type Product = HttpTypes.StoreProduct;
 
@@ -34,16 +35,34 @@ function isVariantBuyable(v: HttpTypes.StoreProductVariant): boolean {
   return !v.manage_inventory || (v.inventory_quantity ?? 0) > 0;
 }
 
+const SIZE_CHART_ANCHOR_ID = "mobile-size-chart";
+
 /**
- * Mobile-only PDP layout that matches the in-app design reference: full-bleed
- * hero w/ overlay title and price, SKU pill + heart, color thumbnails picked
- * per-variant, frosted-glass size selector, page dots, and a bottom CTA that
- * shows price beside the Add-to-Bag button.
+ * Mobile-only PDP layout. Goal: everything a shopper needs (image, title,
+ * color, size, ADD TO BAG) fits in the first viewport, no scrolling required,
+ * so a customer can screenshot the page to chat and the full context comes
+ * along.
  *
- * Renders only on screens < md (768px). Desktop keeps the existing
- * ProductGallery + ProductBuy layout.
+ * Floating overlays on the hero: SKU pill, heart, title, color thumbnails (only
+ * when >1 color), frosted size selector, and a "Size chart" pill that scrolls
+ * to the chart rendered in the accordion below.
+ *
+ * Renders only on screens < md (768px). Desktop keeps ProductGallery +
+ * ProductBuy + ProductAccordion as before.
  */
-export function MobilePdpHero({ product }: { product: Product }) {
+export function MobilePdpHero({
+  product,
+  descriptionHtml,
+  sizeChartHtml,
+  preorderEtaCopy,
+  freeShippingLabel,
+}: {
+  product: Product;
+  descriptionHtml: string;
+  sizeChartHtml: string | null;
+  preorderEtaCopy: string | null;
+  freeShippingLabel: string;
+}) {
   const { addItem, loading: cartLoading } = useCart();
   const wished = useIsInWishlist(product.id);
 
@@ -87,7 +106,6 @@ export function MobilePdpHero({ product }: { product: Product }) {
     : getDisplayPrice(product);
   const inStock = !!(matchedVariant && isVariantBuyable(matchedVariant));
 
-  // The full image list — same source the desktop gallery uses.
   const images = useMemo(() => {
     const arr = (product.images ?? [])
       .map((i) => i.url)
@@ -96,8 +114,6 @@ export function MobilePdpHero({ product }: { product: Product }) {
     return arr;
   }, [product.images, product.thumbnail]);
 
-  // Per-color thumbnail and image-set: pick images whose URL contains the
-  // color slug. Falls back to the global image list when nothing matches.
   type ColorOpt = {
     value: string;
     preview: string;
@@ -125,8 +141,10 @@ export function MobilePdpHero({ product }: { product: Product }) {
     });
   }, [colorOption, images, variants, product.thumbnail]);
 
-  // Visible hero images follow the selected color when possible; otherwise
-  // show the full product image list.
+  // Hide the color row entirely when there's only one color (or none) — the
+  // shopper has nothing to choose so it just adds noise.
+  const showColorRow = colorOptions.length > 1;
+
   const heroImages = useMemo(() => {
     if (!colorOption) return images;
     const picked = selected[colorOption.id];
@@ -135,7 +153,6 @@ export function MobilePdpHero({ product }: { product: Product }) {
     return images;
   }, [colorOption, selected, colorOptions, images]);
 
-  // Sizes available for the current color selection (and other non-size opts).
   type SizeOpt = { value: string; variantId: string | null; available: boolean };
   const sizeOptions: SizeOpt[] = useMemo(() => {
     if (!sizeOption) return [];
@@ -170,15 +187,12 @@ export function MobilePdpHero({ product }: { product: Product }) {
         });
       }
     }
-    // Show ALL declared sizes even when no variant matches the current color,
-    // but mark them unavailable. Mirrors the screenshot's row.
     const list = allValues.map<SizeOpt>(
       (v) => seen.get(v) ?? { value: v, variantId: null, available: false },
     );
     return sortSizes(list);
   }, [sizeOption, variants, selected]);
 
-  // Carousel scroll + paging
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [activeImg, setActiveImg] = useState(0);
   const onScroll = () => {
@@ -188,13 +202,11 @@ export function MobilePdpHero({ product }: { product: Product }) {
     if (idx !== activeImg)
       setActiveImg(Math.min(idx, Math.max(0, heroImages.length - 1)));
   };
-  // Reset to first image when the visible image set changes (e.g. color swap).
   useEffect(() => {
     setActiveImg(0);
     scrollerRef.current?.scrollTo({ left: 0 });
   }, [heroImages.length, heroImages[0]]);
 
-  // GA4 view_item per (product, variant).
   const lastViewedRef = useRef<string | null>(null);
   useEffect(() => {
     const key = `${product.id}:${matchedVariant?.id ?? "no-variant"}`;
@@ -213,8 +225,6 @@ export function MobilePdpHero({ product }: { product: Product }) {
   }, [product, matchedVariant, price.amount, price.currency]);
 
   const productCode = extractProductCode(product);
-  // Strip a single trailing variant token (e.g. "IS2364-S" -> "IS2364") for the
-  // pill — the size lives in the size selector below.
   const sku = productCode ?? product.handle?.toUpperCase() ?? null;
 
   const handleAdd = async () => {
@@ -240,10 +250,18 @@ export function MobilePdpHero({ product }: { product: Product }) {
   };
 
   const currentColor = colorOption ? selected[colorOption.id] : null;
+  const currentSize = sizeOption ? selected[sizeOption.id] : null;
+
+  const scrollToSizeChart = () => {
+    const el = document.getElementById(SIZE_CHART_ANCHOR_ID);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   return (
     <div className="md:hidden">
-      {/* Full-bleed hero with overlay copy. Aspect 4:5 matches the reference. */}
+      {/* Hero: 4:5 image with all selectors floated as overlays so the shopper
+          (and screenshot recipients) see the whole story in one view. */}
       <div className="relative w-full overflow-hidden bg-blush-100" style={{ aspectRatio: "4 / 5" }}>
         <div
           ref={scrollerRef}
@@ -267,7 +285,7 @@ export function MobilePdpHero({ product }: { product: Product }) {
           ))}
         </div>
 
-        {/* Top row: back/SKU pill + heart */}
+        {/* Top row: SKU pill (links to shop) + heart */}
         <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between px-4 pt-3">
           {sku ? (
             <Link
@@ -286,52 +304,39 @@ export function MobilePdpHero({ product }: { product: Product }) {
             aria-pressed={wished}
             className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.12)]"
           >
-            <span className={`text-[18px] leading-none ${wished ? "text-coral-500" : "text-coral-500"}`}>
+            <span className="text-[18px] leading-none text-coral-500">
               {wished ? "♥" : "♡"}
             </span>
           </button>
         </div>
 
-        {/* Overlay copy bottom-left */}
-        <div className="pointer-events-none absolute inset-x-5 bottom-6">
+        {/* Title overlay — small, bottom-left. No price here per request. */}
+        <div className="pointer-events-none absolute inset-x-5 bottom-[140px]">
           <h1
-            className="font-display text-[28px] font-semibold leading-tight text-white"
-            style={{ textShadow: "0 2px 10px rgba(0,0,0,0.45)" }}
+            className="font-display text-[18px] font-semibold leading-tight text-white"
+            style={{ textShadow: "0 2px 8px rgba(0,0,0,0.55)" }}
           >
             {product.title}
           </h1>
-          <div className="mt-1 flex items-baseline gap-2">
-            <span
-              className="font-display text-[22px] font-semibold text-coral-500"
-              style={{ textShadow: "0 1px 6px rgba(0,0,0,0.35)" }}
-            >
-              {formatPrice(price.amount, price.currency)}
-            </span>
-            {price.onSale ? (
-              <span
-                className="font-sans text-[13px] text-white/80 line-through"
-                style={{ textShadow: "0 1px 4px rgba(0,0,0,0.4)" }}
-              >
-                {formatPrice(price.original, price.currency)}
-              </span>
-            ) : null}
-          </div>
         </div>
-      </div>
 
-      {/* Color row — thumbnail swatches */}
-      {colorOption && colorOptions.length > 0 ? (
-        <div className="px-5 pt-5">
-          <p className="font-sans text-[13px] text-ink">
-            <span className="font-semibold">Color:</span>{" "}
-            <span className="text-ink-muted">
-              {currentColor ?? colorOptions[0]?.value}
-            </span>
-          </p>
-          <div
-            className="mt-2.5 flex gap-2.5 overflow-x-auto pb-1"
-            style={{ scrollbarWidth: "none" }}
+        {/* Size-chart anchor pill — bottom-right of hero */}
+        {sizeChartHtml ? (
+          <button
+            type="button"
+            onClick={scrollToSizeChart}
+            className="absolute right-4 bottom-[120px] z-10 flex items-center gap-1 rounded-full bg-white/95 px-3 py-1.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-ink shadow-[0_2px_8px_rgba(0,0,0,0.12)]"
           >
+            <span aria-hidden>📏</span>
+            <span>Size chart</span>
+            <span aria-hidden className="ml-0.5">↓</span>
+          </button>
+        ) : null}
+
+        {/* Color thumbnails floated on hero (only when >1 color) */}
+        {showColorRow ? (
+          <div className="absolute inset-x-4 bottom-[64px] flex items-center gap-2 overflow-x-auto"
+               style={{ scrollbarWidth: "none" }}>
             {colorOptions.map((c) => {
               const active = currentColor === c.value;
               return (
@@ -345,23 +350,28 @@ export function MobilePdpHero({ product }: { product: Product }) {
                   disabled={!c.available}
                   aria-label={c.value}
                   aria-pressed={active}
-                  className={`relative h-[88px] w-[78px] shrink-0 overflow-hidden rounded-2xl border-2 transition-colors ${
-                    active ? "border-coral-500" : "border-transparent"
+                  className={`relative h-[52px] w-[44px] shrink-0 overflow-hidden rounded-xl border-2 transition-colors ${
+                    active ? "border-white" : "border-white/40"
                   }`}
+                  style={
+                    active
+                      ? { boxShadow: "0 2px 8px rgba(0,0,0,0.35)" }
+                      : undefined
+                  }
                 >
                   {c.preview ? (
                     <Image
                       src={c.preview}
                       alt={c.value}
                       fill
-                      sizes="78px"
+                      sizes="44px"
                       className="object-cover object-top"
                     />
                   ) : (
                     <span className="block h-full w-full bg-blush-100" />
                   )}
                   {!c.available ? (
-                    <span className="absolute inset-0 flex items-center justify-center bg-white/60 font-sans text-[10px] font-bold uppercase tracking-wider text-ink">
+                    <span className="absolute inset-0 flex items-center justify-center bg-white/65 font-sans text-[9px] font-bold uppercase tracking-wider text-ink">
                       Out
                     </span>
                   ) : null}
@@ -369,72 +379,93 @@ export function MobilePdpHero({ product }: { product: Product }) {
               );
             })}
           </div>
-        </div>
-      ) : null}
+        ) : null}
 
-      {/* Frosted-glass size selector */}
-      {sizeOption && sizeOptions.length > 0 ? (
-        <div className="px-5 pt-4">
-          <div
-            className="flex items-center justify-between rounded-3xl bg-white/85 px-4 py-3 backdrop-blur-sm"
-            style={{ boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}
-          >
-            <span className="font-sans text-[13px] text-ink">Select size</span>
-            <div className="flex gap-2">
-              {sizeOptions.map((s) => {
-                const active = selected[sizeOption.id] === s.value;
-                return (
-                  <button
-                    key={s.value}
-                    type="button"
-                    onClick={() =>
-                      setSelected((sel) => ({ ...sel, [sizeOption.id]: s.value }))
-                    }
-                    disabled={!s.available}
-                    aria-pressed={active}
-                    className={`flex h-10 min-w-[44px] items-center justify-center rounded-2xl px-3 font-sans text-[13px] font-semibold transition-colors ${
-                      active
-                        ? "bg-coral-500 text-white"
-                        : s.available
-                          ? "bg-white text-ink shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
-                          : "bg-blush-100/60 text-ink-muted line-through"
-                    }`}
-                  >
-                    {s.value}
-                  </button>
-                );
-              })}
+        {/* Frosted size selector on the hero, just above the CTA spot */}
+        {sizeOption && sizeOptions.length > 0 ? (
+          <div className="absolute inset-x-4 bottom-3">
+            <div
+              className="flex items-center justify-between rounded-3xl bg-white/90 px-3 py-2 backdrop-blur-md"
+              style={{ boxShadow: "0 6px 18px rgba(0,0,0,0.18)" }}
+            >
+              <span className="pl-1 font-sans text-[12px] font-semibold text-ink">
+                Select size
+              </span>
+              <div className="flex gap-1.5">
+                {sizeOptions.map((s) => {
+                  const active = currentSize === s.value;
+                  return (
+                    <button
+                      key={s.value}
+                      type="button"
+                      onClick={() =>
+                        setSelected((sel) => ({ ...sel, [sizeOption.id]: s.value }))
+                      }
+                      disabled={!s.available}
+                      aria-pressed={active}
+                      className={`flex h-9 min-w-[36px] items-center justify-center rounded-2xl px-2.5 font-sans text-[12px] font-semibold transition-colors ${
+                        active
+                          ? "bg-coral-500 text-white"
+                          : s.available
+                            ? "bg-white text-ink shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
+                            : "bg-blush-100/70 text-ink-muted line-through"
+                      }`}
+                    >
+                      {s.value}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
-        </div>
-      ) : null}
+        ) : null}
 
-      {/* Carousel dots — between size pill and CTA, matches the reference */}
-      {heroImages.length > 1 ? (
-        <div className="mt-4 flex items-center justify-center gap-1.5">
-          {heroImages.map((_, i) => (
-            <span
-              key={i}
-              className={`h-1.5 rounded-full transition-all ${
-                i === activeImg ? "w-4 bg-coral-500" : "w-1.5 bg-blush-400"
-              }`}
-            />
-          ))}
-        </div>
-      ) : null}
+        {/* Page-indicator dots — only when >1 image. Sit just below the
+            top row so they overlap consistent image content rather than
+            sitting on top of skin/background. */}
+        {heroImages.length > 1 ? (
+          <div className="pointer-events-none absolute inset-x-0 top-16 flex justify-center gap-1.5">
+            {heroImages.map((_, i) => (
+              <span
+                key={i}
+                className={`h-1.5 rounded-full transition-all ${
+                  i === activeImg ? "w-4 bg-white" : "w-1.5 bg-white/60"
+                }`}
+                style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.35)" }}
+              />
+            ))}
+          </div>
+        ) : null}
+      </div>
 
       {error ? (
         <p className="px-5 pt-3 font-sans text-[12px] text-coral-700">{error}</p>
       ) : null}
 
-      {/* Sticky bottom ATC — price LEFT, label RIGHT inside one pill.
-          Sits above the global MobileBottomNav (sticky bottom-0, ~70px tall). */}
+      {/* Description + size chart anchor + support details, mobile-only.
+          The accordion lives below the hero so screenshots of the first view
+          show only the hero + CTA. */}
+      <div className="px-4 pt-4">
+        <ProductAccordion
+          descriptionHtml={descriptionHtml}
+          sizeChartHtml={sizeChartHtml}
+          preorderEtaCopy={preorderEtaCopy ?? ""}
+          freeShippingLabel={freeShippingLabel}
+        />
+        {/* Hidden anchor that the hero "Size chart" pill scrolls to. We can't
+            target inside the closed accordion details element, so the anchor
+            sits on the wrapper and the user expands the accordion themselves
+            once they're in view of it. */}
+        <span id={SIZE_CHART_ANCHOR_ID} className="block" aria-hidden />
+      </div>
+
+      {/* Sticky bottom CTA — soft-pink price chip on the left, ADD TO BAG label. */}
       <div className="fixed inset-x-0 bottom-[72px] z-[80] px-5 pb-2 pt-2">
         <button
           type="button"
           onClick={handleAdd}
           disabled={!inStock || adding || cartLoading}
-          className={`flex w-full items-center justify-between rounded-full px-6 py-4 font-sans text-[13px] font-bold uppercase tracking-[0.14em] text-white shadow-[0_8px_20px_rgba(0,0,0,0.22)] transition-colors disabled:opacity-70 ${
+          className={`flex w-full items-center justify-between gap-2 rounded-full p-1.5 font-sans text-[13px] font-bold uppercase tracking-[0.14em] text-white shadow-[0_8px_20px_rgba(0,0,0,0.22)] transition-colors disabled:opacity-70 ${
             !inStock
               ? "bg-blush-400"
               : added
@@ -442,10 +473,10 @@ export function MobilePdpHero({ product }: { product: Product }) {
                 : "bg-coral-500"
           }`}
         >
-          <span className="font-display text-[15px] font-semibold normal-case tracking-normal text-white">
+          <span className="flex items-center justify-center rounded-full bg-coral-300 px-4 py-2.5 font-display text-[14px] font-semibold normal-case tracking-normal text-white">
             {formatPrice(price.amount, price.currency)}
           </span>
-          <span>
+          <span className="flex-1 pr-3 text-center">
             {!inStock
               ? "Sold Out"
               : adding || cartLoading
@@ -454,12 +485,10 @@ export function MobilePdpHero({ product }: { product: Product }) {
                   ? "Added ✓"
                   : "Add to Bag"}
           </span>
-          <span aria-hidden className="w-[64px]" />
         </button>
       </div>
 
-      {/* Spacer so size dots / tabs / accordion content above aren't covered
-          by the floating CTA + bottom nav (72 + 64 ≈ 140px). */}
+      {/* Spacer so the accordion above isn't covered by the floating CTA + nav. */}
       <div aria-hidden className="h-36" />
     </div>
   );

@@ -145,9 +145,16 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
       </nav>
 
       {/* Mobile-only: full-bleed hero w/ overlay copy, color thumbnails,
-          frosted size pill, sticky bottom CTA. Replaces the breadcrumb +
-          quick-info + gallery + buy box on screens < md. */}
-      <MobilePdpHero product={product} />
+          frosted size pill, sticky bottom CTA, plus an inline description /
+          size-chart accordion. Replaces the breadcrumb + quick-info + gallery
+          + buy box on screens < md. */}
+      <MobilePdpHero
+        product={product}
+        descriptionHtml={descriptionHtml}
+        sizeChartHtml={sizeChartHtml}
+        preorderEtaCopy={cfg.shipping.preorder_eta_copy}
+        freeShippingLabel={freeShippingLabel}
+      />
 
       <div className="hidden md:block">
         <PdpQuickInfoMobile
