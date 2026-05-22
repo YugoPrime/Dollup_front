@@ -27,8 +27,15 @@ export function ProductBuy({
   const options = useMemo(() => product.options ?? [], [product.options]);
   const variants = useMemo(() => product.variants ?? [], [product.variants]);
 
+  // Pick the first IN-STOCK variant as the default selection. Falling back to
+  // variants[0] when every variant is sold out keeps the page renderable so
+  // SEO / direct-link visitors still see the product (the CTA stays disabled).
+  // Without this, a product whose first variant happens to be sold out (e.g.
+  // 2XL-Green on a trench coat where XL-Cream is still in stock) lands the
+  // shopper on "Sold Out" even though something is available.
   const initialOptions = useMemo(() => {
-    const v = variants[0];
+    const firstInStock = variants.find((v) => isVariantBuyable(v));
+    const v = firstInStock ?? variants[0];
     const map: Record<string, string> = {};
     v?.options?.forEach((o) => {
       if (o.option_id) map[o.option_id] = o.value ?? "";
@@ -94,6 +101,47 @@ export function ProductBuy({
 
     return sizeValues.filter((size) => candidates.has(size));
   }, [selected, sizeOption, sizeValues, variants]);
+
+  // For each option (color, size, …), the set of values whose ALL variant
+  // combinations are sold out given the currently-selected OTHER options.
+  // Disabled values get a struck-through / faded swatch so the shopper sees
+  // "this color is gone" instead of just hitting Sold Out after they click.
+  // Per-option: ignore the option's own current selection when narrowing —
+  // i.e. for "color" availability we don't lock the size to the current pick,
+  // so a customer with size=2XL still sees that cream is in stock at XL.
+  const disabledByOption = useMemo(() => {
+    const result: Record<string, Set<string>> = {};
+    for (const opt of options) {
+      const disabled = new Set<string>();
+      const values = (opt.values ?? []).map((v) => v.value).filter(Boolean) as string[];
+      for (const val of values) {
+        const hasInStock = variants.some((v) => {
+          let matches = true;
+          let ownMatches = false;
+          for (const o of v.options ?? []) {
+            if (!o.option_id) continue;
+            if (o.option_id === opt.id) {
+              if (o.value !== val) {
+                matches = false;
+                break;
+              }
+              ownMatches = true;
+              continue;
+            }
+            const sel = selected[o.option_id];
+            if (sel && sel !== o.value) {
+              matches = false;
+              break;
+            }
+          }
+          return matches && ownMatches && isVariantBuyable(v);
+        });
+        if (!hasInStock) disabled.add(val);
+      }
+      result[opt.id] = disabled;
+    }
+    return result;
+  }, [options, variants, selected]);
 
   // The mobile quick-info pill row sits above the gallery and fires this event
   // so a tap there preselects the size and scrolls to the buy box.
@@ -207,6 +255,7 @@ export function ProductBuy({
           selected={selected[colorOption.id]}
           onSelect={(v) => setSelected((s) => ({ ...s, [colorOption.id]: v }))}
           variant="color"
+          disabledValues={disabledByOption[colorOption.id]}
         />
       )}
 
@@ -218,6 +267,7 @@ export function ProductBuy({
             selected={selected[sizeOption.id]}
             onSelect={(v) => setSelected((s) => ({ ...s, [sizeOption.id]: v }))}
             variant="size"
+            disabledValues={disabledByOption[sizeOption.id]}
           />
           {/* SizeRecommender paused — re-enable when ready
           <SizeRecommender
@@ -239,6 +289,7 @@ export function ProductBuy({
           selected={selected[opt.id]}
           onSelect={(v) => setSelected((s) => ({ ...s, [opt.id]: v }))}
           variant="size"
+          disabledValues={disabledByOption[opt.id]}
         />
       ))}
 
@@ -291,6 +342,7 @@ function OptionGroup({
   onSelect,
   variant,
   rightLink,
+  disabledValues,
 }: {
   title: string;
   values: string[];
@@ -298,11 +350,16 @@ function OptionGroup({
   onSelect: (v: string) => void;
   variant: "color" | "size";
   rightLink?: { href: string; label: string };
+  // Values whose every combination with the current sibling selections is
+  // out of stock. Rendered as faded + struck-through so the shopper sees
+  // "not available" without clicking.
+  disabledValues?: Set<string>;
 }) {
   const labelId = useId();
   const buttonsRef = useRef<Array<HTMLButtonElement | null>>([]);
   // If no value is selected yet, the first option in the group is the tab stop.
   const focusableIndex = selected ? Math.max(0, values.indexOf(selected)) : 0;
+  const isDisabled = (v: string) => !!disabledValues?.has(v);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, idx: number) => {
     if (e.key !== "ArrowRight" && e.key !== "ArrowLeft" && e.key !== "Home" && e.key !== "End") return;
@@ -328,43 +385,66 @@ function OptionGroup({
       </div>
       {variant === "color" ? (
         <div role="radiogroup" aria-labelledby={labelId} className="flex flex-wrap gap-2.5">
-          {values.map((v, i) => (
-            <button
-              key={v}
-              ref={(el) => { buttonsRef.current[i] = el; }}
-              role="radio"
-              aria-checked={selected === v}
-              aria-label={v}
-              tabIndex={i === focusableIndex ? 0 : -1}
-              onClick={() => onSelect(v)}
-              onKeyDown={(e) => handleKeyDown(e, i)}
-              className={`h-8 w-8 rounded-full border-2 border-white ${
-                selected === v ? "ring-2 ring-coral-500" : "ring-1 ring-blush-400"
-              }`}
-              style={{ background: colorNameToHex(v) }}
-            />
-          ))}
+          {values.map((v, i) => {
+            const disabled = isDisabled(v);
+            return (
+              <button
+                key={v}
+                ref={(el) => { buttonsRef.current[i] = el; }}
+                role="radio"
+                aria-checked={selected === v}
+                aria-disabled={disabled || undefined}
+                aria-label={disabled ? `${v} — sold out` : v}
+                title={disabled ? `${v} — sold out` : v}
+                tabIndex={i === focusableIndex ? 0 : -1}
+                disabled={disabled}
+                onClick={() => onSelect(v)}
+                onKeyDown={(e) => handleKeyDown(e, i)}
+                className={`relative h-8 w-8 rounded-full border-2 border-white ${
+                  selected === v ? "ring-2 ring-coral-500" : "ring-1 ring-blush-400"
+                } ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}
+                style={{ background: colorNameToHex(v) }}
+              >
+                {disabled && (
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 flex items-center justify-center"
+                  >
+                    <span className="block h-[1.5px] w-[120%] rotate-45 bg-ink/70" />
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       ) : (
         <div role="radiogroup" aria-labelledby={labelId} className="grid grid-cols-6 gap-1.5">
-          {values.map((v, i) => (
-            <button
-              key={v}
-              ref={(el) => { buttonsRef.current[i] = el; }}
-              role="radio"
-              aria-checked={selected === v}
-              tabIndex={i === focusableIndex ? 0 : -1}
-              onClick={() => onSelect(v)}
-              onKeyDown={(e) => handleKeyDown(e, i)}
-              className={`rounded-md border py-2.5 font-sans text-[12px] font-semibold transition-colors ${
-                selected === v
-                  ? "border-ink bg-ink text-white"
-                  : "border-blush-400 bg-white text-ink hover:border-coral-500 hover:text-coral-500"
-              }`}
-            >
-              {v}
-            </button>
-          ))}
+          {values.map((v, i) => {
+            const disabled = isDisabled(v);
+            return (
+              <button
+                key={v}
+                ref={(el) => { buttonsRef.current[i] = el; }}
+                role="radio"
+                aria-checked={selected === v}
+                aria-disabled={disabled || undefined}
+                aria-label={disabled ? `${v} — sold out` : undefined}
+                tabIndex={i === focusableIndex ? 0 : -1}
+                disabled={disabled}
+                onClick={() => onSelect(v)}
+                onKeyDown={(e) => handleKeyDown(e, i)}
+                className={`rounded-md border py-2.5 font-sans text-[12px] font-semibold transition-colors ${
+                  selected === v
+                    ? "border-ink bg-ink text-white"
+                    : disabled
+                      ? "border-blush-100 bg-blush-100/40 text-ink-muted line-through cursor-not-allowed"
+                      : "border-blush-400 bg-white text-ink hover:border-coral-500 hover:text-coral-500"
+                }`}
+              >
+                {v}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

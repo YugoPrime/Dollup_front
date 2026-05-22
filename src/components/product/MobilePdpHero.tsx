@@ -76,8 +76,12 @@ export function MobilePdpHero({
     (o) => (o.title ?? "").toLowerCase() === "size",
   );
 
+  // Default to the first IN-STOCK variant so a partially-sold-out product
+  // doesn't open on a sold-out combination. Falls back to variants[0] if
+  // every variant is out of stock, so the page still renders.
   const initialOptions = useMemo(() => {
-    const v = variants[0];
+    const firstInStock = variants.find((v) => isVariantBuyable(v));
+    const v = firstInStock ?? variants[0];
     const map: Record<string, string> = {};
     v?.options?.forEach((o) => {
       if (o.option_id) map[o.option_id] = o.value ?? "";
