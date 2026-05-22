@@ -3,6 +3,10 @@ import type { HttpTypes } from "@medusajs/types";
 // Category handle of the 18+ "Intimates" bucket in Medusa.
 export const INTIMATES_CATEGORY_HANDLE = "intimates";
 
+// Categories excluded from the Meta / Google product feed to avoid policy
+// flags. Storefront still shows these — only ad surfaces are stripped.
+export const FEED_EXCLUDED_CATEGORY_HANDLES = ["intimates", "toys"];
+
 // Cookie set by /private/[token] after a successful unlock. Lasts 30 days.
 export const PRIVATE_UNLOCK_COOKIE = "dub_private_unlock";
 
@@ -20,6 +24,16 @@ export function isInIntimatesCategory(product: ProductCategoriesLike): boolean {
   const cats = product.categories ?? [];
   return cats.some(
     (c) => (c?.handle ?? "").toLowerCase() === INTIMATES_CATEGORY_HANDLE,
+  );
+}
+
+// True if any of the product's categories is in the feed exclusion list.
+// Used by /feed/meta.xml to strip risky-for-Meta products from the catalog
+// without touching what's visible on the storefront.
+export function isExcludedFromFeed(product: ProductCategoriesLike): boolean {
+  const cats = product.categories ?? [];
+  return cats.some((c) =>
+    FEED_EXCLUDED_CATEGORY_HANDLES.includes((c?.handle ?? "").toLowerCase()),
   );
 }
 

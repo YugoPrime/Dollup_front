@@ -3,7 +3,7 @@ import type { HttpTypes } from "@medusajs/types";
 import { sdk } from "@/lib/medusa";
 import { getRegion } from "@/lib/region";
 import { PRODUCTS_CACHE_TAG } from "@/lib/products";
-import { isInIntimatesCategory, isUnlisted } from "@/lib/visibility";
+import { isExcludedFromFeed, isUnlisted } from "@/lib/visibility";
 
 // Google Merchant Center / Meta Commerce product feed. Same XML schema serves
 // both: Meta's "Scheduled feed" data source accepts the Google Merchant RSS
@@ -232,7 +232,7 @@ async function buildFeed(siteUrl: string): Promise<string> {
   for (const product of products) {
     if (isUnlisted(product as unknown as { metadata?: unknown })) continue;
     if (
-      isInIntimatesCategory(
+      isExcludedFromFeed(
         product as unknown as { categories?: Array<{ handle?: string | null }> },
       )
     ) {
