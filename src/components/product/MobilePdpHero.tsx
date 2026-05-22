@@ -130,19 +130,23 @@ export function MobilePdpHero({
       (colorOption.values ?? [])
         .map((v) => v.value)
         .filter((v): v is string => !!v) ?? [];
-    return values.map((value) => {
-      const slug = slugify(value);
-      const matches = images.filter((u) => u.toLowerCase().includes(slug));
-      const preview = matches[0] ?? images[0] ?? product.thumbnail ?? "";
-      const available = variants.some((v) => {
-        const hasColor = v.options?.some(
-          (o) => o.option_id === colorOption.id && o.value === value,
-        );
-        if (!hasColor) return false;
-        return isVariantBuyable(v);
-      });
-      return { value, preview, images: matches, available };
-    });
+    // Hide fully sold-out colors entirely — customer never sees a swatch
+    // they can't buy.
+    return values
+      .map((value) => {
+        const slug = slugify(value);
+        const matches = images.filter((u) => u.toLowerCase().includes(slug));
+        const preview = matches[0] ?? images[0] ?? product.thumbnail ?? "";
+        const available = variants.some((v) => {
+          const hasColor = v.options?.some(
+            (o) => o.option_id === colorOption.id && o.value === value,
+          );
+          if (!hasColor) return false;
+          return isVariantBuyable(v);
+        });
+        return { value, preview, images: matches, available };
+      })
+      .filter((c) => c.available);
   }, [colorOption, images, variants, product.thumbnail]);
 
   // Hide the color row entirely when there's only one color (or none) — the
@@ -164,6 +168,21 @@ export function MobilePdpHero({
       (sizeOption.values ?? [])
         .map((v) => v.value)
         .filter((v): v is string => !!v) ?? [];
+
+    // Globally-available sizes: at least one in-stock variant carries this
+    // size value, regardless of other option picks. Fully-OOS sizes get
+    // hidden entirely; in-context unavailability (size OOS for current
+    // color but available for another color) still renders as disabled.
+    const globallyAvailable = new Set<string>();
+    for (const v of variants) {
+      if (!isVariantBuyable(v)) continue;
+      for (const opt of v.options ?? []) {
+        if (opt.option_id === sizeOption.id && opt.value) {
+          globallyAvailable.add(opt.value);
+        }
+      }
+    }
+
     const seen = new Map<string, SizeOpt>();
     for (const v of variants) {
       let sizeVal: string | null = null;
@@ -191,9 +210,11 @@ export function MobilePdpHero({
         });
       }
     }
-    const list = allValues.map<SizeOpt>(
-      (v) => seen.get(v) ?? { value: v, variantId: null, available: false },
-    );
+    const list = allValues
+      .filter((v) => globallyAvailable.has(v))
+      .map<SizeOpt>(
+        (v) => seen.get(v) ?? { value: v, variantId: null, available: false },
+      );
     return sortSizes(list);
   }, [sizeOption, variants, selected]);
 

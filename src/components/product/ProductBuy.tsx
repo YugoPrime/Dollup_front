@@ -70,9 +70,40 @@ export function ProductBuy({
   const colorOption = options.find((o) => (o.title ?? "").toLowerCase() === "color");
   const sizeOption = options.find((o) => (o.title ?? "").toLowerCase() === "size");
   const otherOptions = options.filter((o) => o !== colorOption && o !== sizeOption);
+
+  // Globally-available values per option: a value is kept only if at least
+  // ONE variant carrying it has stock (ignoring current sibling selections).
+  // Used to fully HIDE sold-out swatches/pills — the customer never sees a
+  // color or size that has zero buyable variants anywhere.
+  // Per-option in-context disabling is still handled by `disabledByOption`
+  // further down for combos that are temporarily incompatible with the
+  // current selection but available under another sibling pick.
+  const globallyAvailableByOption = useMemo(() => {
+    const result: Record<string, Set<string>> = {};
+    for (const opt of options) {
+      const avail = new Set<string>();
+      for (const v of variants) {
+        if (!isVariantBuyable(v)) continue;
+        for (const o of v.options ?? []) {
+          if (o.option_id === opt.id && o.value) avail.add(o.value);
+        }
+      }
+      result[opt.id] = avail;
+    }
+    return result;
+  }, [options, variants]);
+
+  const visibleValues = (opt: { id: string; values?: Array<{ value?: string | null }> | null }) => {
+    const all = (opt.values ?? []).map((v) => v.value).filter(Boolean) as string[];
+    const avail = globallyAvailableByOption[opt.id];
+    if (!avail) return all;
+    return all.filter((v) => avail.has(v));
+  };
+
   const sizeValues = useMemo(
-    () => ((sizeOption?.values ?? []).map((v) => v.value).filter(Boolean) as string[]),
-    [sizeOption],
+    () => (sizeOption ? visibleValues(sizeOption) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [sizeOption, globallyAvailableByOption],
   );
   const candidateSizeValues = useMemo(() => {
     if (!sizeOption) return [];
@@ -248,10 +279,10 @@ export function ProductBuy({
         </p>
       )}
 
-      {colorOption && (
+      {colorOption && visibleValues(colorOption).length > 1 && (
         <OptionGroup
           title={`Color${selected[colorOption.id] ? `: ${selected[colorOption.id]}` : ""}`}
-          values={(colorOption.values ?? []).map((v) => v.value).filter(Boolean) as string[]}
+          values={visibleValues(colorOption)}
           selected={selected[colorOption.id]}
           onSelect={(v) => setSelected((s) => ({ ...s, [colorOption.id]: v }))}
           variant="color"
@@ -281,17 +312,21 @@ export function ProductBuy({
         </>
       )}
 
-      {otherOptions.map((opt) => (
-        <OptionGroup
-          key={opt.id}
-          title={opt.title ?? ""}
-          values={(opt.values ?? []).map((v) => v.value).filter(Boolean) as string[]}
-          selected={selected[opt.id]}
-          onSelect={(v) => setSelected((s) => ({ ...s, [opt.id]: v }))}
-          variant="size"
-          disabledValues={disabledByOption[opt.id]}
-        />
-      ))}
+      {otherOptions.map((opt) => {
+        const vals = visibleValues(opt);
+        if (vals.length === 0) return null;
+        return (
+          <OptionGroup
+            key={opt.id}
+            title={opt.title ?? ""}
+            values={vals}
+            selected={selected[opt.id]}
+            onSelect={(v) => setSelected((s) => ({ ...s, [opt.id]: v }))}
+            variant="size"
+            disabledValues={disabledByOption[opt.id]}
+          />
+        );
+      })}
 
       {error && <p className="font-sans text-xs text-coral-700">{error}</p>}
 

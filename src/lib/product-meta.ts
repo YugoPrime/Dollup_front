@@ -46,17 +46,21 @@ export function getSizeAvailability(
     .map((v) => v.value)
     .filter(Boolean) as string[]);
 
-  const sizes: SizeAvailability[] = sizeValues.map((value) => {
-    const available = (product.variants ?? []).some((variant) => {
-      const opts = variant.options ?? [];
-      const hasSize = opts.some(
-        (o) => o.option_id === sizeOption.id && o.value === value,
-      );
-      if (!hasSize) return false;
-      return !variant.manage_inventory || (variant.inventory_quantity ?? 0) > 0;
-    });
-    return { value, available };
-  });
+  // Hide fully sold-out sizes from the quick-info pill row — we want the
+  // customer to only see sizes they can actually buy.
+  const sizes: SizeAvailability[] = sizeValues
+    .map((value) => {
+      const available = (product.variants ?? []).some((variant) => {
+        const opts = variant.options ?? [];
+        const hasSize = opts.some(
+          (o) => o.option_id === sizeOption.id && o.value === value,
+        );
+        if (!hasSize) return false;
+        return !variant.manage_inventory || (variant.inventory_quantity ?? 0) > 0;
+      });
+      return { value, available };
+    })
+    .filter((s) => s.available);
 
   return { sizeOptionId: sizeOption.id, sizes };
 }
