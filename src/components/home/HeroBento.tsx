@@ -88,7 +88,7 @@ export function HeroBento({ products }: { products: Product[] }) {
           <p className="font-sans text-[11px] font-bold uppercase tracking-[0.22em] text-ink-soft mb-3.5">
             Find your next favorite fit.
           </p>
-          <h1 className="font-display text-[44px] leading-[0.92] tracking-[-1.5px] text-ink md:text-[72px]">
+          <h1 className="font-display text-[56px] leading-[0.92] tracking-[-1.5px] text-ink md:text-[72px]">
             Doll up,
             <br />
             <em className="text-coral-500">babe.</em>
@@ -151,6 +151,8 @@ export function HeroBento({ products }: { products: Product[] }) {
                     className="object-cover object-top"
                     placeholder="blur"
                     blurDataURL={HERO_TILE_BLURS[i] ?? HERO_TILE_1_BLUR}
+                    priority={i === 0}
+                    fetchPriority={i === 0 ? "high" : undefined}
                   />
                 )}
               </Link>
