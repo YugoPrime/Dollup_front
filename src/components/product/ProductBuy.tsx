@@ -9,6 +9,7 @@ import { toggleWishlist, useIsInWishlist } from "@/lib/wishlist-client";
 import { trackViewItem } from "@/lib/analytics";
 import { colorNameToHex } from "@/lib/colors";
 import { PDP_SELECT_SIZE_EVENT } from "@/components/product/PdpQuickInfoMobile";
+import { PDP_COLOR_CHANGE_EVENT } from "@/components/product/ProductGallery";
 
 type Product = HttpTypes.StoreProduct;
 const LOW_STOCK_THRESHOLD = 5;
@@ -191,6 +192,18 @@ export function ProductBuy({
     window.addEventListener(PDP_SELECT_SIZE_EVENT, handler);
     return () => window.removeEventListener(PDP_SELECT_SIZE_EVENT, handler);
   }, [sizeOption]);
+
+  // Broadcast the current colour selection to ProductGallery so the hero
+  // image set matches what the buy box says. Fires on mount (initial colour)
+  // and whenever the customer picks a different swatch.
+  useEffect(() => {
+    if (!colorOption) return;
+    const value = selected[colorOption.id];
+    if (!value) return;
+    window.dispatchEvent(
+      new CustomEvent(PDP_COLOR_CHANGE_EVENT, { detail: { value } }),
+    );
+  }, [colorOption, selected]);
 
   // Fire GA4 view_item once per (product, variant) pair. Re-runs on variant
   // change so analytics reflect what the customer is actually looking at.
