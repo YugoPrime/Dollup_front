@@ -62,6 +62,12 @@ const scriptSrc = [
 ].join(" ");
 
 const frameSrc = ["'self'", ...analyticsFrameSrc].join(" ");
+const longLivedAssetHeaders = [
+  {
+    key: "Cache-Control",
+    value: "public, max-age=31536000, immutable",
+  },
+];
 
 const contentSecurityPolicyReportOnly = [
   "default-src 'self'",
@@ -101,6 +107,42 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
+      {
+        source: "/categories/:path*",
+        headers: longLivedAssetHeaders,
+      },
+      {
+        source: "/lookbook/:path*",
+        headers: longLivedAssetHeaders,
+      },
+      {
+        source: "/mystery-box/:path*",
+        headers: longLivedAssetHeaders,
+      },
+      {
+        source: "/logo.png",
+        headers: longLivedAssetHeaders,
+      },
+      {
+        source: "/icon-192.png",
+        headers: longLivedAssetHeaders,
+      },
+      {
+        source: "/icon-512.png",
+        headers: longLivedAssetHeaders,
+      },
+      {
+        source: "/icon.png",
+        headers: longLivedAssetHeaders,
+      },
+      {
+        source: "/apple-icon.png",
+        headers: longLivedAssetHeaders,
+      },
+      {
+        source: "/og-default.jpg",
+        headers: longLivedAssetHeaders,
+      },
       {
         source: "/(.*)",
         headers: [

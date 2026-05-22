@@ -1,7 +1,11 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { listFeatured, listProducts, listEssentials, getLatestCollectionTag } from "@/lib/products";
-import { HeroBento } from "@/components/home/HeroBento";
+import {
+  HeroBento,
+  HeroBentoProducts,
+  HeroBentoProductSkeleton,
+} from "@/components/home/HeroBento";
 import { TrendingRail } from "@/components/home/TrendingRail";
 import { CategoryIcons } from "@/components/home/CategoryIcons";
 import { SalesOfTheMonth } from "@/components/home/SalesOfTheMonth";
@@ -44,7 +48,11 @@ export default function HomePage() {
 
   return (
     <>
-      <HeroSection />
+      <HeroBento>
+        <Suspense fallback={<HeroBentoProductSkeleton />}>
+          <HeroProductMosaic />
+        </Suspense>
+      </HeroBento>
       <Suspense fallback={<ProductRailSkeleton />}>
         <TrendingRailSection latestCollectionPromise={latestCollectionPromise} />
       </Suspense>
@@ -67,12 +75,12 @@ export default function HomePage() {
   );
 }
 
-async function HeroSection() {
+async function HeroProductMosaic() {
   const featured = await listFeatured().catch((err) => {
     console.error("listFeatured failed:", err);
     return [];
   });
-  return <HeroBento products={featured} />;
+  return <HeroBentoProducts products={featured} />;
 }
 
 async function TrendingRailSection({

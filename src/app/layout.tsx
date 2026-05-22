@@ -146,7 +146,7 @@ export default function RootLayout({
         <CartProvider>
           <WishlistAuthSync />
           <Header />
-          <main id="site-content" className="flex-1 animate-fade-up">
+          <main id="site-content" className="flex-1">
             <div className="pb-[64px] md:pb-0">{children}</div>
           </main>
           <Footer />

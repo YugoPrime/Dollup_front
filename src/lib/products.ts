@@ -848,7 +848,20 @@ function shuffleAndPick<T>(arr: readonly T[], n: number): T[] {
  * Backfill order if a category is short: leftover items from other
  * categories, then global newest products, so the hero never thins out.
  */
+const cachedFeaturedProducts = unstable_cache(
+  async () => listFeaturedUncached(),
+  ["home-featured-products-v1"],
+  {
+    tags: [PRODUCTS_CACHE_TAG, PRODUCT_TAGS_CACHE_TAG, PRODUCT_CATEGORIES_CACHE_TAG],
+    revalidate: 60,
+  },
+);
+
 export async function listFeatured(): Promise<HttpTypes.StoreProduct[]> {
+  return cachedFeaturedProducts();
+}
+
+async function listFeaturedUncached(): Promise<HttpTypes.StoreProduct[]> {
   const tryFetch = async (args: ListProductsArgs) => {
     try {
       const res = await listProducts(args);
