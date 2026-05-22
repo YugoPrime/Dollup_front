@@ -134,8 +134,26 @@ export function MobilePdpHero({
     // they can't buy.
     return values
       .map((value) => {
+        // Prefer variant metadata.image_urls (admin-curated, authoritative).
+        // Fall back to filename-slug match so older products without
+        // per-variant image_urls still get a colour-specific gallery.
+        const metaSet = new Set<string>();
+        for (const v of variants) {
+          const hasColor = v.options?.some(
+            (o) => o.option_id === colorOption.id && o.value === value,
+          );
+          if (!hasColor) continue;
+          const meta = (v.metadata ?? {}) as { image_urls?: unknown };
+          if (Array.isArray(meta.image_urls)) {
+            for (const u of meta.image_urls) {
+              if (typeof u === "string" && u) metaSet.add(u);
+            }
+          }
+        }
+        const fromMeta = images.filter((u) => metaSet.has(u));
         const slug = slugify(value);
-        const matches = images.filter((u) => u.toLowerCase().includes(slug));
+        const fromSlug = images.filter((u) => u.toLowerCase().includes(slug));
+        const matches = fromMeta.length ? fromMeta : fromSlug;
         const preview = matches[0] ?? images[0] ?? product.thumbnail ?? "";
         const available = variants.some((v) => {
           const hasColor = v.options?.some(
