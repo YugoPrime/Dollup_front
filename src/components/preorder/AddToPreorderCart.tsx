@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { clientSdk, getStoredCartId, setStoredCartId } from "@/lib/cart-client";
-import { canAddItem, cartTypeOf } from "@/lib/cart-type";
 import { useCart } from "@/components/cart/CartProvider";
 
 type Option = { id: string; title: string; values: Array<{ value: string }> };
@@ -20,13 +18,8 @@ type Product = {
   options?: Option[];
 };
 
-const REGION_ID_MU = process.env.NEXT_PUBLIC_MEDUSA_REGION_ID_MU;
-
-const CART_FIELDS =
-  "*items,*items.variant,metadata,+subtotal,+total,+item_total";
-
 export function AddToPreorderCart({ product }: { product: Product }) {
-  const { refreshCart } = useCart();
+  const { addItem } = useCart();
   const [selected, setSelected] = useState<Record<string, string>>({});
   const [pending, startTx] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -48,58 +41,9 @@ export function AddToPreorderCart({ product }: { product: Product }) {
     setError(null);
     startTx(async () => {
       try {
-        type CartRef = { id: string; metadata?: Record<string, unknown> | null };
-        const existingId = getStoredCartId();
-        let cart: CartRef | null = null;
-
-        if (existingId) {
-          try {
-            const r = await clientSdk.store.cart.retrieve(existingId, {
-              fields: "metadata",
-            });
-            const completed = (r.cart as { completed_at?: string | null }).completed_at;
-            if (!completed) {
-              cart = r.cart as unknown as CartRef;
-            }
-          } catch {
-            /* cart expired or not found — create fresh */
-          }
-        }
-
-        const check = canAddItem(cart, "preorder");
-        if (!check.ok) {
-          setError(check.reason);
-          return;
-        }
-
-        if (!cart) {
-          // Create a new cart tagged as preorder.
-          const created = await clientSdk.store.cart.create(
-            {
-              region_id: REGION_ID_MU,
-              metadata: { cart_type: "preorder" },
-            },
-            { fields: CART_FIELDS },
-          );
-          const newCart = created.cart as unknown as CartRef;
-          setStoredCartId(newCart.id);
-          cart = newCart;
-        } else if (cartTypeOf(cart) === null) {
-          // Existing cart with no type yet — stamp it.
-          await clientSdk.store.cart.update(cart.id, {
-            metadata: { ...(cart.metadata ?? {}), cart_type: "preorder" },
-          });
-        }
-
-        await clientSdk.store.cart.createLineItem(
-          cart.id,
-          { variant_id: pickedVariant.id, quantity: 1 },
-          { fields: CART_FIELDS },
-        );
-
-        // Sync CartProvider so the header badge updates.
-        await refreshCart();
-
+        // Route through CartProvider.addItem so region discovery, cart_type
+        // enforcement, and stamping all happen in one place.
+        await addItem(pickedVariant.id, 1, { cartType: "preorder" });
         setAdded(true);
         setTimeout(() => setAdded(false), 2500);
       } catch (err) {

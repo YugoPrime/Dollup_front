@@ -17,7 +17,7 @@ import {
   clearStoredCartId,
 } from "@/lib/cart-client";
 import { trackAddToCart } from "@/lib/analytics";
-import { canAddItem, cartTypeOf } from "@/lib/cart-type";
+import { canAddItem, cartTypeOf, type CartType } from "@/lib/cart-type";
 
 const CartDrawer = dynamic(
   () => import("./CartDrawer").then((m) => m.CartDrawer),
@@ -26,13 +26,15 @@ const CartDrawer = dynamic(
 
 type Cart = HttpTypes.StoreCart;
 
+type AddItemOpts = { cartType?: CartType };
+
 type CartContextValue = {
   cart: Cart | null;
   loading: boolean;
   itemCount: number;
   open: boolean;
   setOpen: (v: boolean) => void;
-  addItem: (variantId: string, quantity?: number) => Promise<void>;
+  addItem: (variantId: string, quantity?: number, opts?: AddItemOpts) => Promise<void>;
   updateItem: (lineId: string, quantity: number) => Promise<void>;
   removeItem: (lineId: string) => Promise<void>;
   refreshCart: () => Promise<void>;
@@ -44,7 +46,10 @@ const CartContext = createContext<CartContextValue | null>(null);
 const CART_FIELDS =
   "*items,*items.variant,*items.variant.product,*items.variant.options,*items.thumbnail,*region,*shipping_methods,*promotions,metadata,+subtotal,+total,+item_total,+shipping_total,+tax_total,+discount_total";
 
-async function ensureCart(regionId: string | undefined): Promise<Cart> {
+async function ensureCart(
+  regionId: string | undefined,
+  cartType?: CartType,
+): Promise<Cart> {
   const existing = getStoredCartId();
   if (existing) {
     try {
@@ -60,8 +65,12 @@ async function ensureCart(regionId: string | undefined): Promise<Cart> {
   const region = regions?.find((r) => r.id === regionId) ?? regions?.[0];
   if (!region) throw new Error("No region available to create cart");
 
+  // Only stamp cart_type when we know what type this cart is for (i.e. on first
+  // actual add). Do NOT stamp it during idle pre-create (cartType=undefined) —
+  // an idle cart with cart_type="instock" would block the first preorder add.
+  const metadata = cartType ? { cart_type: cartType } : undefined;
   const { cart } = await clientSdk.store.cart.create(
-    { region_id: region.id, metadata: { cart_type: "instock" } },
+    { region_id: region.id, ...(metadata ? { metadata } : {}) },
     { fields: CART_FIELDS },
   );
   setStoredCartId(cart.id);
@@ -130,7 +139,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addItem = useCallback(
-    async (variantId: string, quantity = 1) => {
+    async (variantId: string, quantity = 1, opts?: AddItemOpts) => {
+      const intendedType: CartType = opts?.cartType ?? "instock";
+
       // Open the drawer before the network round-trip so the user sees instant
       // feedback. CartDrawer renders an "Adding to your bag..." state when
       // loading && no items yet (covers the brand-new-visitor case where
@@ -138,21 +149,21 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       setOpen(true);
       setLoading(true);
       try {
-        const current = cart ?? (await ensureCart(undefined));
+        const current = cart ?? (await ensureCart(undefined, intendedType));
         if (!cart) setCart(current);
 
         // Block mixing in-stock and pre-order items in the same cart.
-        const typeCheck = canAddItem(current, "instock");
+        const typeCheck = canAddItem(current, intendedType);
         if (!typeCheck.ok) {
           setOpen(false);
           throw new Error(typeCheck.reason);
         }
 
-        // Stamp the cart type if it was created before this feature shipped
-        // (cart_type will be null on pre-existing carts).
+        // Stamp the cart type if the cart has no type yet (idle pre-create or
+        // legacy cart created before this feature shipped).
         if (cartTypeOf(current) === null) {
           clientSdk.store.cart.update(current.id, {
-            metadata: { ...(current.metadata ?? {}), cart_type: "instock" },
+            metadata: { ...(current.metadata ?? {}), cart_type: intendedType },
           }).catch(() => {/* best-effort */});
         }
 
@@ -220,8 +231,28 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           cart.id,
           lineId,
         )) as { parent?: Cart };
-        if (res.parent) setCart(res.parent);
-        else await refresh();
+        const serverCart = res.parent ?? null;
+        if (serverCart) {
+          // If the cart is now empty, clear cart_type so the customer can add
+          // a different type next time (e.g. emptied a preorder cart, now
+          // wants to add an in-stock item).
+          if ((serverCart.items?.length ?? 0) === 0 && cartTypeOf(serverCart) !== null) {
+            const cleared: Cart = {
+              ...serverCart,
+              metadata: { ...(serverCart.metadata ?? {}), cart_type: null },
+            };
+            setCart(cleared);
+            clientSdk.store.cart
+              .update(serverCart.id, {
+                metadata: { ...(serverCart.metadata ?? {}), cart_type: null },
+              })
+              .catch(() => {/* best-effort */});
+          } else {
+            setCart(serverCart);
+          }
+        } else {
+          await refresh();
+        }
       } catch (e) {
         // Roll back the optimistic removal on failure so the user sees their
         // line again rather than a silent loss.
