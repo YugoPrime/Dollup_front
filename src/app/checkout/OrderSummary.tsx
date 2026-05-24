@@ -10,6 +10,8 @@ import { readLoyaltyRedeemMetadata } from "@/lib/loyalty-client";
 import { qualifiesForFreeHomeDelivery } from "@/lib/checkout";
 import { clientSdk } from "@/lib/cart-client";
 import { useCart } from "@/components/cart/CartProvider";
+import { cartTypeOf } from "@/lib/cart-type";
+import { PreorderTerms } from "@/components/preorder/PreorderTerms";
 
 type Cart = HttpTypes.StoreCart;
 
@@ -19,6 +21,10 @@ type Props = {
   onSubmit: () => void;
   loyaltySlot?: React.ReactNode;
   selectedShippingOption?: HttpTypes.StoreCartShippingOption | null;
+  /** Called when the user toggles the pre-order terms checkbox */
+  onTermsChange?: (accepted: boolean) => void;
+  /** When true, the Place Order button is additionally disabled until terms accepted */
+  termsAccepted?: boolean;
 };
 
 type CartPromotion = NonNullable<Cart["promotions"]>[number];
@@ -149,6 +155,8 @@ export function OrderSummary({
   onSubmit,
   loyaltySlot,
   selectedShippingOption,
+  onTermsChange,
+  termsAccepted = true,
 }: Props) {
   const items = cart.items ?? [];
   const itemCount = items.reduce((sum, item) => sum + (item.quantity ?? 0), 0);
@@ -169,6 +177,8 @@ export function OrderSummary({
   const total = cartHasShippingMethod
     ? (cart.total ?? 0)
     : Math.max(0, itemSubtotal + shipping - fallbackDiscount);
+  const isPreorder =
+    cartTypeOf(cart as unknown as { metadata?: Record<string, unknown> | null }) === "preorder";
   const redeemMeta = readLoyaltyRedeemMetadata(
     cart.metadata as Record<string, unknown> | null | undefined,
   );
@@ -298,10 +308,20 @@ export function OrderSummary({
           </div>
         </dl>
 
+        {isPreorder && onTermsChange && (
+          <div className="mt-5">
+            <PreorderTerms
+              depositPercent={75}
+              cartTotalMur={Math.round(total / 100)}
+              onChange={onTermsChange}
+            />
+          </div>
+        )}
+
         <button
           type="button"
           onClick={onSubmit}
-          disabled={submitting}
+          disabled={submitting || (isPreorder && !termsAccepted)}
           className="mt-5 hidden w-full items-center justify-center rounded-md bg-coral-500 px-4 py-3 font-sans text-sm font-semibold tracking-wide text-white transition-colors hover:bg-coral-700 disabled:opacity-60 lg:flex"
         >
           {submitting ? "Placing order…" : "Place Order"}

@@ -26,6 +26,7 @@ import {
   trackAddShippingInfo,
   trackBeginCheckout,
 } from "@/lib/analytics";
+import { cartTypeOf } from "@/lib/cart-type";
 import {
   allowedPaymentMethods,
   deliveryDateApplies,
@@ -143,6 +144,7 @@ export function CheckoutForm() {
   const [submitting, setSubmitting] = useState(false);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
   const [prefilledFromCustomer, setPrefilledFromCustomer] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const beginCheckoutFiredRef = useRef(false);
 
   // Fire GA4 begin_checkout once when the cart first hydrates with items.
@@ -1202,7 +1204,12 @@ export function CheckoutForm() {
             <button
               type="button"
               onClick={handleMobilePrimaryAction}
-              disabled={submitting}
+              disabled={
+                submitting ||
+                (mobileStep === "review" &&
+                  cartTypeOf(cart as unknown as { metadata?: Record<string, unknown> | null }) === "preorder" &&
+                  !termsAccepted)
+              }
               className="flex h-12 min-w-0 flex-1 items-center justify-between gap-3 rounded-md bg-coral-500 px-4 font-sans text-sm font-semibold text-white shadow-lg transition-colors hover:bg-coral-700 disabled:opacity-60"
             >
               <span className="truncate">{mobilePrimaryLabel}</span>
@@ -1221,6 +1228,8 @@ export function CheckoutForm() {
           selectedShippingOption={
             shippingOptions.find((o) => o.id === state.shippingOptionId) ?? null
           }
+          onTermsChange={setTermsAccepted}
+          termsAccepted={termsAccepted}
         />
       </div>
       </div>
