@@ -169,7 +169,14 @@ async function listWithFacetFilters(
 ) {
   const all = await cachedAllStoreProducts(region.id);
 
-  let filtered: HttpTypes.StoreProduct[] = all;
+  // Exclude pre-order products from the in-stock storefront.
+  // These are served at /preorder/* and must not appear in /shop or homepage listings.
+  // NOTE: count may be slightly inaccurate for in-stock pagination on catalogs where
+  // many products are flagged is_preorder, but this is acceptable for Phase 1 (small catalog).
+  let filtered: HttpTypes.StoreProduct[] = all.filter(
+    (p) =>
+      (p.metadata as Record<string, unknown> | null | undefined)?.is_preorder !== true,
+  );
 
   if (args.category) {
     const ids = new Set(Array.isArray(args.category) ? args.category : [args.category]);
