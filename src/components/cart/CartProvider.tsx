@@ -17,6 +17,7 @@ import {
   clearStoredCartId,
 } from "@/lib/cart-client";
 import { trackAddToCart } from "@/lib/analytics";
+import { canAddItem, cartTypeOf } from "@/lib/cart-type";
 
 const CartDrawer = dynamic(
   () => import("./CartDrawer").then((m) => m.CartDrawer),
@@ -60,7 +61,7 @@ async function ensureCart(regionId: string | undefined): Promise<Cart> {
   if (!region) throw new Error("No region available to create cart");
 
   const { cart } = await clientSdk.store.cart.create(
-    { region_id: region.id },
+    { region_id: region.id, metadata: { cart_type: "instock" } },
     { fields: CART_FIELDS },
   );
   setStoredCartId(cart.id);
@@ -139,6 +140,22 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       try {
         const current = cart ?? (await ensureCart(undefined));
         if (!cart) setCart(current);
+
+        // Block mixing in-stock and pre-order items in the same cart.
+        const typeCheck = canAddItem(current, "instock");
+        if (!typeCheck.ok) {
+          setOpen(false);
+          throw new Error(typeCheck.reason);
+        }
+
+        // Stamp the cart type if it was created before this feature shipped
+        // (cart_type will be null on pre-existing carts).
+        if (cartTypeOf(current) === null) {
+          clientSdk.store.cart.update(current.id, {
+            metadata: { ...(current.metadata ?? {}), cart_type: "instock" },
+          }).catch(() => {/* best-effort */});
+        }
+
         const { cart: updated } = await clientSdk.store.cart.createLineItem(
           current.id,
           { variant_id: variantId, quantity },
