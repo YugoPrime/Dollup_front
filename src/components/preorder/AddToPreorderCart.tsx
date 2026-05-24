@@ -48,18 +48,18 @@ export function AddToPreorderCart({ product }: { product: Product }) {
     setError(null);
     startTx(async () => {
       try {
+        type CartRef = { id: string; metadata?: Record<string, unknown> | null };
         const existingId = getStoredCartId();
-        let cart: { id: string; metadata?: Record<string, unknown> | null } | null = null;
+        let cart: CartRef | null = null;
 
         if (existingId) {
           try {
             const r = await clientSdk.store.cart.retrieve(existingId, {
               fields: "metadata",
             });
-            cart = r.cart as unknown as typeof cart;
-            // If the cart was already completed, treat it as gone.
-            if ((r.cart as { completed_at?: string | null }).completed_at) {
-              cart = null;
+            const completed = (r.cart as { completed_at?: string | null }).completed_at;
+            if (!completed) {
+              cart = r.cart as unknown as CartRef;
             }
           } catch {
             /* cart expired or not found — create fresh */
@@ -81,18 +81,14 @@ export function AddToPreorderCart({ product }: { product: Product }) {
             },
             { fields: CART_FIELDS },
           );
-          cart = created.cart as unknown as typeof cart;
-          if (cart) setStoredCartId(cart.id);
+          const newCart = created.cart as unknown as CartRef;
+          setStoredCartId(newCart.id);
+          cart = newCart;
         } else if (cartTypeOf(cart) === null) {
           // Existing cart with no type yet — stamp it.
           await clientSdk.store.cart.update(cart.id, {
             metadata: { ...(cart.metadata ?? {}), cart_type: "preorder" },
           });
-        }
-
-        if (!cart) {
-          setError("Could not create cart.");
-          return;
         }
 
         await clientSdk.store.cart.createLineItem(
