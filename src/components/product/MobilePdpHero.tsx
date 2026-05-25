@@ -309,7 +309,10 @@ export function MobilePdpHero({
     <div className="md:hidden">
       {/* Hero: 4:5 image with all selectors floated as overlays so the shopper
           (and screenshot recipients) see the whole story in one view. */}
-      <div className="relative w-full overflow-hidden bg-blush-100" style={{ aspectRatio: "4 / 5" }}>
+      <div
+        className="relative w-full overflow-hidden bg-blush-100"
+        style={{ height: "62dvh", minHeight: 480, maxHeight: 620 }}
+      >
         <div
           ref={scrollerRef}
           onScroll={onScroll}
