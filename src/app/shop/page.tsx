@@ -13,6 +13,7 @@ import { ProductCard } from "@/components/ProductCard";
 import { ShopFilterSidebar } from "@/components/shop/ShopFilterSidebar";
 import { ShopSortDropdown } from "@/components/shop/ShopSortDropdown";
 import { ShopMobileClient } from "@/components/shop/ShopMobileClient";
+import { OptimisticGrid, OptimisticCardSlot } from "@/components/shop/OptimisticGrid";
 import { isPrivateUnlocked } from "@/lib/private-unlock";
 import { isPubliclyListedStoreProduct } from "@/lib/visibility";
 
@@ -72,8 +73,15 @@ export default async function ShopPage({
   const tagValue = sp.tag ?? null;
   const sortKey = sp.sort ?? "new";
   const onSale = sp.on_sale === "1";
-  const sizeFilter = sp.size ?? undefined;
-  const colorFilter = sp.color ?? undefined;
+  // Multi-select: ?size=S,M and ?color=red,blue. Split here so the page,
+  // facet builder, and listProducts all see a clean string[] (single values
+  // still work as a one-item array).
+  const sizeFilter = parseMultiParam(sp.size);
+  const colorFilter = parseMultiParam(sp.color);
+  // For `selectedColor` (ProductCard hint), only use a single color: when the
+  // shopper has selected 2+ colors, no per-color hero override is meaningful.
+  const singleSelectedColor =
+    colorFilter && colorFilter.length === 1 ? colorFilter[0] : null;
   const priceMin = sp.price_min ? Number(sp.price_min) : undefined;
   const priceMax = sp.price_max ? Number(sp.price_max) : undefined;
   const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
@@ -251,17 +259,20 @@ export default async function ShopPage({
             <EmptyState />
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-4">
-                {products.map((p, index) => (
-                  <ProductCard
-                    key={p.id}
-                    product={p}
-                    latestCollectionTag={latestTag}
-                    selectedColor={colorFilter ?? null}
-                    imagePriority={index < 2}
-                  />
-                ))}
-              </div>
+              <OptimisticGrid>
+                <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-4">
+                  {products.map((p, index) => (
+                    <OptimisticCardSlot key={p.id} productId={p.id}>
+                      <ProductCard
+                        product={p}
+                        latestCollectionTag={latestTag}
+                        selectedColor={singleSelectedColor}
+                        imagePriority={index < 2}
+                      />
+                    </OptimisticCardSlot>
+                  ))}
+                </div>
+              </OptimisticGrid>
               <Pagination page={page} total={total} sp={sp} />
             </>
           )}
@@ -269,6 +280,15 @@ export default async function ShopPage({
       </div>
     </div>
   );
+}
+
+function parseMultiParam(value: string | undefined): string[] | undefined {
+  if (!value) return undefined;
+  const out = value
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return out.length ? out : undefined;
 }
 
 function buildShopCanonical(sp: Awaited<SearchParams>) {

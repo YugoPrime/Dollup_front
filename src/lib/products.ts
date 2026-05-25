@@ -95,9 +95,12 @@ export type ListProductsArgs = {
   tag?: string;
   order?: string;
   onSale?: boolean;
-  // Server-side facet filters (Medusa Store API has no native equivalents)
-  size?: string;
-  color?: string;
+  // Server-side facet filters (Medusa Store API has no native equivalents).
+  // Accept a single value (back-compat) or an array for multi-select
+  // (e.g. size=["S","M"] = size S OR size M). Within a facet = OR;
+  // across facets (size AND color) = AND.
+  size?: string | string[];
+  color?: string | string[];
   priceMin?: number;
   priceMax?: number;
   // Sort price asc/desc client-side after fetch — Medusa Store API doesn't
@@ -129,6 +132,41 @@ async function listProductsUncached(args: ListProductsArgs = {}) {
   return listWithFacetFilters(args, region);
 }
 
+// Multi-select args may arrive as a comma-string ("S,M"), an array, or a
+// single value. Normalize to a sorted, deduped string[] so cache keys are
+// stable regardless of how the caller passed the value. Returns undefined
+// when the input is empty so an unset filter doesn't generate a distinct
+// cache entry.
+function normalizeMultiArg(
+  v: string | string[] | undefined,
+): string[] | undefined {
+  if (v == null) return undefined;
+  const raw = Array.isArray(v) ? v : String(v).split(",");
+  const cleaned = raw
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (!cleaned.length) return undefined;
+  return [...new Set(cleaned)].sort();
+}
+
+// Build a canonical lookup Set from a multi-select arg (string | string[] | undefined).
+// Returns undefined when the input is empty so callers can short-circuit the filter.
+// `canon` reduces messy spellings ("burgandy"/"Burgundy") to a single bucket;
+// values that don't canonicalize are kept as-is so unknown sizes still work.
+function toTargetSet(
+  v: string | string[] | undefined,
+  canon: (raw: string) => string | null,
+): Set<string> | null {
+  const arr = normalizeMultiArg(v);
+  if (!arr) return null;
+  const out = new Set<string>();
+  for (const s of arr) {
+    const c = canon(s) ?? s;
+    if (c) out.add(c);
+  }
+  return out.size ? out : null;
+}
+
 function normalizeListProductArgs(args: ListProductsArgs): ListProductsArgs {
   return {
     limit: args.limit,
@@ -141,8 +179,8 @@ function normalizeListProductArgs(args: ListProductsArgs): ListProductsArgs {
     tag: args.tag,
     order: args.order,
     onSale: args.onSale,
-    size: args.size,
-    color: args.color,
+    size: normalizeMultiArg(args.size),
+    color: normalizeMultiArg(args.color),
     priceMin: args.priceMin,
     priceMax: args.priceMax,
     sortPrice: args.sortPrice,
@@ -239,27 +277,27 @@ async function listWithFacetFilters(
     );
   }
 
-  if (args.size) {
-    const target = canonicalSize(args.size) ?? args.size;
+  const sizeTargets = toTargetSet(args.size, (v) => canonicalSize(v) ?? v);
+  if (sizeTargets) {
     filtered = filtered.filter((p) =>
       (p.variants ?? []).some((v) =>
         (v.options ?? []).some(
           (o) =>
             isSizeOption(o) &&
-            (canonicalSize(o.value ?? "") ?? "") === target,
+            sizeTargets.has(canonicalSize(o.value ?? "") ?? ""),
         ),
       ),
     );
   }
 
-  if (args.color) {
-    const target = canonicalColor(args.color);
+  const colorTargets = toTargetSet(args.color, (v) => canonicalColor(v));
+  if (colorTargets) {
     filtered = filtered.filter((p) =>
       (p.variants ?? []).some((v) =>
         (v.options ?? []).some(
           (o) =>
             isColorOption(o) &&
-            canonicalColor(o.value ?? "") === target,
+            colorTargets.has(canonicalColor(o.value ?? "") ?? ""),
         ),
       ),
     );
@@ -586,6 +624,82 @@ async function computeShopFacets(args: {
     priceMax: hi === -Infinity ? 0 : Math.ceil(hi),
   };
 }
+
+// Compact per-product facet index for the client. Used by the optimistic
+// filter on /shop — the browser fetches /shop/facets.json once, then can
+// instantly tell which products would match a size/color/price/onSale
+// selection without waiting for an RSC round-trip. Only canonical sizes
+// (S/M/L/...) and canonical colors are emitted so the payload matches what
+// the filter UI offers.
+export type ProductFacetEntry = {
+  id: string;
+  sizes: string[];   // canonical (S, M, L, XL, 2XL, ...)
+  colors: string[];  // canonical color bucket
+  price: number;     // lowest in-stock variant price; 0 if none
+  onSale: boolean;   // any in-stock variant with calculated < original
+};
+
+export type ProductFacetIndex = {
+  // Map from product id → its facet entry. Stored as array on the wire so
+  // JSON stays compact and ordering matches the grid.
+  entries: ProductFacetEntry[];
+  // Bookkeeping so the client can validate the snapshot hasn't gone stale
+  // relative to what the SSR grid shipped.
+  generatedAt: number;
+};
+
+export async function getProductFacetIndex(): Promise<ProductFacetIndex> {
+  return cachedProductFacetIndex();
+}
+
+const cachedProductFacetIndex = unstable_cache(
+  async (): Promise<ProductFacetIndex> => {
+    const region = await getRegion();
+    const all = await cachedAllStoreProducts(region.id);
+    const entries: ProductFacetEntry[] = [];
+    for (const p of all) {
+      // Skip preorder + unlisted — they aren't on /shop.
+      const meta = (p.metadata ?? {}) as Record<string, unknown>;
+      if (meta.is_preorder === true) continue;
+      if (isUnlisted(p as unknown as { metadata?: unknown })) continue;
+      const sizes = new Set<string>();
+      const colors = new Set<string>();
+      let lowest = Infinity;
+      let onSale = false;
+      for (const v of p.variants ?? []) {
+        if (!isVariantInStock(v)) continue;
+        for (const o of v.options ?? []) {
+          if (isSizeOption(o)) {
+            const c = canonicalSize(o.value ?? "");
+            if (c) sizes.add(c);
+          }
+          if (isColorOption(o)) {
+            const c = canonicalColor(o.value ?? "");
+            if (c) colors.add(c);
+          }
+        }
+        const cp = readCalculatedPrice(v);
+        const amt = cp?.calculated_amount;
+        if (typeof amt === "number") {
+          if (amt < lowest) lowest = amt;
+          const orig = cp?.original_amount;
+          if (typeof orig === "number" && amt < orig) onSale = true;
+        }
+      }
+      if (lowest === Infinity) continue; // entirely out of stock
+      entries.push({
+        id: p.id,
+        sizes: [...sizes],
+        colors: [...colors],
+        price: Math.round(lowest),
+        onSale,
+      });
+    }
+    return { entries, generatedAt: Date.now() };
+  },
+  ["product-facet-index-v1"],
+  { tags: [PRODUCTS_CACHE_TAG], revalidate: CATALOG_REVALIDATE_SECONDS },
+);
 
 // Canonical color name → display label. Variants in the catalog use messy
 // spellings ("burgandy"/"burgundy", "Light Pink"/"lightpink"/"l.pink"); this

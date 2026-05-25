@@ -59,11 +59,31 @@ export function ShopFilterSheet({
       router.push(`/shop?${next.toString()}`);
     });
   };
+  // Multi-select: ?size=S,M means S OR M. URL stays comma-separated.
+  const readMulti = (key: string): string[] => {
+    const raw = params.get(key);
+    if (!raw) return [];
+    return raw.split(",").map((s) => s.trim()).filter(Boolean);
+  };
+  const hasMulti = (key: string, val: string) => readMulti(key).includes(val);
+  const toggleMulti = (key: string, val: string, pendingId: string) => {
+    setPendingKey(pendingId);
+    const current = readMulti(key);
+    const next = new URLSearchParams(params.toString());
+    const without = current.filter((v) => v !== val);
+    const updated = without.length === current.length ? [...current, val] : without;
+    if (updated.length === 0) next.delete(key);
+    else next.set(key, updated.join(","));
+    next.delete("page");
+    startTransition(() => {
+      router.push(`/shop?${next.toString()}`);
+    });
+  };
   const showSpinner = (id: string) => isPending && pendingKey === id;
   const has = (key: string, val: string) => params.get(key) === val;
   const activeCategory = params.get("category") ?? "";
-  const activeSize = params.get("size") ?? "";
-  const activeColor = params.get("color") ?? "";
+  const activeSizes = readMulti("size");
+  const activeColors = readMulti("color");
   const onSale = params.get("on_sale") === "1";
 
   const visible = useMemo(() => {
@@ -111,8 +131,8 @@ export function ShopFilterSheet({
   const counts: Record<SectionKey, number> = {
     offers: onSale ? 1 : 0,
     category: activeCategory ? 1 : 0,
-    size: activeSize ? 1 : 0,
-    color: activeColor ? 1 : 0,
+    size: activeSizes.length,
+    color: activeColors.length,
     price: priceActive ? 1 : 0,
   };
   const totalActive = counts.offers + counts.category + counts.size + counts.color + counts.price;
@@ -295,18 +315,18 @@ export function ShopFilterSheet({
             <AccordionRow
               label="Size"
               count={counts.size}
-              valueLabel={activeSize || undefined}
+              valueLabel={activeSizes.length ? activeSizes.join(", ") : undefined}
               isOpen={openSection === "size"}
               onToggle={() => setOpenSection((s) => (s === "size" ? null : "size"))}
             >
               <div className="grid grid-cols-4 gap-2">
                 {facets.sizes.map((s) => {
-                  const active = has("size", s);
+                  const active = hasMulti("size", s);
                   const loading = showSpinner(`size:${s}`);
                   return (
                     <button
                       key={s}
-                      onClick={() => setParam("size", active ? null : s, `size:${s}`)}
+                      onClick={() => toggleMulti("size", s, `size:${s}`)}
                       disabled={isPending}
                       aria-pressed={active}
                       className={`relative flex min-h-12 items-center justify-center rounded-xl border font-sans text-[12px] font-semibold transition-colors ${
@@ -331,20 +351,24 @@ export function ShopFilterSheet({
             <AccordionRow
               label="Color"
               count={counts.color}
-              valueLabel={activeColor ? toTitle(activeColor) : undefined}
+              valueLabel={
+                activeColors.length
+                  ? activeColors.map(toTitle).join(", ")
+                  : undefined
+              }
               isOpen={openSection === "color"}
               onToggle={() => setOpenSection((s) => (s === "color" ? null : "color"))}
             >
               <div className="grid grid-cols-5 gap-3">
                 {facets.colors.map((c) => {
                   const hex = COLOR_HEX[c] ?? "#8a7773";
-                  const active = has("color", c);
+                  const active = hasMulti("color", c);
                   const loading = showSpinner(`color:${c}`);
                   const light = isLight(c);
                   return (
                     <button
                       key={c}
-                      onClick={() => setParam("color", active ? null : c, `color:${c}`)}
+                      onClick={() => toggleMulti("color", c, `color:${c}`)}
                       disabled={isPending}
                       aria-label={c}
                       aria-pressed={active}

@@ -67,6 +67,28 @@ export function ShopFilterSidebar({
       router.push(`/shop?${next.toString()}`);
     });
   };
+
+  // Multi-select helpers: ?size=S,M means S OR M. Same shape for color.
+  // Stored comma-separated in the URL so it's shareable and URL-safe.
+  const readMulti = (key: string): string[] => {
+    const raw = params.get(key);
+    if (!raw) return [];
+    return raw.split(",").map((s) => s.trim()).filter(Boolean);
+  };
+  const hasMulti = (key: string, val: string) => readMulti(key).includes(val);
+  const toggleMulti = (key: string, val: string, pendingId: string) => {
+    setPendingKey(pendingId);
+    const current = readMulti(key);
+    const next = new URLSearchParams(params.toString());
+    const without = current.filter((v) => v !== val);
+    const updated = without.length === current.length ? [...current, val] : without;
+    if (updated.length === 0) next.delete(key);
+    else next.set(key, updated.join(","));
+    next.delete("page");
+    startTransition(() => {
+      router.push(`/shop?${next.toString()}`);
+    });
+  };
   const clearAll = () => {
     setPendingKey("clear-all");
     startTransition(() => {
@@ -232,12 +254,12 @@ export function ShopFilterSidebar({
         <Group label="Size">
           <div className="grid grid-cols-4 gap-1.5">
             {facets.sizes.map((s) => {
-              const active = has("size", s);
+              const active = hasMulti("size", s);
               const loading = showSpinner(`size:${s}`);
               return (
                 <button
                   key={s}
-                  onClick={() => setParam("size", active ? null : s, `size:${s}`)}
+                  onClick={() => toggleMulti("size", s, `size:${s}`)}
                   disabled={isPending}
                   aria-pressed={active}
                   className={`flex min-h-8 items-center justify-center rounded-md border py-1.5 font-sans text-[11px] font-semibold transition-colors ${
@@ -265,13 +287,13 @@ export function ShopFilterSidebar({
           <div className="flex flex-wrap gap-2">
             {facets.colors.map((c) => {
               const hex = COLOR_HEX[c] ?? "#8a7773";
-              const active = has("color", c);
+              const active = hasMulti("color", c);
               const loading = showSpinner(`color:${c}`);
               const light = ["white", "cream", "blush", "nude", "yellow", "pink"].includes(c);
               return (
                 <button
                   key={c}
-                  onClick={() => setParam("color", active ? null : c, `color:${c}`)}
+                  onClick={() => toggleMulti("color", c, `color:${c}`)}
                   disabled={isPending}
                   aria-label={c}
                   aria-pressed={active}
