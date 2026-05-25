@@ -113,7 +113,21 @@ export async function Footer() {
       </div>
 
       <div className="mx-auto flex max-w-[1100px] min-w-0 flex-col gap-3 border-t border-blush-300 px-6 py-5 font-sans text-[11px] text-ink-muted md:flex-row md:flex-wrap md:items-center md:justify-between md:px-8">
-        <span>© {new Date().getFullYear()} {cfg.store.footer_copyright}</span>
+        <div className="flex flex-col gap-1 md:flex-row md:flex-wrap md:items-center md:gap-x-3">
+          <span>© {new Date().getFullYear()} {cfg.store.footer_copyright}</span>
+          <span className="hidden md:inline text-ink-muted/60">·</span>
+          <span>
+            Website by{" "}
+            <a
+              href="https://influxe.agency"
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold text-coral-500 transition-colors hover:text-coral-700"
+            >
+              Influxe.agency
+            </a>
+          </span>
+        </div>
         <div className="flex flex-wrap gap-2">
           {["Juice", "Bank Transfer", "myT Money", "Cash on Delivery"].map((p) => (
             <span
