@@ -23,7 +23,7 @@ import {
   ProductRailSkeleton,
 } from "@/components/home/HomeSkeletons";
 
-export const revalidate = 60;
+export const revalidate = 300;
 
 export function generateMetadata(): Metadata {
   return {

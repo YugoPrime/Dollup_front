@@ -19,8 +19,11 @@ const PRODUCT_LIST_FIELDS =
   "options.title,options.values.value,images.url,tags.id,tags.value," +
   "categories.id,categories.name,categories.handle,categories.parent_category_id,collection.id";
 
-const CATALOG_BATCH_SIZE = 100;
-const CATALOG_MAX_BATCHES = 12;
+// 500 is well above the live catalog size (~500 products) so most fetches
+// land in one round-trip. Loop below still kicks in once we cross 500.
+// Medusa v2 has no enforced upper bound; default is 50 if unspecified.
+const CATALOG_BATCH_SIZE = 500;
+const CATALOG_MAX_BATCHES = 6;
 const CATALOG_REVALIDATE_SECONDS = 300;
 
 // Single shared catalog snapshot. Previously listProducts, getShopFacets and

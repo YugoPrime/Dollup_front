@@ -17,7 +17,7 @@ import { OptimisticGrid, OptimisticCardSlot } from "@/components/shop/Optimistic
 import { isPrivateUnlocked } from "@/lib/private-unlock";
 import { isPubliclyListedStoreProduct } from "@/lib/visibility";
 
-export const revalidate = 60;
+export const revalidate = 300;
 
 type SearchParams = Promise<{
   category?: string;
