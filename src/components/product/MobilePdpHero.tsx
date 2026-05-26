@@ -44,8 +44,8 @@ const SIZE_CHART_ANCHOR_ID = "mobile-size-chart";
  * along.
  *
  * Floating overlays on the hero: SKU pill, heart, title, color thumbnails (only
- * when >1 color), frosted size selector, and a "Size chart" pill that scrolls
- * to the chart rendered in the accordion below.
+ * when >1 color), a vertical size rail pinned to the right edge, and a "Size
+ * chart" pill that scrolls to the chart rendered in the accordion below.
  *
  * Renders only on screens < md (768px). Desktop keeps ProductGallery +
  * ProductBuy + ProductAccordion as before.
@@ -370,9 +370,11 @@ export function MobilePdpHero({
           </button>
         </div>
 
-        {/* Title overlay — sits just above the color/size-chart row, hugging
-            the bottom so the model stays visible. */}
-        <div className="pointer-events-none absolute inset-x-5 bottom-[140px]">
+        {/* Title overlay — sits just above the color / size-chart row,
+            hugging the bottom so the model stays visible. Pulled lower now
+            that the frosted size bar is gone and sizes live in a right-edge
+            rail. */}
+        <div className="pointer-events-none absolute inset-x-5 bottom-[88px]">
           <h1
             className="font-display text-[18px] font-semibold leading-tight text-white"
             style={{ textShadow: "0 2px 8px rgba(0,0,0,0.55)" }}
@@ -381,10 +383,46 @@ export function MobilePdpHero({
           </h1>
         </div>
 
+        {/* Vertical size rail on the right edge — just the size labels, no
+            "Select size" header. Centered vertically so it doesn't clash
+            with the heart (top-right) or color/size-chart row (bottom). */}
+        {sizeOption && sizeOptions.length > 0 ? (
+          <div
+            className="pointer-events-none absolute right-2.5 top-1/2 flex -translate-y-1/2 flex-col gap-1.5"
+            role="radiogroup"
+            aria-label="Size"
+          >
+            {sizeOptions.map((s) => {
+              const active = currentSize === s.value;
+              return (
+                <button
+                  key={s.value}
+                  type="button"
+                  onClick={() =>
+                    setSelected((sel) => ({ ...sel, [sizeOption.id]: s.value }))
+                  }
+                  disabled={!s.available}
+                  role="radio"
+                  aria-checked={active}
+                  className={`pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full font-sans text-[12px] font-semibold transition-colors ${
+                    active
+                      ? "bg-coral-500 text-white shadow-[0_2px_8px_rgba(0,0,0,0.22)]"
+                      : s.available
+                        ? "bg-white/95 text-ink shadow-[0_1px_4px_rgba(0,0,0,0.12)]"
+                        : "bg-white/55 text-ink-muted line-through"
+                  }`}
+                >
+                  {s.value}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+
         {/* Color thumbs (left) + SIZE CHART pill (right) sit on the SAME line
-            just above the size selector. Color row is hidden when the product
+            at the bottom of the hero. Color row is hidden when the product
             has 0/1 colors — the SIZE CHART pill still aligns to the right. */}
-        <div className="absolute inset-x-4 bottom-[84px] flex items-center justify-between gap-3">
+        <div className="absolute inset-x-4 bottom-3 flex items-center justify-between gap-3">
           {showColorRow ? (
             <div
               className="flex items-center gap-2 overflow-x-auto"
@@ -472,46 +510,6 @@ export function MobilePdpHero({
             </button>
           ) : null}
         </div>
-
-        {/* Frosted size selector on the hero — lower opacity so the image
-            still reads through clearly. */}
-        {sizeOption && sizeOptions.length > 0 ? (
-          <div className="absolute inset-x-4 bottom-3">
-            <div
-              className="flex items-center justify-between rounded-3xl bg-white/65 px-3 py-2 backdrop-blur-lg"
-              style={{ boxShadow: "0 6px 18px rgba(0,0,0,0.18)" }}
-            >
-              <span className="pl-1 font-sans text-[12px] font-semibold text-ink">
-                Select size
-              </span>
-              <div className="flex gap-1.5">
-                {sizeOptions.map((s) => {
-                  const active = currentSize === s.value;
-                  return (
-                    <button
-                      key={s.value}
-                      type="button"
-                      onClick={() =>
-                        setSelected((sel) => ({ ...sel, [sizeOption.id]: s.value }))
-                      }
-                      disabled={!s.available}
-                      aria-pressed={active}
-                      className={`flex h-9 min-w-[36px] items-center justify-center rounded-2xl px-2.5 font-sans text-[12px] font-semibold transition-colors ${
-                        active
-                          ? "bg-coral-500 text-white"
-                          : s.available
-                            ? "bg-white/95 text-ink shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
-                            : "bg-blush-100/70 text-ink-muted line-through"
-                      }`}
-                    >
-                      {s.value}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        ) : null}
 
         {/* Page-indicator dots — only when >1 image. Sit just below the
             top row so they overlap consistent image content rather than
