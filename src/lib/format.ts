@@ -15,6 +15,8 @@ export function formatPrice(amount: number | null | undefined, currency: string)
 type WithPrice = {
   variants?:
     | {
+        manage_inventory?: boolean | null;
+        inventory_quantity?: number | null;
         calculated_price?: {
           calculated_amount?: number | null;
           original_amount?: number | null;
@@ -25,7 +27,12 @@ type WithPrice = {
 };
 
 export function getDisplayPrice(product: WithPrice) {
-  const variant = product.variants?.[0];
+  const variants = product.variants ?? [];
+  const inStock = variants.filter(
+    (v) => !v.manage_inventory || (v.inventory_quantity ?? 0) > 0,
+  );
+  const pool = inStock.length > 0 ? inStock : variants;
+  const variant = pickLowestPricedVariant(pool);
   const cp = variant?.calculated_price;
   return {
     amount: cp?.calculated_amount ?? null,
@@ -36,6 +43,25 @@ export function getDisplayPrice(product: WithPrice) {
       cp?.original_amount != null &&
       cp.calculated_amount < cp.original_amount,
   };
+}
+
+function pickLowestPricedVariant<T extends NonNullable<WithPrice["variants"]>[number]>(
+  variants: T[],
+): T | undefined {
+  let best: T | undefined;
+  let bestAmount = Infinity;
+  for (const variant of variants) {
+    const amount = variant.calculated_price?.calculated_amount;
+    if (typeof amount !== "number") {
+      if (!best) best = variant;
+      continue;
+    }
+    if (amount < bestAmount) {
+      best = variant;
+      bestAmount = amount;
+    }
+  }
+  return best;
 }
 
 export function formatDiscountPercent(

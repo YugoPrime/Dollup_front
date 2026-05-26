@@ -20,6 +20,7 @@ export function ShopFilterChips({ onOpenFilters }: { onOpenFilters: () => void }
     const next = new URLSearchParams(params.toString());
     if (value == null) next.delete(key);
     else next.set(key, value);
+    next.delete("page");
     startTransition(() => {
       router.push(`/shop?${next.toString()}`);
     });

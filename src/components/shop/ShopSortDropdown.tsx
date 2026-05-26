@@ -17,6 +17,7 @@ export function ShopSortDropdown() {
   const onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const p = new URLSearchParams(params.toString());
     p.set("sort", e.target.value);
+    p.delete("page");
     router.push(`/shop?${p.toString()}`);
   };
 

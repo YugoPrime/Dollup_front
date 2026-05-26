@@ -9,10 +9,14 @@ import { getProductFacetIndex } from "@/lib/products";
 //
 // Server cache (5 min via unstable_cache + PRODUCTS_CACHE_TAG) +
 // public/CDN cache (60s s-maxage, 5 min SWR) keeps origin load near zero.
+export const dynamic = "force-dynamic";
 export const revalidate = 300;
 
 export async function GET() {
-  const index = await getProductFacetIndex();
+  const index = await getProductFacetIndex().catch((err) => {
+    console.error("Shop facet index load failed:", err);
+    return { entries: [], generatedAt: Date.now() };
+  });
   return Response.json(index, {
     headers: {
       "cache-control":

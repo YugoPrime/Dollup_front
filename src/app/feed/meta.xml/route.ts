@@ -1,6 +1,6 @@
 import { unstable_cache } from "next/cache";
 import type { HttpTypes } from "@medusajs/types";
-import { sdk } from "@/lib/medusa";
+import { listStoreProducts } from "@/lib/medusa";
 import { getRegion } from "@/lib/region";
 import { PRODUCTS_CACHE_TAG } from "@/lib/products";
 import { isExcludedFromFeed, isUnlisted } from "@/lib/visibility";
@@ -28,6 +28,7 @@ import { isExcludedFromFeed, isUnlisted } from "@/lib/visibility";
 //                           Override in Coolify to point at shop.dollupboutique.com
 //                           pre-apex-cutover; flip back after.
 
+export const dynamic = "force-dynamic";
 export const revalidate = 3600;
 
 const PRODUCT_FEED_FIELDS =
@@ -205,7 +206,7 @@ async function fetchAllProducts(): Promise<HttpTypes.StoreProduct[]> {
   const limit = 100;
   const MAX_BATCHES = 20;
   for (let i = 0; i < MAX_BATCHES; i++) {
-    const res = await sdk.store.product.list({
+    const res = await listStoreProducts({
       region_id: region.id,
       fields: PRODUCT_FEED_FIELDS,
       limit,
@@ -323,7 +324,19 @@ async function buildFeed(siteUrl: string): Promise<string> {
 
 export async function GET() {
   const siteUrl = getSiteUrl();
-  const xml = await cachedFeed(siteUrl);
+  const xml = await cachedFeed(siteUrl).catch((err) => {
+    console.error("Meta feed build failed:", err);
+    return null;
+  });
+  if (!xml) {
+    return new Response("Feed temporarily unavailable", {
+      status: 503,
+      headers: {
+        "content-type": "text/plain; charset=utf-8",
+        "cache-control": "no-store",
+      },
+    });
+  }
   return new Response(xml, {
     status: 200,
     headers: {

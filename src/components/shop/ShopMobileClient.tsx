@@ -24,13 +24,15 @@ export function ShopMobileClient({
         <div className="pb-[60px]">{children}</div>
       ) : null}
       <ShopStickyBar onOpenFilters={() => setOpen(true)} />
-      <ShopFilterSheet
-        open={open}
-        onClose={() => setOpen(false)}
-        categories={categories}
-        stockedHandles={stockedHandles}
-        facets={facets}
-      />
+      {open ? (
+        <ShopFilterSheet
+          open={open}
+          onClose={() => setOpen(false)}
+          categories={categories}
+          stockedHandles={stockedHandles}
+          facets={facets}
+        />
+      ) : null}
     </div>
   );
 }

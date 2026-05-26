@@ -14,8 +14,6 @@ import { ShopFilterSidebar } from "@/components/shop/ShopFilterSidebar";
 import { ShopSortDropdown } from "@/components/shop/ShopSortDropdown";
 import { ShopMobileClient } from "@/components/shop/ShopMobileClient";
 import { OptimisticGrid, OptimisticCardSlot } from "@/components/shop/OptimisticGrid";
-import { isPrivateUnlocked } from "@/lib/private-unlock";
-import { isPubliclyListedStoreProduct } from "@/lib/visibility";
 
 export const revalidate = 300;
 
@@ -86,10 +84,9 @@ export default async function ShopPage({
   const priceMax = sp.price_max ? Number(sp.price_max) : undefined;
   const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
 
-  const [allCategories, latestCollection, unlocked, stockedHandlesSet] = await Promise.all([
+  const [allCategories, latestCollection, stockedHandlesSet] = await Promise.all([
     listCategories(),
     getLatestCollectionTag().catch(() => null),
-    isPrivateUnlocked().catch(() => false),
     getCategoryHandlesWithStock().catch(() => new Set<string>()),
   ]);
   // Serialize to array so it crosses the client boundary cleanly. Empty set ⇒
@@ -147,16 +144,10 @@ export default async function ShopPage({
       onSale,
     }).catch(() => ({ sizes: [], colors: [], priceMin: 0, priceMax: 0 })),
   ]);
-  // Strip `metadata.unlisted` products from the grid. Intimates items appear
-  // by default — their PDPs render the 18+ gate + noindex meta on click.
-  const filteredProducts = productsRes.products.filter((p) =>
-    isPubliclyListedStoreProduct(p, { unlocked }),
-  );
-  const products = filteredProducts;
-  const total =
-    filteredProducts.length === productsRes.products.length
-      ? productsRes.count
-      : filteredProducts.length;
+  // listProducts owns preorder/unlisted/out-of-stock filtering before
+  // pagination, so the count and grid stay aligned.
+  const products = productsRes.products;
+  const total = productsRes.count;
 
   const title = q
     ? `Search: ${q}`

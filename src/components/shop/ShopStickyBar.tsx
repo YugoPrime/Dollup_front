@@ -39,6 +39,7 @@ export function ShopStickyBar({ onOpenFilters }: { onOpenFilters: () => void }) 
   const choose = (value: string) => {
     const p = new URLSearchParams(params.toString());
     p.set("sort", value);
+    p.delete("page");
     router.push(`/shop?${p.toString()}`);
     setOpen(false);
   };

@@ -80,7 +80,6 @@ export function ShopFilterSheet({
     });
   };
   const showSpinner = (id: string) => isPending && pendingKey === id;
-  const has = (key: string, val: string) => params.get(key) === val;
   const activeCategory = params.get("category") ?? "";
   const activeSizes = readMulti("size");
   const activeColors = readMulti("color");
@@ -92,10 +91,13 @@ export function ShopFilterSheet({
     const inStock = (handle: string) =>
       !stockFilterActive || stocked.has(handle);
 
-    const womenParent = categories.find((c) => c.handle === "women");
-    const womenChildren = womenParent
-      ? categories.filter((c) => c.parent_category_id === womenParent.id)
-      : categories.filter((c) => !c.parent_category_id);
+    const women = categories.find((c) => c.handle === "women");
+    const womenChildren = women
+      ? categories.filter((c) => c.parent_category_id === women.id)
+      : [];
+    const otherTopLevel = categories.filter(
+      (c) => !c.parent_category_id && c.id !== women?.id,
+    );
     const childrenByParent = new Map<string | null, SheetCategory[]>();
     for (const c of categories) {
       const p = c.parent_category_id;
@@ -103,7 +105,7 @@ export function ShopFilterSheet({
       arr.push(c);
       childrenByParent.set(p, arr);
     }
-    return womenChildren
+    return [...womenChildren, ...otherTopLevel]
       .filter((c) => !HIDDEN_HANDLES.has(c.handle))
       .filter((c) => inStock(c.handle))
       .sort((a, b) => a.name.localeCompare(b.name))
@@ -115,18 +117,14 @@ export function ShopFilterSheet({
       }));
   }, [categories, stockedHandles]);
 
-  const initialMin = Number(params.get("price_min") ?? facets.priceMin) || facets.priceMin;
-  const initialMax = Number(params.get("price_max") ?? facets.priceMax) || facets.priceMax;
-  const [pMin, setPMin] = useState<number>(initialMin);
-  const [pMax, setPMax] = useState<number>(initialMax);
-  useEffect(() => {
-    setPMin(Number(params.get("price_min") ?? facets.priceMin) || facets.priceMin);
-    setPMax(Number(params.get("price_max") ?? facets.priceMax) || facets.priceMax);
-  }, [params, facets.priceMin, facets.priceMax]);
+  const currentPriceMin =
+    Number(params.get("price_min") ?? facets.priceMin) || facets.priceMin;
+  const currentPriceMax =
+    Number(params.get("price_max") ?? facets.priceMax) || facets.priceMax;
+  const priceInputKey = `${facets.priceMin}:${facets.priceMax}:${currentPriceMin}:${currentPriceMax}`;
 
   const priceActive =
-    Number(params.get("price_min") ?? facets.priceMin) > facets.priceMin ||
-    Number(params.get("price_max") ?? facets.priceMax) < facets.priceMax;
+    currentPriceMin > facets.priceMin || currentPriceMax < facets.priceMax;
 
   const counts: Record<SectionKey, number> = {
     offers: onSale ? 1 : 0,
@@ -137,16 +135,11 @@ export function ShopFilterSheet({
   };
   const totalActive = counts.offers + counts.category + counts.size + counts.color + counts.price;
 
-  const [openSection, setOpenSection] = useState<SectionKey | null>("category");
-  useEffect(() => {
-    if (!open) return;
-    const order: SectionKey[] = ["category", "color", "size", "price", "offers"];
-    const firstActive = order.find((k) => counts[k] > 0);
-    setOpenSection(firstActive ?? "category");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  const [openSection, setOpenSection] = useState<SectionKey | null>(() =>
+    getDefaultSection(counts),
+  );
 
-  const commitPrice = () => {
+  const commitPrice = (pMin: number, pMax: number) => {
     setPendingKey("price");
     const next = new URLSearchParams(params.toString());
     if (pMin > facets.priceMin) next.set("price_min", String(pMin));
@@ -418,41 +411,19 @@ export function ShopFilterSheet({
             <AccordionRow
               label="Price"
               count={counts.price}
-              valueLabel={priceActive ? `Rs ${pMin}–${pMax}` : undefined}
+              valueLabel={
+                priceActive ? `Rs ${currentPriceMin}–${currentPriceMax}` : undefined
+              }
               isOpen={openSection === "price"}
               onToggle={() => setOpenSection((s) => (s === "price" ? null : "price"))}
             >
-              <div className="mb-3 flex items-center justify-between font-sans text-[12px] font-semibold text-ink">
-                <span>Rs {pMin}</span>
-                <span>Rs {pMax}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min={facets.priceMin}
-                  max={facets.priceMax}
-                  value={pMin}
-                  onChange={(e) => setPMin(Math.min(Number(e.target.value) || 0, pMax))}
-                  onBlur={commitPrice}
-                  onKeyDown={(e) => e.key === "Enter" && commitPrice()}
-                  aria-label="Minimum price"
-                  className="w-full min-h-11 rounded-xl border border-blush-300 bg-white px-3 py-2 font-sans text-[13px] text-ink outline-none focus:border-coral-500"
-                />
-                <span className="font-sans text-[12px] text-ink-muted">—</span>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min={facets.priceMin}
-                  max={facets.priceMax}
-                  value={pMax}
-                  onChange={(e) => setPMax(Math.max(Number(e.target.value) || 0, pMin))}
-                  onBlur={commitPrice}
-                  onKeyDown={(e) => e.key === "Enter" && commitPrice()}
-                  aria-label="Maximum price"
-                  className="w-full min-h-11 rounded-xl border border-blush-300 bg-white px-3 py-2 font-sans text-[13px] text-ink outline-none focus:border-coral-500"
-                />
-              </div>
+              <SheetPriceInputs
+                key={priceInputKey}
+                facets={facets}
+                initialMin={currentPriceMin}
+                initialMax={currentPriceMax}
+                onCommit={commitPrice}
+              />
             </AccordionRow>
           )}
           <div className="h-2" />
@@ -528,6 +499,63 @@ function AccordionRow({
         </div>
       </div>
     </section>
+  );
+}
+
+function getDefaultSection(counts: Record<SectionKey, number>): SectionKey {
+  const order: SectionKey[] = ["category", "color", "size", "price", "offers"];
+  return order.find((key) => counts[key] > 0) ?? "category";
+}
+
+function SheetPriceInputs({
+  facets,
+  initialMin,
+  initialMax,
+  onCommit,
+}: {
+  facets: SheetFacets;
+  initialMin: number;
+  initialMax: number;
+  onCommit: (min: number, max: number) => void;
+}) {
+  const [pMin, setPMin] = useState<number>(initialMin);
+  const [pMax, setPMax] = useState<number>(initialMax);
+  const commit = () => onCommit(pMin, pMax);
+
+  return (
+    <>
+      <div className="mb-3 flex items-center justify-between font-sans text-[12px] font-semibold text-ink">
+        <span>Rs {pMin}</span>
+        <span>Rs {pMax}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <input
+          type="number"
+          inputMode="numeric"
+          min={facets.priceMin}
+          max={facets.priceMax}
+          value={pMin}
+          onChange={(e) => setPMin(Math.min(Number(e.target.value) || 0, pMax))}
+          onBlur={commit}
+          onKeyDown={(e) => e.key === "Enter" && commit()}
+          aria-label="Minimum price"
+          className="w-full min-h-11 rounded-xl border border-blush-300 bg-white px-3 py-2 font-sans text-[13px] text-ink outline-none focus:border-coral-500"
+        />
+        <span className="font-sans text-[12px] text-ink-muted">—</span>
+        <input
+          type="number"
+          inputMode="numeric"
+          min={facets.priceMin}
+          max={facets.priceMax}
+          value={pMax}
+          onChange={(e) => setPMax(Math.max(Number(e.target.value) || 0, pMin))}
+          onBlur={commit}
+          onKeyDown={(e) => e.key === "Enter" && commit()}
+          aria-label="Maximum price"
+          className="w-full min-h-11 rounded-xl border border-blush-300 bg-white px-3 py-2 font-sans text-[13px] text-ink outline-none focus:border-coral-500"
+        />
+      </div>
+    </>
   );
 }
 

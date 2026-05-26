@@ -1,6 +1,6 @@
 import "server-only";
 import { unstable_cache } from "next/cache";
-import { sdk } from "./medusa";
+import { listStoreProducts, sdk } from "./medusa";
 import { getRegion } from "./region";
 import type { HttpTypes } from "@medusajs/types";
 import type { CanonicalSize, MysteryBoxSlot } from "@/lib/mystery-box";
@@ -19,12 +19,13 @@ const PRODUCT_LIST_FIELDS =
   "options.title,options.values.value,images.url,tags.id,tags.value," +
   "categories.id,categories.name,categories.handle,categories.parent_category_id,collection.id";
 
-// 500 is well above the live catalog size (~500 products) so most fetches
-// land in one round-trip. Loop below still kicks in once we cross 500.
-// Medusa v2 has no enforced upper bound; default is 50 if unspecified.
-const CATALOG_BATCH_SIZE = 500;
-const CATALOG_MAX_BATCHES = 6;
+// Keep catalog pages small enough that cold-cache bursts don't make Medusa
+// hydrate one huge product graph per request. The loop below still assembles a
+// full snapshot for filtering/search.
+const CATALOG_BATCH_SIZE = 100;
+const CATALOG_MAX_BATCHES = 12;
 const CATALOG_REVALIDATE_SECONDS = 300;
+const inFlightCatalogFetches = new Map<string, Promise<HttpTypes.StoreProduct[]>>();
 
 // Single shared catalog snapshot. Previously listProducts, getShopFacets and
 // getCategoryHandlesWithStock each paged through the full catalog (3 × up to
@@ -34,7 +35,24 @@ const CATALOG_REVALIDATE_SECONDS = 300;
 async function fetchAllStoreProducts(
   regionId: string,
 ): Promise<HttpTypes.StoreProduct[]> {
-  const first = await sdk.store.product.list({
+  const existing = inFlightCatalogFetches.get(regionId);
+  if (existing) return existing;
+
+  const promise = fetchAllStoreProductsUncoalesced(regionId);
+  inFlightCatalogFetches.set(regionId, promise);
+  try {
+    return await promise;
+  } finally {
+    if (inFlightCatalogFetches.get(regionId) === promise) {
+      inFlightCatalogFetches.delete(regionId);
+    }
+  }
+}
+
+async function fetchAllStoreProductsUncoalesced(
+  regionId: string,
+): Promise<HttpTypes.StoreProduct[]> {
+  const first = await listStoreProducts({
     region_id: regionId,
     fields: PRODUCT_LIST_FIELDS,
     limit: CATALOG_BATCH_SIZE,
@@ -50,13 +68,12 @@ async function fetchAllStoreProducts(
   );
   const rest = await Promise.all(
     Array.from({ length: totalBatches - 1 }, (_, i) =>
-      sdk.store.product
-        .list({
-          region_id: regionId,
-          fields: PRODUCT_LIST_FIELDS,
-          limit: CATALOG_BATCH_SIZE,
-          offset: (i + 1) * CATALOG_BATCH_SIZE,
-        })
+      listStoreProducts({
+        region_id: regionId,
+        fields: PRODUCT_LIST_FIELDS,
+        limit: CATALOG_BATCH_SIZE,
+        offset: (i + 1) * CATALOG_BATCH_SIZE,
+      })
         .then((r) => r.products),
     ),
   );
@@ -272,6 +289,7 @@ async function listWithFacetFilters(
   if (args.onSale) {
     filtered = filtered.filter((p) =>
       (p.variants ?? []).some((v) => {
+        if (!isVariantInStock(v)) return false;
         const cp = readCalculatedPrice(v);
         const c = cp?.calculated_amount;
         const o = cp?.original_amount;
@@ -284,6 +302,7 @@ async function listWithFacetFilters(
   if (sizeTargets) {
     filtered = filtered.filter((p) =>
       (p.variants ?? []).some((v) =>
+        isVariantInStock(v) &&
         (v.options ?? []).some(
           (o) =>
             isSizeOption(o) &&
@@ -297,6 +316,7 @@ async function listWithFacetFilters(
   if (colorTargets) {
     filtered = filtered.filter((p) =>
       (p.variants ?? []).some((v) =>
+        isVariantInStock(v) &&
         (v.options ?? []).some(
           (o) =>
             isColorOption(o) &&
@@ -311,6 +331,7 @@ async function listWithFacetFilters(
     const hi = args.priceMax ?? Infinity;
     filtered = filtered.filter((p) => {
       const amounts = (p.variants ?? [])
+        .filter((v) => isVariantInStock(v))
         .map((v) => readCalculatedPrice(v)?.calculated_amount)
         .filter((a): a is number => typeof a === "number");
       if (!amounts.length) return false;
@@ -494,6 +515,7 @@ function readCalculatedPrice(v: HttpTypes.StoreProductVariant): PriceRecord {
 
 function lowestPrice(p: HttpTypes.StoreProduct): number | null {
   const amounts = (p.variants ?? [])
+    .filter((v) => isVariantInStock(v))
     .map((v) => readCalculatedPrice(v)?.calculated_amount)
     .filter((a): a is number => typeof a === "number");
   return amounts.length ? Math.min(...amounts) : null;
@@ -543,8 +565,9 @@ export async function getShopFacets(args: {
   return cachedShopFacets(cacheKey, args);
 }
 
-// Time-based revalidation (24h). A future Medusa cron can call
-// revalidateTag(SHOP_FACETS_CACHE_TAG) for instant invalidation.
+// Facets are derived from the product snapshot, so keep their TTL and tags
+// aligned with product invalidation. Otherwise the sidebar can advertise
+// stale sizes/colors/prices for up to a day after stock changes.
 const cachedShopFacets = unstable_cache(
   (_key: string, args: {
     q?: string;
@@ -553,7 +576,10 @@ const cachedShopFacets = unstable_cache(
     onSale?: boolean;
   }) => computeShopFacets(args),
   ["shop-facets"],
-  { tags: [SHOP_FACETS_CACHE_TAG], revalidate: 86400 },
+  {
+    tags: [SHOP_FACETS_CACHE_TAG, PRODUCTS_CACHE_TAG],
+    revalidate: CATALOG_REVALIDATE_SECONDS,
+  },
 );
 
 async function computeShopFacets(args: {
@@ -568,7 +594,14 @@ async function computeShopFacets(args: {
   // seeing.
   const all = await cachedAllStoreProducts(region.id);
 
-  let scoped: HttpTypes.StoreProduct[] = all;
+  let scoped: HttpTypes.StoreProduct[] = all.filter((p) => {
+    const meta = (p.metadata ?? {}) as Record<string, unknown>;
+    return (
+      meta.is_preorder !== true &&
+      !isUnlisted(p as unknown as { metadata?: unknown }) &&
+      (p.variants ?? []).some((v) => isVariantInStock(v))
+    );
+  });
   if (args.category) {
     const ids = new Set(Array.isArray(args.category) ? args.category : [args.category]);
     scoped = scoped.filter((p) =>
@@ -587,6 +620,7 @@ async function computeShopFacets(args: {
   if (args.onSale) {
     scoped = scoped.filter((p) =>
       (p.variants ?? []).some((v) => {
+        if (!isVariantInStock(v)) return false;
         const cp = readCalculatedPrice(v);
         const c = cp?.calculated_amount;
         const o = cp?.original_amount;
@@ -784,7 +818,7 @@ export function expandCategoryWithDescendants(
 const cachedProductByHandle = unstable_cache(
   async (handle: string) => {
     const region = await getRegion();
-    const { products } = await sdk.store.product.list({
+    const { products } = await listStoreProducts({
       handle,
       region_id: region.id,
       fields: PRODUCT_DETAIL_FIELDS,
@@ -857,6 +891,8 @@ const cachedCategoryHandlesWithStock = unstable_cache(
     };
 
     for (const p of all) {
+      const meta = (p.metadata ?? {}) as Record<string, unknown>;
+      if (meta.is_preorder === true) continue;
       if (isUnlisted(p as unknown as { metadata?: unknown })) continue;
       const hasStock = (p.variants ?? []).some((v) => isVariantInStock(v));
       if (!hasStock) continue;
@@ -1103,7 +1139,7 @@ export async function listInStockProductsForSizes(
 
   if (uniqueSizes.length === 0) return pools;
 
-  const { products } = await sdk.store.product.list({
+  const { products } = await listStoreProducts({
     region_id: regionId,
     limit: MYSTERY_BOX_POOL_LIMIT,
     fields:

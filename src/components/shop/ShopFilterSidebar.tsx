@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 
 type RawCategory = { id: string; name: string; handle: string; parent_category_id: string | null };
 
@@ -91,8 +91,12 @@ export function ShopFilterSidebar({
   };
   const clearAll = () => {
     setPendingKey("clear-all");
+    const next = new URLSearchParams(params.toString());
+    for (const key of ["on_sale", "category", "size", "color", "price_min", "price_max", "page"]) {
+      next.delete(key);
+    }
     startTransition(() => {
-      router.push("/shop");
+      router.push(next.toString() ? `/shop?${next.toString()}` : "/shop");
     });
   };
   const showSpinner = (id: string) => isPending && pendingKey === id;
@@ -142,18 +146,13 @@ export function ShopFilterSidebar({
 
   const activeCategory = params.get("category") ?? "";
 
-  // Local price range state synced to URL via debounced commit on slider release.
-  const initialMin = Number(params.get("price_min") ?? facets.priceMin) || facets.priceMin;
-  const initialMax = Number(params.get("price_max") ?? facets.priceMax) || facets.priceMax;
-  const [pMin, setPMin] = useState<number>(initialMin);
-  const [pMax, setPMax] = useState<number>(initialMax);
-  // Reset local state if the user clears or changes the URL externally.
-  useEffect(() => {
-    setPMin(Number(params.get("price_min") ?? facets.priceMin) || facets.priceMin);
-    setPMax(Number(params.get("price_max") ?? facets.priceMax) || facets.priceMax);
-  }, [params, facets.priceMin, facets.priceMax]);
+  const currentPriceMin =
+    Number(params.get("price_min") ?? facets.priceMin) || facets.priceMin;
+  const currentPriceMax =
+    Number(params.get("price_max") ?? facets.priceMax) || facets.priceMax;
+  const priceInputKey = `${facets.priceMin}:${facets.priceMax}:${currentPriceMin}:${currentPriceMax}`;
 
-  const commitPrice = () => {
+  const commitPrice = (pMin: number, pMax: number) => {
     setPendingKey("price");
     const next = new URLSearchParams(params.toString());
     if (pMin > facets.priceMin) next.set("price_min", String(pMin));
@@ -327,35 +326,13 @@ export function ShopFilterSidebar({
 
       {facets.priceMax > facets.priceMin && (
         <Group label="Price">
-          <div className="mb-2 flex items-center justify-between font-sans text-[12px] font-semibold text-ink">
-            <span>Rs {pMin}</span>
-            <span>Rs {pMax}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <input
-              type="number"
-              min={facets.priceMin}
-              max={facets.priceMax}
-              value={pMin}
-              onChange={(e) => setPMin(Math.min(Number(e.target.value) || 0, pMax))}
-              onBlur={commitPrice}
-              onKeyDown={(e) => e.key === "Enter" && commitPrice()}
-              aria-label="Minimum price"
-              className="w-full rounded-md border border-blush-300 bg-white px-2 py-1.5 font-sans text-[12px] text-ink outline-none focus:border-coral-500"
-            />
-            <span className="font-sans text-[11px] text-ink-muted">—</span>
-            <input
-              type="number"
-              min={facets.priceMin}
-              max={facets.priceMax}
-              value={pMax}
-              onChange={(e) => setPMax(Math.max(Number(e.target.value) || 0, pMin))}
-              onBlur={commitPrice}
-              onKeyDown={(e) => e.key === "Enter" && commitPrice()}
-              aria-label="Maximum price"
-              className="w-full rounded-md border border-blush-300 bg-white px-2 py-1.5 font-sans text-[12px] text-ink outline-none focus:border-coral-500"
-            />
-          </div>
+          <SidebarPriceInputs
+            key={priceInputKey}
+            facets={facets}
+            initialMin={currentPriceMin}
+            initialMax={currentPriceMax}
+            onCommit={commitPrice}
+          />
         </Group>
       )}
     </aside>
@@ -368,6 +345,56 @@ function Group({ label, children }: { label: string; children: React.ReactNode }
       <h4 className="mb-2.5 font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-ink-muted">{label}</h4>
       {children}
     </section>
+  );
+}
+
+function SidebarPriceInputs({
+  facets,
+  initialMin,
+  initialMax,
+  onCommit,
+}: {
+  facets: Facets;
+  initialMin: number;
+  initialMax: number;
+  onCommit: (min: number, max: number) => void;
+}) {
+  const [pMin, setPMin] = useState<number>(initialMin);
+  const [pMax, setPMax] = useState<number>(initialMax);
+  const commit = () => onCommit(pMin, pMax);
+
+  return (
+    <>
+      <div className="mb-2 flex items-center justify-between font-sans text-[12px] font-semibold text-ink">
+        <span>Rs {pMin}</span>
+        <span>Rs {pMax}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <input
+          type="number"
+          min={facets.priceMin}
+          max={facets.priceMax}
+          value={pMin}
+          onChange={(e) => setPMin(Math.min(Number(e.target.value) || 0, pMax))}
+          onBlur={commit}
+          onKeyDown={(e) => e.key === "Enter" && commit()}
+          aria-label="Minimum price"
+          className="w-full rounded-md border border-blush-300 bg-white px-2 py-1.5 font-sans text-[12px] text-ink outline-none focus:border-coral-500"
+        />
+        <span className="font-sans text-[11px] text-ink-muted">—</span>
+        <input
+          type="number"
+          min={facets.priceMin}
+          max={facets.priceMax}
+          value={pMax}
+          onChange={(e) => setPMax(Math.max(Number(e.target.value) || 0, pMin))}
+          onBlur={commit}
+          onKeyDown={(e) => e.key === "Enter" && commit()}
+          aria-label="Maximum price"
+          className="w-full rounded-md border border-blush-300 bg-white px-2 py-1.5 font-sans text-[12px] text-ink outline-none focus:border-coral-500"
+        />
+      </div>
+    </>
   );
 }
 
