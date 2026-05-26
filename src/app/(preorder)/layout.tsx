@@ -1,11 +1,13 @@
 import type { ReactNode } from "react";
-import { PreorderBanner } from "@/components/preorder/PreorderBanner";
+import { PreorderHeader } from "@/components/preorder/PreorderHeader";
+import { PreorderFooter } from "@/components/preorder/PreorderFooter";
 
 export default function PreorderLayout({ children }: { children: ReactNode }) {
   return (
-    <div data-storefront="preorder" className="min-h-screen">
-      <PreorderBanner />
-      {children}
+    <div data-storefront="preorder" className="flex min-h-screen flex-col bg-cream">
+      <PreorderHeader />
+      <div className="flex-1">{children}</div>
+      <PreorderFooter />
     </div>
   );
 }

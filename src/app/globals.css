@@ -4,6 +4,7 @@
   --color-cream: #FDF8F7;
   --color-cream-50: #FFFCFB;
   --color-cream-100: #FAF1EE;
+  --color-blush-50:  #FAF5F3;
   --color-blush-100: #F5EDEB;
   --color-blush-200: #F2DDD8;
   --color-blush-300: #FAE8E4;
@@ -18,6 +19,17 @@
   --color-ink-soft: #4A3A3A;
   --color-ink-muted: #7A6363;
   --color-gold: #D4A853;
+
+  /* Pre-order storefront accent (waiting-room / utility feel). Distinct from
+     the coral/blush family so customers can tell at a glance which store
+     they're in. Used only inside the (preorder) route group. */
+  --color-sage-50:  #F2F4EF;
+  --color-sage-100: #E4E9DC;
+  --color-sage-200: #C9D2BB;
+  --color-sage-300: #A8B5A0;
+  --color-sage-500: #7A8C71;
+  --color-sage-700: #4F5F49;
+  --color-sage-900: #2E3A2A;
 
   --font-display: var(--font-playfair), ui-serif, Georgia, serif;
   --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
@@ -43,6 +55,27 @@ body {
 
 @layer base {
   a { color: inherit; text-decoration: none; }
+}
+
+/* Pre-order storefront: the (preorder) route group wraps its content in
+   <div data-storefront="preorder">. We can't conditionally render the apex
+   <Header />, <Footer />, <MobileBottomNav /> from the root layout without
+   forcing every apex page to dynamic (which would undo the LCP wins from
+   2026-05-22). Instead, hide apex chrome with CSS when the preorder marker
+   is in the DOM. Selectors target the direct children of <body> that the
+   root layout renders: apex Header (sticky <header>), apex Footer, and the
+   MobileBottomNav (fixed bottom).
+   The preorder layout supplies its own PreorderHeader (inside the marker
+   div) so the user still sees a header. */
+body:has([data-storefront="preorder"]) > header,
+body:has([data-storefront="preorder"]) > footer,
+body:has([data-storefront="preorder"]) > nav {
+  display: none !important;
+}
+/* The MobileBottomNav adds pb-[64px] to <main>; cancel it on preorder pages
+   so we don't have a phantom 64px of footer-padding. */
+body:has([data-storefront="preorder"]) > main > div {
+  padding-bottom: 0 !important;
 }
 
 .skip-to-content {

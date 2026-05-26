@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { listPreorderProducts } from "@/lib/preorder";
-import { PreorderBadge } from "@/components/preorder/PreorderBadge";
-import { PreorderEtaBadge } from "@/components/preorder/PreorderEtaBadge";
+import { PreorderProductCard } from "@/components/preorder/PreorderProductCard";
 
 export const revalidate = 60;
 
@@ -22,53 +21,48 @@ export default async function PreorderCatalogPage({
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
-      <h1 className="font-display text-2xl">All pre-order products</h1>
-      <section className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {products.map((p) => {
-          const price =
-            p.variants[0]?.calculated_price?.calculated_amount ?? null;
-          return (
-            <Link
-              key={p.id}
-              href={`/preorder/products/${p.handle}`}
-              className="group block"
-            >
-              <div className="aspect-[3/4] overflow-hidden rounded bg-blush-50">
-                {p.thumbnail && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={p.thumbnail}
-                    alt={p.title}
-                    className="h-full w-full object-cover transition group-hover:scale-105"
-                  />
-                )}
-              </div>
-              <div className="mt-2 flex items-start justify-between gap-2">
-                <h3 className="line-clamp-2 text-sm font-medium text-ink">
-                  {p.title}
-                </h3>
-                <PreorderBadge />
-              </div>
-              {price !== null && (
-                <p className="text-sm font-semibold text-ink">
-                  Rs {(price / 100).toFixed(0)}
-                </p>
-              )}
-              <PreorderEtaBadge />
-            </Link>
-          );
-        })}
-      </section>
+      <header className="border-b border-sage-100 pb-6">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-sage-700">
+          Pre-Order Catalog
+        </p>
+        <h1 className="mt-2 font-display text-3xl text-ink">All pre-order pieces</h1>
+        <p className="mt-2 text-[13px] text-ink-muted">
+          {count} {count === 1 ? "piece" : "pieces"} · 75% deposit · Arrives in ~15–20 days
+        </p>
+      </header>
+
+      {products.length === 0 ? (
+        <div className="mt-12 rounded-lg border border-dashed border-sage-200 bg-sage-50 p-10 text-center">
+          <p className="font-display text-xl text-ink">Nothing on pre-order yet.</p>
+          <p className="mt-2 text-[14px] text-ink-muted">
+            Check back soon, or request something specific.
+          </p>
+          <Link
+            href="/preorder/request"
+            className="mt-5 inline-block rounded-full bg-sage-700 px-5 py-2.5 text-[13px] font-semibold text-cream hover:bg-sage-900"
+          >
+            Request a SHEIN item →
+          </Link>
+        </div>
+      ) : (
+        <section className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          {products.map((p) => (
+            <PreorderProductCard key={p.id} product={p} />
+          ))}
+        </section>
+      )}
 
       {totalPages > 1 && (
-        <nav className="mt-8 flex justify-center gap-2 text-sm">
+        <nav className="mt-10 flex justify-center gap-2 text-sm" aria-label="Pagination">
           {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
             <Link
               key={n}
               href={`/preorder/products?page=${n}`}
               className={
-                "rounded px-3 py-1 " +
-                (n === page ? "bg-ink text-cream" : "border border-blush-400")
+                "rounded-full px-3.5 py-1.5 text-[12px] font-medium transition " +
+                (n === page
+                  ? "bg-sage-700 text-cream"
+                  : "border border-sage-200 text-ink-soft hover:bg-sage-50")
               }
             >
               {n}

@@ -115,6 +115,11 @@ function jsonLd(data: unknown) {
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // The (preorder) route group sets `data-storefront="preorder"` on its own
+  // wrapper and the CSS in globals.css then hides Header/Footer/MobileBottomNav
+  // via :has(). This avoids opting the apex pages out of static rendering
+  // (which a headers()-based host check at the root would do, killing our
+  // LCP gains from the May 22 perf pushes).
   return (
     <html
       lang="en-MU"

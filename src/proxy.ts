@@ -1,15 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
-
-const PREORDER_HOSTS = new Set([
-  "preorder.dollupboutique.com",
-  "preorder.localhost:3000",
-]);
+import { isPreorderHost } from "./lib/host";
 
 export function proxy(req: NextRequest) {
-  const host = req.headers.get("host") ?? "";
+  const host = req.headers.get("host");
   const url = req.nextUrl;
 
-  if (PREORDER_HOSTS.has(host) && !url.pathname.startsWith("/preorder")) {
+  if (isPreorderHost(host) && !url.pathname.startsWith("/preorder")) {
     const rewriteUrl = url.clone();
     rewriteUrl.pathname = "/preorder" + url.pathname;
     return NextResponse.rewrite(rewriteUrl);
