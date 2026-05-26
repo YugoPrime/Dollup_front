@@ -550,8 +550,14 @@ export function MobilePdpHero({
       </div>
 
       {/* Sticky bottom CTA — matches the reference: cream price chip on a
-          warm coral pill, with a small bag glyph next to the ADD TO BAG label. */}
-      <div className="fixed inset-x-0 bottom-[72px] z-[80] px-5 pb-2 pt-2">
+          warm coral pill, with a small bag glyph next to the ADD TO BAG label.
+          bottom = mobile-nav height (72px) + iOS home-indicator inset, so the
+          pill never slides under the bottom nav on notched iPhones / iOS
+          Chrome (the bug a customer screenshotted 2026-05-26). */}
+      <div
+        className="fixed inset-x-0 z-[80] px-5 pb-2 pt-2"
+        style={{ bottom: "calc(72px + env(safe-area-inset-bottom))" }}
+      >
         <button
           type="button"
           onClick={handleAdd}
@@ -599,8 +605,13 @@ export function MobilePdpHero({
         </button>
       </div>
 
-      {/* Spacer so the accordion above isn't covered by the floating CTA + nav. */}
-      <div aria-hidden className="h-36" />
+      {/* Spacer so the accordion above isn't covered by the floating CTA +
+          nav. Matches the safe-area inset on the CTA so notched iPhones
+          don't show accordion content peeking through behind the pill. */}
+      <div
+        aria-hidden
+        style={{ height: "calc(9rem + env(safe-area-inset-bottom))" }}
+      />
     </div>
   );
 }
