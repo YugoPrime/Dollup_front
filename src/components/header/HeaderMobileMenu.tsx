@@ -17,7 +17,7 @@ export function HeaderMobileMenu({ navLinks }: { navLinks: NavLink[] }) {
     <>
       <button
         onClick={() => setMenuOpen((v) => !v)}
-        className="ml-auto flex h-11 w-11 items-center justify-center rounded-md text-ink hover:bg-blush-100 md:hidden"
+        className="flex h-11 w-11 items-center justify-center rounded-md text-ink hover:bg-blush-100 md:hidden"
         aria-label="Menu"
         aria-controls="mobile-menu"
         aria-expanded={menuOpen}

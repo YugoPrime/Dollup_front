@@ -3,7 +3,8 @@ import Image from "next/image";
 import { NAV_LINKS, filterNavLinksByStockedHandles, type NavLink } from "@/lib/nav";
 import { getCategoryHandlesWithStock } from "@/lib/products";
 import { HeaderNavItem } from "@/components/header/HeaderNavItem";
-import { HeaderSearchDesktop, HeaderSearchMobile } from "@/components/header/HeaderSearch";
+import { HeaderSearchDesktop } from "@/components/header/HeaderSearch";
+import { HeaderSearchMobileOverlay } from "@/components/header/HeaderSearchMobileOverlay";
 import { HeaderAccountMenu } from "@/components/header/HeaderAccountMenu";
 import { HeaderCartButton } from "@/components/header/HeaderCartButton";
 import { HeaderMobileMenu } from "@/components/header/HeaderMobileMenu";
@@ -21,11 +22,9 @@ export async function Header() {
   }
   return (
     <header className="sticky top-0 z-[100] border-b border-blush-400 bg-white">
-      {/* Mobile: single line, no wrap */}
-      <div className="flex items-center justify-center bg-coral-500 px-4 py-1.5 text-[11px] font-medium tracking-wider text-white md:hidden">
-        <span className="truncate whitespace-nowrap">Free delivery on orders above Rs.1500</span>
-      </div>
-      {/* Desktop: full multi-message bar */}
+      {/* Desktop-only promo bar — hidden on mobile to reclaim viewport
+          space (the same free-delivery copy already appears in the cart
+          drawer, checkout, and loyalty teaser). */}
       <div className="hidden flex-wrap items-center justify-center gap-3 bg-coral-500 px-6 py-1.5 text-[11px] font-medium tracking-wider text-white md:flex">
         <span>Free delivery on orders Rs.1500+</span>
         <span className="opacity-50">✦</span>
@@ -69,11 +68,14 @@ export async function Header() {
           <HeaderCartButton />
         </div>
 
-        {/* Mobile-only hamburger pinned right */}
+        {/* Mobile-only: search icon pinned right, then hamburger. The
+            hamburger component renders its dropdown drawer as a sibling
+            (fragment), so it must stay a direct child of this row. */}
+        <div className="ml-auto flex items-center md:hidden">
+          <HeaderSearchMobileOverlay />
+        </div>
         <HeaderMobileMenu navLinks={visibleNav} />
       </div>
-
-      <HeaderSearchMobile />
     </header>
   );
 }
