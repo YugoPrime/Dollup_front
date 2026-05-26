@@ -22,7 +22,7 @@ export function PreorderHeader() {
         <span className="opacity-80">Ships in ~15–20 days</span>
       </div>
 
-      <div className="flex min-h-[72px] items-center gap-3 px-4 md:min-h-[88px] md:gap-6 md:px-8">
+      <div className="flex min-h-[60px] items-center gap-3 px-4 md:min-h-[88px] md:gap-6 md:px-8">
         <Link href="/preorder" aria-label="Doll Up Boutique — Pre-Order" className="flex shrink-0 items-center gap-3">
           <Image
             src="/logo.png"
@@ -30,8 +30,8 @@ export function PreorderHeader() {
             width={260}
             height={224}
             loading="eager"
-            sizes="(max-width: 768px) 60px, 84px"
-            className="h-[52px] w-auto md:h-[72px]"
+            sizes="(max-width: 768px) 48px, 84px"
+            className="h-[44px] w-auto md:h-[72px]"
           />
           <span className="hidden flex-col leading-tight md:flex">
             <span className="font-display text-[15px] text-ink">Doll Up Boutique</span>
@@ -53,39 +53,25 @@ export function PreorderHeader() {
           ))}
         </nav>
 
-        <div className="ml-auto flex items-center gap-1">
+        {/* Mobile: discreet "How it works" link — secondary action that the
+            bottom-nav can't fit (only 5 slots). Tap target hits 44px easily. */}
+        <Link
+          href="/preorder/how-it-works"
+          className="ml-auto text-[11px] font-medium uppercase tracking-[0.14em] text-sage-700 underline-offset-4 hover:underline md:hidden"
+        >
+          How it works
+        </Link>
+
+        <div className="hidden items-center gap-1 md:ml-auto md:flex">
           <a
             href="https://dollupboutique.com"
-            className="hidden rounded-full border border-sage-300 px-3 py-1.5 text-[11px] font-medium uppercase tracking-wide text-sage-700 transition hover:bg-sage-100 md:inline-block"
+            className="rounded-full border border-sage-300 px-3 py-1.5 text-[11px] font-medium uppercase tracking-wide text-sage-700 transition hover:bg-sage-100"
           >
             ← In-Stock Store
           </a>
           <PreorderHeaderCartButton />
         </div>
       </div>
-
-      {/* Mobile nav — horizontal scroll pill row, sage tinted. Keeps the
-          header shallow on phones (where pre-order traffic will be highest). */}
-      <nav
-        aria-label="Pre-order primary mobile"
-        className="flex gap-2 overflow-x-auto border-t border-sage-100 bg-cream-50 px-4 py-2 md:hidden"
-      >
-        {NAV.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="whitespace-nowrap rounded-full border border-sage-200 bg-white px-3 py-1 text-[12px] font-medium text-ink-soft"
-          >
-            {item.label}
-          </Link>
-        ))}
-        <a
-          href="https://dollupboutique.com"
-          className="whitespace-nowrap rounded-full bg-sage-700 px-3 py-1 text-[12px] font-medium text-cream"
-        >
-          ← In-Stock
-        </a>
-      </nav>
     </header>
   );
 }
