@@ -72,6 +72,25 @@ export async function getPreorderProduct(
   return p as unknown as PreorderProduct;
 }
 
+/**
+ * Splits a pre-order total into deposit + balance, rounding the deposit to the
+ * nearest Rs 50 so the customer sees a clean Juice transfer amount. Balance
+ * absorbs the rounding delta. Used by PDP and checkout — keep both in sync via
+ * this single helper.
+ *
+ * `totalMur` is in whole MUR rupees (NOT cents). Returns whole MUR rupees too.
+ */
+export function computeDepositSplit(
+  totalMur: number,
+  depositPercent = 75,
+  roundTo = 50,
+): { depositMur: number; balanceMur: number } {
+  const rawDeposit = (totalMur * depositPercent) / 100;
+  const depositMur = Math.round(rawDeposit / roundTo) * roundTo;
+  const balanceMur = totalMur - depositMur;
+  return { depositMur, balanceMur };
+}
+
 export function computeEtaDates(
   etaMinDays = 15,
   etaMaxDays = 20,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { computeDepositSplit } from "@/lib/preorder";
 
 export function PreorderTerms({
   depositPercent,
@@ -12,8 +13,10 @@ export function PreorderTerms({
   onChange: (accepted: boolean) => void;
 }) {
   const [checked, setChecked] = useState(false);
-  const depositMur = Math.ceil((cartTotalMur * depositPercent) / 100);
-  const balanceMur = cartTotalMur - depositMur;
+  const { depositMur, balanceMur } = computeDepositSplit(
+    cartTotalMur,
+    depositPercent,
+  );
 
   const toggle = () => {
     setChecked((c) => {

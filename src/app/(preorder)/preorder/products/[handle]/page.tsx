@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getPreorderProduct } from "@/lib/preorder";
+import { computeDepositSplit, getPreorderProduct } from "@/lib/preorder";
 import { PreorderBadge } from "@/components/preorder/PreorderBadge";
 import { PreorderEtaBadge } from "@/components/preorder/PreorderEtaBadge";
 import { AddToPreorderCart } from "@/components/preorder/AddToPreorderCart";
@@ -17,8 +17,14 @@ export default async function PreorderPDP({
 
   const price = product.variants[0]?.calculated_price?.calculated_amount ?? null;
   const depositPercent = 75;
-  const depositAmount = price !== null ? Math.round((price * depositPercent) / 100) : null;
-  const balanceAmount = price !== null && depositAmount !== null ? price - depositAmount : null;
+  // calculated_amount is in MUR cents — convert to whole rupees for the split
+  // helper, which rounds the deposit to the nearest Rs 50.
+  const priceMur = price !== null ? Math.round(price / 100) : null;
+  const split = priceMur !== null
+    ? computeDepositSplit(priceMur, depositPercent)
+    : null;
+  const depositAmount = split ? split.depositMur * 100 : null;
+  const balanceAmount = split ? split.balanceMur * 100 : null;
 
   return (
     <main className="mx-auto grid max-w-6xl gap-8 px-4 py-10 lg:grid-cols-2">
