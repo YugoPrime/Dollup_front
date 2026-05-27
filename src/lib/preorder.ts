@@ -59,7 +59,7 @@ export async function getPreorderProduct(
     limit: 1,
     region_id: REGION_ID_MU,
     fields:
-      "id,handle,title,thumbnail,description,images.*,options.*,metadata,variants.*,variants.calculated_price",
+      "id,handle,title,thumbnail,description,metadata,*images,*options,*options.values,*variants,*variants.options,*variants.calculated_price",
   }).catch((err) => {
     console.error("Preorder product lookup failed:", err);
     return null;
