@@ -8,7 +8,7 @@ import type { HttpTypes } from "@medusajs/types";
 import { formatPrice } from "@/lib/format";
 import { readLoyaltyRedeemMetadata } from "@/lib/loyalty-client";
 import { qualifiesForFreeHomeDelivery } from "@/lib/checkout";
-import { clientSdk } from "@/lib/cart-client";
+import { getCartSdk } from "@/lib/cart-client";
 import { useCart } from "@/components/cart/CartProvider";
 import { cartTypeOf } from "@/lib/cart-type";
 import { PreorderTerms } from "@/components/preorder/PreorderTerms";
@@ -41,7 +41,10 @@ function PromoCodeBox({ cart }: { cart: Cart }) {
   const promotions = allPromotions.filter((p) => !p.is_automatic);
 
   async function setPromoCodes(codes: string[]) {
-    await clientSdk.store.cart.update(cart.id, {
+    const sdk = getCartSdk(
+      cartTypeOf(cart as unknown as { metadata?: Record<string, unknown> | null }),
+    );
+    await sdk.store.cart.update(cart.id, {
       promo_codes: codes,
     });
     await refreshCart();
@@ -308,6 +311,15 @@ export function OrderSummary({
           </div>
         </dl>
 
+        {isPreorder && (
+          <PreorderPaymentBreakdown
+            itemSubtotal={itemSubtotal}
+            shipping={shipping}
+            currency={currency}
+            selectedShippingOption={selectedShippingOption ?? null}
+          />
+        )}
+
         {isPreorder && onTermsChange && (
           <div className="mt-5">
             <PreorderTerms
@@ -328,6 +340,67 @@ export function OrderSummary({
         </button>
       </div>
     </aside>
+  );
+}
+
+/**
+ * Pre-order payment split UI. Customer pays a 75% deposit on items now; the
+ * 25% balance plus shipping is settled on arrival.
+ *
+ * For "postage" shipping methods (data.requires_prepayment_on_arrival=true),
+ * we show an extra disclaimer: full balance must be paid by Juice BEFORE the
+ * piece is shipped (because once it's in Mauritius Post's hands we have no
+ * leverage to collect).
+ */
+function PreorderPaymentBreakdown({
+  itemSubtotal,
+  shipping,
+  currency,
+  selectedShippingOption,
+}: {
+  itemSubtotal: number;
+  shipping: number;
+  currency: string;
+  selectedShippingOption: HttpTypes.StoreCartShippingOption | null;
+}) {
+  const deposit = Math.round(itemSubtotal * 0.75);
+  const itemsBalance = itemSubtotal - deposit;
+  const balanceOnArrival = itemsBalance + shipping;
+  const optionData =
+    (selectedShippingOption?.data as Record<string, unknown> | null | undefined) ??
+    null;
+  const requiresPrepayment = optionData?.requires_prepayment_on_arrival === true;
+
+  return (
+    <div className="mt-4 rounded-lg border border-sage-200 bg-sage-100/30 p-3">
+      <p className="font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-sage-700">
+        Pre-order payment split
+      </p>
+      <dl className="mt-2 space-y-1 font-sans text-[13px]">
+        <div className="flex justify-between text-ink">
+          <dt className="font-semibold">Deposit today (75% of items)</dt>
+          <dd className="font-semibold">{formatPrice(deposit, currency)}</dd>
+        </div>
+        <div className="flex justify-between text-ink-soft">
+          <dt>Balance on arrival</dt>
+          <dd>{formatPrice(balanceOnArrival, currency)}</dd>
+        </div>
+      </dl>
+      {requiresPrepayment ? (
+        <p className="mt-2 font-sans text-[11px] leading-snug text-ink-soft">
+          <strong className="text-ink">Postage selected:</strong> once your
+          piece arrives in Mauritius, we&apos;ll WhatsApp you Juice transfer
+          details for the full balance (
+          {formatPrice(balanceOnArrival, currency)}). We post the same day we
+          receive payment.
+        </p>
+      ) : (
+        <p className="mt-2 font-sans text-[11px] leading-snug text-ink-soft">
+          Pay the balance ({formatPrice(balanceOnArrival, currency)}) on
+          delivery or at pickup — cash or Juice.
+        </p>
+      )}
+    </div>
   );
 }
 

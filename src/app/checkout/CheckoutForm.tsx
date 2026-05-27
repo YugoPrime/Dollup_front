@@ -16,7 +16,7 @@ import {
 import type { HttpTypes } from "@medusajs/types";
 import { useCart } from "@/components/cart/CartProvider";
 import { LoyaltyRedeemBox } from "@/components/checkout/LoyaltyRedeemBox";
-import { clientSdk } from "@/lib/cart-client";
+import { getCartSdk } from "@/lib/cart-client";
 import { register, useCustomer } from "@/lib/auth-client";
 import { formatPrice } from "@/lib/format";
 import { readLoyaltyRedeemMetadata } from "@/lib/loyalty-client";
@@ -133,6 +133,15 @@ export function CheckoutForm() {
   const router = useRouter();
   const { cart, clearCart, refreshCart } = useCart();
   const { status: authStatus, customer } = useCustomer();
+
+  // All cart-scoped Medusa calls must go through the SDK whose publishable key
+  // has access to the cart's sales channel. Preorder carts → preorderClientSdk;
+  // apex carts → clientSdk. Region / auth / non-cart calls keep using the apex
+  // SDK because they're not channel-scoped.
+  const cartType = cart
+    ? cartTypeOf(cart as unknown as { metadata?: Record<string, unknown> | null })
+    : null;
+  const cartSdk = getCartSdk(cartType);
   const [state, setState] = useState<CheckoutFormState>(EMPTY_CHECKOUT_STATE);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [touched, setTouched] = useState<Set<string>>(new Set());
@@ -177,7 +186,7 @@ export function CheckoutForm() {
     (async () => {
       try {
         const { shipping_options } =
-          await clientSdk.store.fulfillment.listCartOptions({
+          await cartSdk.store.fulfillment.listCartOptions({
             cart_id: cart.id,
           });
         if (!cancelled) {
@@ -245,7 +254,7 @@ export function CheckoutForm() {
     let cancelled = false;
     (async () => {
       try {
-        await clientSdk.store.cart.addShippingMethod(cart.id, {
+        await cartSdk.store.cart.addShippingMethod(cart.id, {
           option_id: state.shippingOptionId!,
         });
         if (!cancelled) await refreshCart();
@@ -382,14 +391,14 @@ export function CheckoutForm() {
     setErrorBanner(null);
     setSubmitting(true);
     try {
-      await clientSdk.store.cart.update(cart.id, {
+      await cartSdk.store.cart.update(cart.id, {
         email: state.email,
         shipping_address: toMedusaAddress(state, "shipping", selectedMethod),
         billing_address: toMedusaAddress(state, "billing", selectedMethod),
         metadata: metadataPatch,
       });
 
-      await clientSdk.store.cart.addShippingMethod(cart.id, {
+      await cartSdk.store.cart.addShippingMethod(cart.id, {
         option_id: state.shippingOptionId!,
       });
       trackAddShippingInfo(cart, selectedMethod ?? selectedOption?.name ?? null);
@@ -418,7 +427,7 @@ export function CheckoutForm() {
           // the right customer_id at cart.complete. transferCart inside
           // register() targets the localStorage cart id; this explicit call
           // covers the current cart in case it diverged.
-          await clientSdk.store.cart.transferCart(cart.id);
+          await cartSdk.store.cart.transferCart(cart.id);
         } catch (e) {
           // Most common failure: email already registered. Don't block the
           // order — it still completes as guest. (User can claim it later
@@ -429,18 +438,18 @@ export function CheckoutForm() {
         // Defensive: ensure cart belongs to the logged-in customer right
         // before completion. transferCart is a no-op when already bound.
         try {
-          await clientSdk.store.cart.transferCart(cart.id);
+          await cartSdk.store.cart.transferCart(cart.id);
         } catch {
           /* best effort — let cart.complete proceed */
         }
       }
 
-      await clientSdk.store.payment.initiatePaymentSession(cart, {
+      await cartSdk.store.payment.initiatePaymentSession(cart, {
         provider_id: "pp_system_default",
       });
       trackAddPaymentInfo(cart, state.paymentMethod);
 
-      const result = await clientSdk.store.cart.complete(cart.id);
+      const result = await cartSdk.store.cart.complete(cart.id);
       if (result.type !== "order") {
         throw new Error(
           result.error?.message ?? "Order could not be completed",

@@ -1,4 +1,4 @@
-import { listStoreProducts } from "./medusa";
+import { listPreorderStoreProducts } from "./medusa-preorder";
 
 const REGION_ID_MU = process.env.NEXT_PUBLIC_MEDUSA_REGION_ID_MU ?? "";
 
@@ -14,14 +14,22 @@ export type PreorderProduct = {
   metadata?: Record<string, unknown> | null;
 };
 
+/**
+ * Lists preorder products via the dedicated preorder publishable key, which
+ * only has access to the Pre-Order sales channel. Channel-scoped isolation
+ * means we no longer need to client-filter on metadata.is_preorder for
+ * correctness — but we keep the filter as defense-in-depth (one stray
+ * non-preorder product accidentally bound to the channel can't pollute the
+ * storefront).
+ */
 export async function listPreorderProducts(options?: {
   limit?: number;
   offset?: number;
 }): Promise<{ products: PreorderProduct[]; count: number }> {
   const limit = options?.limit ?? 24;
   const offset = options?.offset ?? 0;
-  const res = await listStoreProducts({
-    limit: 200, // fetch wider, filter client-side because store API metadata equality filtering is unreliable
+  const res = await listPreorderStoreProducts({
+    limit: 200, // small catalog — page client-side
     offset: 0,
     region_id: REGION_ID_MU,
     fields:
@@ -46,7 +54,7 @@ export async function listPreorderProducts(options?: {
 export async function getPreorderProduct(
   handle: string,
 ): Promise<PreorderProduct | null> {
-  const res = await listStoreProducts({
+  const res = await listPreorderStoreProducts({
     handle,
     limit: 1,
     region_id: REGION_ID_MU,

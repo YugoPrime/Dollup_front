@@ -12,9 +12,12 @@ import dynamic from "next/dynamic";
 import type { HttpTypes } from "@medusajs/types";
 import {
   clientSdk,
+  getCartSdk,
   getStoredCartId,
   setStoredCartId,
   clearStoredCartId,
+  getStoredCartType,
+  setStoredCartType,
 } from "@/lib/cart-client";
 import { trackAddToCart } from "@/lib/analytics";
 import { canAddItem, cartTypeOf, type CartType } from "@/lib/cart-type";
@@ -52,8 +55,13 @@ async function ensureCart(
 ): Promise<Cart> {
   const existing = getStoredCartId();
   if (existing) {
+    // Pick the right SDK based on the stored cart_type. A preorder cart fetched
+    // with the apex SDK would 401 because the apex publishable key doesn't have
+    // access to the Pre-Order sales channel (and vice-versa).
+    const storedType = getStoredCartType();
+    const sdk = getCartSdk(storedType);
     try {
-      const { cart } = await clientSdk.store.cart.retrieve(existing, {
+      const { cart } = await sdk.store.cart.retrieve(existing, {
         fields: CART_FIELDS,
       });
       if (cart && !cart.completed_at) return cart;
@@ -61,7 +69,15 @@ async function ensureCart(
       clearStoredCartId();
     }
   }
-  const { regions } = await clientSdk.store.region.list();
+
+  // For the cart-create call, use the SDK matching the intended type. The
+  // sales-channel binding flows from the publishable key on the SDK that
+  // creates the cart. Idle pre-create (cartType=undefined) defaults to apex —
+  // that's fine because the dominant path is in-stock; a preorder first add
+  // will hit canAddItem rejection, the user clears, and the next create lands
+  // in the preorder channel.
+  const sdk = getCartSdk(cartType);
+  const { regions } = await sdk.store.region.list();
   const region = regions?.find((r) => r.id === regionId) ?? regions?.[0];
   if (!region) throw new Error("No region available to create cart");
 
@@ -69,11 +85,12 @@ async function ensureCart(
   // actual add). Do NOT stamp it during idle pre-create (cartType=undefined) —
   // an idle cart with cart_type="instock" would block the first preorder add.
   const metadata = cartType ? { cart_type: cartType } : undefined;
-  const { cart } = await clientSdk.store.cart.create(
+  const { cart } = await sdk.store.cart.create(
     { region_id: region.id, ...(metadata ? { metadata } : {}) },
     { fields: CART_FIELDS },
   );
   setStoredCartId(cart.id);
+  if (cartType) setStoredCartType(cartType);
   return cart;
 }
 
@@ -87,7 +104,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (id) {
       (async () => {
         try {
-          const { cart } = await clientSdk.store.cart.retrieve(id, {
+          const storedType = getStoredCartType();
+          const sdk = getCartSdk(storedType);
+          const { cart } = await sdk.store.cart.retrieve(id, {
             fields: CART_FIELDS,
           });
           if (cart && !cart.completed_at) setCart(cart);
@@ -132,11 +151,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const refresh = useCallback(async () => {
     const id = getStoredCartId();
     if (!id) return;
-    const { cart } = await clientSdk.store.cart.retrieve(id, {
+    const sdk = getCartSdk(cartTypeOf(cart) ?? getStoredCartType());
+    const { cart: refreshed } = await sdk.store.cart.retrieve(id, {
       fields: CART_FIELDS,
     });
-    setCart(cart);
-  }, []);
+    setCart(refreshed);
+  }, [cart]);
 
   const addItem = useCallback(
     async (variantId: string, quantity = 1, opts?: AddItemOpts) => {
@@ -161,13 +181,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
         // Stamp the cart type if the cart has no type yet (idle pre-create or
         // legacy cart created before this feature shipped).
+        const currentType = cartTypeOf(current) ?? intendedType;
+        const sdk = getCartSdk(currentType);
         if (cartTypeOf(current) === null) {
-          clientSdk.store.cart.update(current.id, {
+          sdk.store.cart.update(current.id, {
             metadata: { ...(current.metadata ?? {}), cart_type: intendedType },
           }).catch(() => {/* best-effort */});
+          setStoredCartType(intendedType);
         }
 
-        const { cart: updated } = await clientSdk.store.cart.createLineItem(
+        const { cart: updated } = await sdk.store.cart.createLineItem(
           current.id,
           { variant_id: variantId, quantity },
           { fields: CART_FIELDS },
@@ -197,9 +220,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const updateItem = useCallback(
     async (lineId: string, quantity: number) => {
       if (!cart) return;
+      const sdk = getCartSdk(cartTypeOf(cart) ?? getStoredCartType());
       setLoading(true);
       try {
-        const { cart: updated } = await clientSdk.store.cart.updateLineItem(
+        const { cart: updated } = await sdk.store.cart.updateLineItem(
           cart.id,
           lineId,
           { quantity },
@@ -216,6 +240,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const removeItem = useCallback(
     async (lineId: string) => {
       if (!cart) return;
+      const sdk = getCartSdk(cartTypeOf(cart) ?? getStoredCartType());
       // Optimistic local removal so the line disappears immediately, then
       // reconcile with the server. deleteLineItem's response includes the
       // updated parent cart (Medusa v2), so we avoid a second refresh round
@@ -227,7 +252,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       });
       setLoading(true);
       try {
-        const res = (await clientSdk.store.cart.deleteLineItem(
+        const res = (await sdk.store.cart.deleteLineItem(
           cart.id,
           lineId,
         )) as { parent?: Cart };
@@ -242,7 +267,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
               metadata: { ...(serverCart.metadata ?? {}), cart_type: null },
             };
             setCart(cleared);
-            clientSdk.store.cart
+            sdk.store.cart
               .update(serverCart.id, {
                 metadata: { ...(serverCart.metadata ?? {}), cart_type: null },
               })
