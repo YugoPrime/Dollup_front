@@ -99,6 +99,32 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
 
+  // Cart-resume from email: if the URL carries ?cart_id=..., adopt it as the
+  // active cart in localStorage BEFORE the load effect runs, then strip the
+  // param so it doesn't linger in the address bar. ?open_cart=1 opens the
+  // drawer so the customer immediately sees what they left behind. Used by
+  // abandoned-cart recovery emails from the admin.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const urlCartId = params.get("cart_id");
+    const openCart = params.get("open_cart") === "1";
+    if (!urlCartId && !openCart) return;
+    if (urlCartId) {
+      const existing = getStoredCartId();
+      if (existing !== urlCartId) {
+        setStoredCartId(urlCartId);
+      }
+    }
+    params.delete("cart_id");
+    params.delete("open_cart");
+    const qs = params.toString();
+    const newUrl =
+      window.location.pathname + (qs ? `?${qs}` : "") + window.location.hash;
+    window.history.replaceState(null, "", newUrl);
+    if (openCart) setOpen(true);
+  }, []);
+
   useEffect(() => {
     const id = getStoredCartId();
     if (id) {
