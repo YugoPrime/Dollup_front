@@ -2,15 +2,31 @@ import { listPreorderStoreProducts } from "./medusa-preorder";
 
 const REGION_ID_MU = process.env.NEXT_PUBLIC_MEDUSA_REGION_ID_MU ?? "";
 
+export type PreorderVariant = {
+  id: string;
+  title?: string;
+  calculated_price?: { calculated_amount: number };
+  options?: Array<{
+    value: string;
+    option?: { title?: string };
+    option_id?: string;
+  }>;
+  metadata?: { image_urls?: string[] } | null;
+};
+
 export type PreorderProduct = {
   id: string;
   handle: string;
   title: string;
+  description?: string;
   thumbnail: string | null;
-  variants: Array<{
+  images?: Array<{ url: string }>;
+  options?: Array<{
     id: string;
-    calculated_price?: { calculated_amount: number };
+    title: string;
+    values: Array<{ value: string }>;
   }>;
+  variants: PreorderVariant[];
   metadata?: Record<string, unknown> | null;
 };
 
