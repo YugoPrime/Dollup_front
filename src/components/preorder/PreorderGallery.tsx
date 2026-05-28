@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PDP_COLOR_CHANGE_EVENT } from "@/components/product/ProductGallery";
+import { PDP_COLOR_CHANGE_EVENT } from "./events";
 
 type Props = {
   colorImageMap: Record<string, string[]>;
@@ -47,6 +47,7 @@ export function PreorderGallery({
         src={images[mainIdx]}
         alt={`${productTitle} — ${activeColor}`}
         className="w-full rounded-lg border border-sage-100 bg-blush-50"
+        fetchPriority={mainIdx === 0 ? "high" : "auto"}
       />
       {images.length > 1 && (
         <div className="flex gap-2 overflow-x-auto">

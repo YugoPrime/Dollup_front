@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { PDP_COLOR_CHANGE_EVENT } from "@/components/product/ProductGallery";
+import { PDP_COLOR_CHANGE_EVENT } from "./events";
 
 type Props = {
   colors: string[];
@@ -25,11 +25,13 @@ export function PreorderColorSwatches({ colors, initialColor, onChange }: Props)
   return (
     <div className="space-y-2">
       <p className="text-[12px] font-medium text-ink">Color · <span className="text-ink-muted">{active}</span></p>
-      <div className="flex flex-wrap gap-2">
+      <div role="radiogroup" aria-label="Color" className="flex flex-wrap gap-2">
         {colors.map((c) => (
           <button
             key={c}
             type="button"
+            role="radio"
+            aria-checked={c === active}
             onClick={() => pick(c)}
             className={
               "rounded border px-3 py-1 text-[13px] transition " +
