@@ -1,10 +1,19 @@
 import { notFound } from "next/navigation";
-import { computeDepositSplit, getPreorderProduct } from "@/lib/preorder";
+import { computeDepositSplit, getPreorderProduct, type PreorderVariant } from "@/lib/preorder";
 import { PreorderBadge } from "@/components/preorder/PreorderBadge";
 import { PreorderEtaBadge } from "@/components/preorder/PreorderEtaBadge";
 import { AddToPreorderCart } from "@/components/preorder/AddToPreorderCart";
+import { PreorderGallery } from "@/components/preorder/PreorderGallery";
+import { PreorderColorSwatches } from "@/components/preorder/PreorderColorSwatches";
 
 export const revalidate = 60;
+
+function colorOf(variant: PreorderVariant): string | null {
+  const opt = variant.options?.find(
+    (o) => o.option?.title === "Color" || o.option?.title === "color",
+  );
+  return opt?.value ?? null;
+}
 
 export default async function PreorderPDP({
   params,
@@ -15,29 +24,43 @@ export default async function PreorderPDP({
   const product = await getPreorderProduct(handle);
   if (!product) notFound();
 
+  // Group variants by color so we can build the per-color image map. Each
+  // color's first variant's metadata.image_urls is the source of truth (all
+  // variants of the same color share the same image_urls).
+  const colorImageMap: Record<string, string[]> = {};
+  const colorOrder: string[] = [];
+  for (const v of product.variants) {
+    const c = colorOf(v) ?? "Default";
+    if (!colorImageMap[c]) {
+      colorOrder.push(c);
+      const fromMeta = v.metadata?.image_urls;
+      colorImageMap[c] =
+        Array.isArray(fromMeta) && fromMeta.length > 0
+          ? fromMeta
+          : product.thumbnail
+            ? [product.thumbnail]
+            : [];
+    }
+  }
+  const initialColor = colorOrder[0] ?? "Default";
+
   const price = product.variants[0]?.calculated_price?.calculated_amount ?? null;
   const depositPercent = 75;
-  // calculated_amount is in MUR cents — convert to whole rupees for the split
-  // helper, which rounds the deposit to the nearest Rs 50.
   const priceMur = price !== null ? Math.round(price / 100) : null;
-  const split = priceMur !== null
-    ? computeDepositSplit(priceMur, depositPercent)
-    : null;
+  const split =
+    priceMur !== null
+      ? computeDepositSplit(priceMur, depositPercent)
+      : null;
   const depositAmount = split ? split.depositMur * 100 : null;
   const balanceAmount = split ? split.balanceMur * 100 : null;
 
   return (
     <main className="mx-auto grid max-w-6xl gap-8 px-4 py-10 lg:grid-cols-2">
-      <div>
-        {product.thumbnail && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={product.thumbnail}
-            alt={product.title}
-            className="w-full rounded-lg border border-sage-100 bg-blush-50"
-          />
-        )}
-      </div>
+      <PreorderGallery
+        colorImageMap={colorImageMap}
+        initialColor={initialColor}
+        productTitle={product.title}
+      />
 
       <div>
         <PreorderBadge />
@@ -58,7 +81,6 @@ export default async function PreorderPDP({
           </div>
         )}
 
-        {/* Deposit breakdown — utility / waiting-room feel */}
         {depositAmount !== null && balanceAmount !== null && (
           <div className="mt-5 grid grid-cols-2 overflow-hidden rounded-lg border border-sage-200">
             <div className="border-r border-sage-200 bg-sage-50 p-4">
@@ -82,7 +104,12 @@ export default async function PreorderPDP({
           </div>
         )}
 
-        {/* How it works — sage card */}
+        {colorOrder.length > 1 && (
+          <div className="mt-6">
+            <PreorderColorSwatches colors={colorOrder} initialColor={initialColor} />
+          </div>
+        )}
+
         <div className="mt-6 rounded-lg border border-sage-200 bg-sage-50 p-5 text-[13px] text-ink-soft">
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-sage-700">
             How pre-order works
