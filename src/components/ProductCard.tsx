@@ -42,7 +42,25 @@ function getColorOptions(product: Product) {
     (o) => (o.title ?? "").toLowerCase() === "color",
   );
   if (!colorOption) return [];
-  return (colorOption.values ?? []).map((v) => v.value).filter(Boolean) as string[];
+  const allColors = (colorOption.values ?? [])
+    .map((v) => v.value)
+    .filter(Boolean) as string[];
+
+  const inStockColors = new Set<string>();
+  for (const variant of product.variants ?? []) {
+    const hasStock =
+      !variant.manage_inventory || (variant.inventory_quantity ?? 0) > 0;
+    if (!hasStock) continue;
+    for (const opt of variant.options ?? []) {
+      const title = (opt.option?.title ?? "").toLowerCase();
+      if (title === "color" && opt.value) {
+        inStockColors.add(opt.value);
+      }
+    }
+  }
+
+  if (inStockColors.size === 0) return allColors;
+  return allColors.filter((c) => inStockColors.has(c));
 }
 
 function getVariantPickerLabel(product: Product): string {
