@@ -117,8 +117,8 @@ export function ProductCard({
   const lowStockMsg = getLowStockMessage(product);
   const discountPct = formatDiscountPercent(price.amount, price.original);
 
-  const thumb = pickImageForColor(product, selectedColor);
   const colors = getColorOptions(product);
+  const thumb = pickImageForColor(product, selectedColor ?? colors[0] ?? null);
   const isMultiVariant = (product.variants?.length ?? 0) > 1;
 
   return (
