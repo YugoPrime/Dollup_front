@@ -7,6 +7,7 @@ import { FocusTrapLayer } from "@/components/a11y/FocusTrapLayer";
 import { useCart } from "./CartProvider";
 import { formatPrice } from "@/lib/format";
 import { trackViewCart } from "@/lib/analytics";
+import { cartTypeOf } from "@/lib/cart-type";
 
 const FREE_SHIPPING_THRESHOLD = 1500;
 
@@ -18,6 +19,13 @@ export function CartDrawer() {
 
   const remaining = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
   const progress = Math.min(100, (subtotal / FREE_SHIPPING_THRESHOLD) * 100);
+
+  // Pre-order carts (separate Medusa sales channel) must check out on the
+  // pre-order storefront, which has its own deposit flow. In-stock carts use
+  // the apex COD checkout. Routing the wrong one 404s or applies the wrong
+  // payment model.
+  const checkoutHref =
+    cartTypeOf(cart) === "preorder" ? "/preorder/checkout" : "/checkout";
 
   const [liveMessage, setLiveMessage] = useState("");
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -234,7 +242,7 @@ export function CartDrawer() {
                 Shipping &amp; taxes calculated at checkout
               </p>
               <Link
-                href="/checkout"
+                href={checkoutHref}
                 onClick={() => setOpen(false)}
                 className="mb-2 flex w-full items-center justify-center rounded bg-coral-500 px-4 py-3 font-sans text-sm font-semibold tracking-wide text-white hover:bg-coral-700"
               >
