@@ -261,12 +261,32 @@ No automated test infra in these repos (per CLAUDE.md). Verification:
 - Apex `/checkout` still works unchanged (in-stock COD), drawer link correct on
   both hosts.
 
+## Verified backend state (2026-05-29, via admin API)
+
+- **Pre-Order sales channel** exists: `sc_01KSJVY1WR8265EE3BGVQP6GMN` (not disabled).
+- **4 Pre-Order shipping options** exist, all `flat`, on stock location
+  `Pre-Order Fulfillment` (`sloc_01KSMPP7411KT7AXW3NR0DV3FN`), all priced in MUR
+  → they will surface in `listCartOptions` for a preorder cart. **No new
+  options needed — reuse these.** The original "open risk" (option exists +
+  priced) is CLOSED.
+
+  | Option | ID | Current price | Correct price |
+  |---|---|---|---|
+  | Home delivery (Pre-Order) | `so_01KSMQMT8FJVNVK640TGJ8NYSB` | MUR 15000 ❌ | **150** |
+  | Postage (Pre-Order) | `so_01KSMQMT8F1RV9BRHB05PTVFSG` | MUR 7000 ❌ | **70** |
+  | Rodrigues Postage (Pre-Order) | `so_01KSMQMT8GARBFM0M9BVK4ZSY0` | MUR 10000 ❌ | **100** |
+  | Pickup at Pereybere (Pre-Order) | `so_01KSMQMT8GWFT059W3W395AQCV` | MUR 0 ✓ | 0 |
+
+- **DATA FIX REQUIRED (blocker):** the 3 non-zero pre-order options were entered
+  in cents (100× too high) while apex options use whole rupees (apex "Home/Office
+  Delivery" = MUR 150). This stack treats MUR as whole rupees (`formatPrice`
+  never divides by 100). Left as-is, a preorder customer would be charged
+  Rs 15,000 shipping. **The implementation plan MUST update these 3 prices to
+  whole-rupee values (150 / 70 / 100) before the preorder checkout goes live.**
+  This is a Medusa admin data change (update shipping-option prices), not code.
+
 ## Open questions / risks
 
-- **Pre-Order sales-channel shipping option** must exist and be priced, or
-  `addShippingMethod` has nothing to attach. Verify the preorder channel has a
-  shipping option before building the form submit (likely already present since
-  the cart-type infra references preorder shipping options).
 - **Provider metadata stamping**: confirm Medusa v2 allows the payment provider
   to influence `order.metadata` at complete-time; if not, stamp via an
   `order.placed` subscriber reading the cart's payment-session data instead.
