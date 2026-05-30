@@ -167,8 +167,8 @@ Create `DUB-front/src/lib/preorder-checkout.test.ts`:
 import { computeDeposit } from "./preorder-checkout"
 const cases: [number, number, { total: number; deposit: number; balance: number }][] = [
   [1000, 150, { total: 1150, deposit: 900, balance: 250 }],   // 862.5 -> ceil/50 = 900
-  [800, 0, { total: 800, deposit: 600, balance: 200 }],       // 600 exact
-  [890, 70, { total: 960, deposit: 720, balance: 240 }],      // 720 exact
+  [800, 0, { total: 800, deposit: 600, balance: 200 }],       // 600 exact (multiple of 50)
+  [890, 70, { total: 960, deposit: 750, balance: 210 }],      // 720 -> ceil/50 = 750
   [0, 0, { total: 0, deposit: 0, balance: 0 }],
 ]
 let ok = true
@@ -214,6 +214,9 @@ describe("computeDeposit", () => {
   })
   it("handles exact multiples", () => {
     expect(computeDeposit(800, 0)).toEqual({ total: 800, deposit: 600, balance: 200 })
+  })
+  it("rounds a non-multiple 75% up to nearest 50", () => {
+    expect(computeDeposit(890, 70)).toEqual({ total: 960, deposit: 750, balance: 210 })
   })
   it("caps deposit at total and handles zero", () => {
     expect(computeDeposit(0, 0)).toEqual({ total: 0, deposit: 0, balance: 0 })
