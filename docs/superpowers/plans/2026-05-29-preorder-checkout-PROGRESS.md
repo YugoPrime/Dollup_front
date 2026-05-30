@@ -24,29 +24,39 @@ Both repos build clean (DUB-front `npm run build` OK with the preorder key now i
 `.env.local`; backend tsc has only PRE-EXISTING errors in diag-cutout-coverage.ts
 + chat/stories test specs — none from our code).
 
-## NOT DONE (resume here)
+## ALL CODE TASKS DONE (2026-05-30) — awaiting owner review + merge
 
-- **Task 12 — deposit cleanup cron** `src/jobs/preorder-deposit-cleanup.ts` (medusa).
-  Was dispatched but the subagent was cut off by the session limit BEFORE writing
-  anything — file does not exist, no partial state. Full instructions are in the
-  plan (Task 12). KEY: confirm `cancelOrderWorkflow` export name in 2.13.1 before
-  using; if unconfirmed, fall back to expire-only (set preorder_status="expired",
-  no hard cancel) and note it. Use `query.graph` pagination exactly like
-  `src/jobs/preorder-availability-check.ts`. Idempotent via `reminder_sent` +
-  status guards.
-- **Task 13 — admin API** `src/api/admin/preorder-orders/route.ts` (GET list) +
-  `[id]/mark-paid/route.ts` (POST → set deposit_paid + send PREORDER_DEPOSIT_CONFIRMED
-  email). medusa. Plan Task 13 has full code.
-- **Task 14 — admin orders view (SUBAGENT)** dollup-admin `/preorder/orders` with
-  Products|Orders sub-nav, status-grouped, sage-tinted. Plan Task 14 has full spec.
-  Depends on Task 13 API.
-- **Task 9 (optional, deferred)** — refactor apex CheckoutForm to use CheckoutFields.
-- **Deploy + live smoke** — merge branches to master (triggers Coolify deploy),
-  then run the tracer-bullet smoke: preorder host → add product → drawer →
-  /preorder/checkout (not 404) → place → success page → admin order has
-  preorder_status=awaiting_deposit + correct deposit → email + Telegram → mark-paid
-  in admin → confirmed email. Coolify must have NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY_PREORDER
-  (likely already does, since preorder.dollupboutique.com serves products).
+| Task | What | Repo @ commit |
+|---|---|---|
+| 12 | Deposit cleanup cron (1h reminder + 24h auto-cancel) | medusa @ 723f2c8, fix 466ff6e (order_id) |
+| 13 | Admin API: GET list + POST mark-paid | medusa @ 393335f |
+| 14 | dollup-admin /preorder/orders view (Products\|Orders sub-nav, status-grouped) | admin @ e7e72ba |
+
+cancelOrderWorkflow confirmed in 2.13.1; input is `{ order_id, no_notification }`.
+No sage tokens in dollup-admin — used existing coral/blush/success/amber/zinc.
+All 3 repos tsc-clean (backend's only errors are pre-existing chat/stories test
+specs + diag-cutout-coverage.ts — none from this work).
+
+## REMAINING (owner-driven decisions, 2026-05-30)
+
+- **Owner will review + merge** each repo's `feat/preorder-checkout` → master
+  manually (each merge auto-deploys via Coolify). Nothing is live until then.
+- **Coolify env**: confirm `NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY_PREORDER` is set on
+  the DUB-front service (likely already is — preorder host serves products today).
+- **Live smoke after deploy** (the tracer-bullet path): preorder host → add product
+  → drawer "Proceed to Checkout" → lands on /preorder/checkout (NOT 404) → fill form
+  → place → success page shows deposit + Juice details → Medusa admin order has
+  preorder_status=awaiting_deposit + correct deposit/balance/total + ~24h deadline →
+  customer deposit email + owner copy + Telegram "NEW PRE-ORDER" → dollup-admin
+  /preorder/orders shows it under Awaiting → "Mark deposit received" → moves to
+  Deposit paid + customer confirmed email. Then verify apex /checkout still works
+  unchanged (in-stock COD).
+- **2 unrelated commits** ride the branches (decided: leave them) — backend 03d3e49
+  (story spec), admin 6a04765 (sourcing revert). Merge delivers them too.
+- **Task 9 (SKIPPED by decision)** — apex CheckoutForm still uses its own inline
+  fields; CheckoutFields is only consumed by the preorder form. Revisit if they drift.
+- **Deferred follow-up (NOT started)**: capture SHEIN per-variant SKU at import →
+  store as Medusa variant.sku so it flows onto preorder order lines + admin view.
 
 ## Key facts learned this session
 - MUR = WHOLE RUPEES (real prices 800/1100/890; formatPrice no /100). Deposit math uses raw units.
