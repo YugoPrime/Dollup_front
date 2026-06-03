@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import type { HttpTypes } from "@medusajs/types";
 import { formatPrice } from "@/lib/format";
 import { computeDeposit } from "@/lib/preorder-checkout";
@@ -31,12 +30,14 @@ export function PreorderOrderSummary({ cart }: { cart: Cart }) {
               <div className="relative h-20 w-16 shrink-0">
                 <div className="relative h-full w-full overflow-hidden rounded-md bg-sage-100">
                   {item.thumbnail ? (
-                    <Image
+                    // Plain <img>, not next/image: the custom image loader routes
+                    // non-CDN hosts to /_next/image, which is disabled under
+                    // `loader: "custom"` and 404s. Matches PreorderProductCard.
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
                       src={item.thumbnail}
                       alt={item.product_title ?? ""}
-                      fill
-                      className="object-cover"
-                      sizes="64px"
+                      className="absolute inset-0 h-full w-full object-cover"
                     />
                   ) : null}
                 </div>
