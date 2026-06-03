@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PreorderBadge } from "./PreorderBadge";
 import { PreorderEtaBadge } from "./PreorderEtaBadge";
 import type { PreorderProduct } from "@/lib/preorder";
+import { formatPrice } from "@/lib/format";
 
 export function PreorderProductCard({ product }: { product: PreorderProduct }) {
   const price = product.variants[0]?.calculated_price?.calculated_amount ?? null;
@@ -32,7 +33,7 @@ export function PreorderProductCard({ product }: { product: PreorderProduct }) {
         </h3>
         {price !== null && (
           <p className="font-display text-base text-ink">
-            Rs {(price / 100).toFixed(0)}
+            {formatPrice(price, "MUR")}
           </p>
         )}
         <PreorderEtaBadge />

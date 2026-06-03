@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { FocusTrapLayer } from "@/components/a11y/FocusTrapLayer";
 import { useCart } from "./CartProvider";
@@ -149,7 +148,12 @@ export function CartDrawer() {
                 >
                   <div className="flex h-[92px] w-[76px] shrink-0 items-center justify-center overflow-hidden rounded-lg bg-blush-300">
                     {item.thumbnail ? (
-                      <Image
+                      // Plain <img>, not next/image: the custom image loader
+                      // routes non-CDN hosts (e.g. preorder SHEIN thumbnails) to
+                      // /_next/image, which is disabled under `loader: "custom"`
+                      // and 404s. CDN/apex thumbnails render fine either way.
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
                         src={item.thumbnail}
                         alt={item.product_title ?? ""}
                         width={76}

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { computeDepositSplit, getPreorderProduct, type PreorderVariant } from "@/lib/preorder";
+import { formatPrice } from "@/lib/format";
 import { PreorderBadge } from "@/components/preorder/PreorderBadge";
 import { PreorderEtaBadge } from "@/components/preorder/PreorderEtaBadge";
 import { AddToPreorderCart } from "@/components/preorder/AddToPreorderCart";
@@ -44,15 +45,18 @@ export default async function PreorderPDP({
   }
   const initialColor = colorOrder[0] ?? "Default";
 
-  const price = product.variants[0]?.calculated_price?.calculated_amount ?? null;
+  // calculated_amount is whole MUR rupees in this DB (NOT minor units) — same
+  // value the cart shows. Do NOT divide by 100; an earlier /100 here showed
+  // "Rs 10" for a Rs 1,040 dress once the source data was corrected.
+  const priceMur =
+    product.variants[0]?.calculated_price?.calculated_amount ?? null;
   const depositPercent = 75;
-  const priceMur = price !== null ? Math.round(price / 100) : null;
   const split =
     priceMur !== null
       ? computeDepositSplit(priceMur, depositPercent)
       : null;
-  const depositAmount = split ? split.depositMur * 100 : null;
-  const balanceAmount = split ? split.balanceMur * 100 : null;
+  const depositAmount = split ? split.depositMur : null;
+  const balanceAmount = split ? split.balanceMur : null;
 
   return (
     <main className="mx-auto grid max-w-6xl gap-8 px-4 py-10 lg:grid-cols-2">
@@ -72,10 +76,10 @@ export default async function PreorderPDP({
           <PreorderEtaBadge />
         </div>
 
-        {price !== null && (
+        {priceMur !== null && (
           <div className="mt-5 flex items-baseline gap-3">
             <p className="font-display text-3xl text-ink">
-              Rs {(price / 100).toFixed(0)}
+              {formatPrice(priceMur, "MUR")}
             </p>
             <span className="text-[12px] text-ink-muted">all-in price</span>
           </div>
@@ -88,7 +92,7 @@ export default async function PreorderPDP({
                 Deposit now
               </p>
               <p className="mt-1 font-display text-xl text-ink">
-                Rs {(depositAmount / 100).toFixed(0)}
+                {formatPrice(depositAmount, "MUR")}
               </p>
               <p className="mt-1 text-[11px] text-ink-muted">via Juice transfer</p>
             </div>
@@ -97,7 +101,7 @@ export default async function PreorderPDP({
                 Balance on arrival
               </p>
               <p className="mt-1 font-display text-xl text-ink">
-                Rs {(balanceAmount / 100).toFixed(0)}
+                {formatPrice(balanceAmount, "MUR")}
               </p>
               <p className="mt-1 text-[11px] text-ink-muted">cash, Juice or card</p>
             </div>
