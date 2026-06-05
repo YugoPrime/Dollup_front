@@ -70,7 +70,7 @@ const QUICK_LINKS = [
   { label: "Dresses", href: "/shop?category=dresses" },
   { label: "Lingerie", href: "/shop?category=lingerie" },
   { label: "Beachwear", href: "/shop?category=beachwear" },
-  { label: "Intimates", href: "/shop?category=intimates" },
+  { label: "After Dark", href: "/shop?category=intimates" },
   { label: "Sale", href: "/shop?on_sale=1" },
 ];
 

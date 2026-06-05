@@ -192,7 +192,7 @@ export default async function ShopPage({
                   className="not-italic text-blush-100"
                   style={{ fontStyle: "italic" }}
                 >
-                  — explore Intimates
+                  — explore After Dark
                 </em>
               </p>
             </div>

@@ -122,7 +122,7 @@ const TOP_LEVEL_ICONS: Record<string, (p: IconProps) => React.ReactElement> = {
   "New Arrivals": Icon.Star,
   Outfit: Icon.Dress,
   Lingerie: Icon.Lingerie,
-  Intimates: Icon.Heart,
+  "After Dark": Icon.Heart,
   Beachwear: Icon.Palm,
   Accessories: Icon.Bag,
   Sale: Icon.Tag,
