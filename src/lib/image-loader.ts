@@ -16,9 +16,25 @@ const USE_VARIANTS = process.env.NEXT_PUBLIC_USE_R2_VARIANTS === "true";
 const VARIANT_WIDTHS = [400, 800, 1200, 1600] as const;
 const CDN_PRODUCT_RE = /^(https:\/\/cdn\.dollupboutique\.com\/(?:products\/[^/]+|homepage\/babe-essentials)\/[^/?#]+)\.(jpe?g|png)(\?.*)?$/i;
 
+// Where each variant bucket takes over. The 400→800 boundary is pushed to 500
+// (instead of the bucket's own 400) so small thumbnail rails stay on the 400w
+// file rather than jumping to 800w purely because of a DPR-3 phone multiplier.
+// A 150px rail slot requests 150×3 = 450 device px — visually a 400w image is
+// plenty there and roughly halves the bytes (~55KB → ~20KB per tile). The
+// desktop "You may also like" rail (224px @ DPR2 = 448) also stays on 400w.
+// Larger slots are unaffected: the PDP mobile hero (`100vw` ≈ 1170) → 1200w,
+// the desktop gallery main (50vw/600px @ DPR2 ≈ 1200) → 1200w. Chrome trace
+// 2026-06-05 flagged 255KB of oversized rail images from the old
+// `requested <= w` boundary, where 450–670px requests rounded UP to 800w.
+const VARIANT_BREAKPOINTS: ReadonlyArray<readonly [maxRequested: number, width: number]> = [
+  [500, 400],
+  [900, 800],
+  [1300, 1200],
+];
+
 function pickVariantWidth(requested: number): number {
-  for (const w of VARIANT_WIDTHS) {
-    if (requested <= w) return w;
+  for (const [maxRequested, width] of VARIANT_BREAKPOINTS) {
+    if (requested <= maxRequested) return width;
   }
   return VARIANT_WIDTHS[VARIANT_WIDTHS.length - 1];
 }

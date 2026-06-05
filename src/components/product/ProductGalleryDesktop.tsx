@@ -57,6 +57,7 @@ export function ProductGalleryDesktop({ images, alt }: { images: Img[]; alt?: st
             sizes="(max-width: 1280px) 50vw, 600px"
             className="object-cover object-top"
             priority
+            fetchPriority="high"
             placeholder="blur"
             blurDataURL={PDP_FALLBACK_BLUR}
           />
