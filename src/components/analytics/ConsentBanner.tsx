@@ -55,22 +55,22 @@ export function ConsentBanner() {
       aria-label="Cookie consent"
       style={{ opacity: visible ? 1 : 0, transition: "opacity 200ms ease-out" }}
     >
-      {/* Mobile collapsed pill — sits above the sticky ATC (bottom-[64px]) and
-          bottom nav so the product price behind it stays visible. */}
+      {/* Mobile collapsed pill — centered at the top inside the header bar
+          (between the logo and the search icon) so it disturbs nothing. */}
       {!expanded && (
-        <div className="fixed bottom-[124px] left-3 z-[100] flex items-center gap-1.5 rounded-full border border-blush-300 bg-white/95 py-1.5 pl-3 pr-1.5 shadow-xl backdrop-blur md:hidden">
+        <div className="fixed left-1/2 top-[20px] z-[101] flex -translate-x-1/2 items-center gap-1 rounded-full border border-blush-300 bg-white/95 py-1 pl-2.5 pr-1 shadow-lg backdrop-blur md:hidden">
           <span aria-hidden className="text-sm leading-none">🍪</span>
           <button
             type="button"
             onClick={() => choose("accepted")}
-            className="rounded-full bg-coral-500 px-3 py-1.5 font-sans text-[11px] font-semibold text-white active:scale-[0.98]"
+            className="rounded-full bg-coral-500 px-2.5 py-1 font-sans text-[11px] font-semibold text-white active:scale-[0.98]"
           >
-            Accept cookies
+            Accept
           </button>
           <button
             type="button"
             onClick={() => setExpanded(true)}
-            className="rounded-full px-2 py-1.5 font-sans text-[11px] font-semibold text-ink-soft underline"
+            className="rounded-full px-1.5 py-1 font-sans text-[11px] font-semibold text-ink-soft underline"
           >
             Manage
           </button>
