@@ -111,23 +111,25 @@ async function NewArrivalsSection({
 }: {
   latestCollectionPromise: LatestCollectionPromise;
 }) {
-  const latestCollection = await latestCollectionPromise;
-  const newArrivalsRes = latestCollection
-    ? await listProducts({ tag: latestCollection.id, order: "-created_at", limit: 16 }).catch(() => ({
-        products: [],
-        count: 0,
-        region: null!,
-      }))
-    : await listProducts({ order: "-created_at", limit: 16 }).catch(() => ({
-        products: [],
-        count: 0,
-        region: null!,
-      }));
+  // New Arrivals is recency-driven, not gated on a collectionN tag. The store's
+  // import pipeline doesn't always apply a `collectionN` tag to a fresh drop, so
+  // gating on the "latest collection tag" left the homepage stuck on the previous
+  // tagged collection while /shop (which sorts by created_at) showed the new one.
+  // Sorting by created_at mirrors /shop?sort=new, so whatever is genuinely newest
+  // surfaces here with no per-launch code edit. The latest collection tag is still
+  // resolved for the "New" badge on products that do carry it.
+  const [latestCollection, newArrivalsRes] = await Promise.all([
+    latestCollectionPromise,
+    listProducts({ order: "-created_at", limit: 16 }).catch(() => ({
+      products: [],
+      count: 0,
+      region: null!,
+    })),
+  ]);
 
   return (
     <NewArrivalsRail
       products={newArrivalsRes.products}
-      totalCount={newArrivalsRes.count ?? 0}
       latestCollectionTag={latestCollection?.value ?? null}
     />
   );

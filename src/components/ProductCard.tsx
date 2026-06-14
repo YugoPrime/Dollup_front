@@ -24,6 +24,23 @@ function isInLatestCollection(product: Product, latestTag: string | null) {
   );
 }
 
+// Recency fallback for the "New" badge: a fresh drop isn't always tagged with a
+// `collectionN` tag (the import pipeline sometimes skips it), so flag anything
+// created within the window as new too. Keeps the badge correct for new
+// arrivals regardless of tagging — same source of truth as /shop?sort=new.
+const NEW_ARRIVAL_WINDOW_DAYS = 14;
+function isRecentlyCreated(product: Product): boolean {
+  const raw = (product as { created_at?: string | null }).created_at;
+  if (!raw) return false;
+  const t = new Date(raw).getTime();
+  if (!Number.isFinite(t)) return false;
+  return Date.now() - t <= NEW_ARRIVAL_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+}
+
+function isNewArrival(product: Product, latestTag: string | null): boolean {
+  return isInLatestCollection(product, latestTag) || isRecentlyCreated(product);
+}
+
 function getLowStockMessage(product: Product): string | null {
   const lowVariants = (product.variants ?? []).filter(
     (v) =>
@@ -133,7 +150,7 @@ export function ProductCard({
         )}
 
         <div className="absolute left-2 top-2 z-[3] flex flex-col gap-1.5">
-          {isInLatestCollection(product, latestCollectionTag) && (
+          {isNewArrival(product, latestCollectionTag) && (
             <span className="rounded bg-coral-500 px-2 py-1 font-sans text-[9px] font-bold uppercase tracking-wider text-white">
               New
             </span>

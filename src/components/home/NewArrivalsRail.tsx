@@ -5,31 +5,30 @@ import { NewArrivalsRailScroller } from "@/components/home/NewArrivalsRailScroll
 
 type Product = HttpTypes.StoreProduct;
 
-const ViewAllTile = ({ count, href }: { count: number; href: string }) => (
+const ViewAllTile = ({ href }: { href: string }) => (
   <Link
     href={href}
     className="group flex h-full flex-col items-center justify-center rounded-xl bg-gradient-to-br from-coral-500 to-coral-700 p-5 text-center text-white shadow-[0_2px_8px_rgba(229,96,74,0.18)] transition-all hover:-translate-y-[3px] hover:shadow-[0_10px_24px_rgba(229,96,74,0.28)]"
   >
     <div className="mb-2 font-display text-[44px] leading-none transition-transform group-hover:translate-x-1">-&gt;</div>
     <div className="font-sans text-[11px] font-bold uppercase tracking-[0.14em]">View all</div>
-    <div className="mt-1 font-sans text-[10px] opacity-85">{count} new pieces</div>
+    <div className="mt-1 font-sans text-[10px] opacity-85">New arrivals</div>
   </Link>
 );
 
 export function NewArrivalsRail({
   products,
-  totalCount,
   latestCollectionTag = null,
 }: {
   products: Product[];
-  totalCount: number;
   latestCollectionTag?: string | null;
 }) {
   if (!products.length) return null;
 
-  const viewAllHref = latestCollectionTag
-    ? `/shop?tag=${encodeURIComponent(latestCollectionTag)}`
-    : "/shop?sort=new";
+  // The rail shows newest-by-created_at, so "View all" goes to the same view
+  // (/shop?sort=new) rather than a specific collection tag — keeps the CTA
+  // consistent with the products shown above it.
+  const viewAllHref = "/shop?sort=new";
 
   return (
     <section className="bg-blush-100 py-5 md:py-8">
@@ -50,7 +49,7 @@ export function NewArrivalsRail({
           ))}
           <div data-card className="w-[150px] shrink-0 snap-start md:w-[230px]">
             <div className="aspect-[3/4.5]">
-              <ViewAllTile count={totalCount} href={viewAllHref} />
+              <ViewAllTile href={viewAllHref} />
             </div>
           </div>
         </NewArrivalsRailScroller>

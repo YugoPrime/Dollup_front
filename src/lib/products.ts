@@ -1031,40 +1031,27 @@ async function listFeaturedUncached(): Promise<HttpTypes.StoreProduct[]> {
     }
   };
 
-  const [latestTagId, perCategoryIds] = await Promise.all([
-    getLatestCollectionTagId().catch(() => null),
-    Promise.all(
-      HERO_CATEGORY_QUOTA.map((q) =>
-        resolveCategoryIds(q.handle).catch(() => [] as string[]),
-      ),
+  const perCategoryIds = await Promise.all(
+    HERO_CATEGORY_QUOTA.map((q) =>
+      resolveCategoryIds(q.handle).catch(() => [] as string[]),
     ),
-  ]);
+  );
 
-  // Fetch all per-category pools in parallel. For each category, try
-  // latest-collection ∩ category first, then fall back to category only.
-  // Two SDK calls per category at most, but both are unstable_cache-hit
-  // after the first request in the 60s ISR window.
+  // Fetch all per-category pools in parallel, newest-first. We deliberately do
+  // NOT pre-filter by the "latest collection tag" here: a fresh drop isn't
+  // always tagged `collectionN`, so gating on the tag biased the hero toward the
+  // previous (tagged) collection and hid brand-new products. Ordering by
+  // created_at pulls the genuinely newest items of each category into the pool,
+  // which is then shuffled to the quota so the mix re-rolls every 60s.
   const pools = await Promise.all(
     HERO_CATEGORY_QUOTA.map(async (q, i) => {
       const catIds = perCategoryIds[i];
       if (q.pick === 0 || catIds.length === 0) return [];
-      let pool: HttpTypes.StoreProduct[] = [];
-      if (latestTagId) {
-        pool = await tryFetch({
-          tag: latestTagId,
-          category: catIds,
-          order: "-created_at",
-          limit: HERO_PER_CATEGORY_POOL,
-        });
-      }
-      if (pool.length < q.pick) {
-        pool = await tryFetch({
-          category: catIds,
-          order: "-created_at",
-          limit: HERO_PER_CATEGORY_POOL,
-        });
-      }
-      return pool;
+      return tryFetch({
+        category: catIds,
+        order: "-created_at",
+        limit: HERO_PER_CATEGORY_POOL,
+      });
     }),
   );
 
