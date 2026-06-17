@@ -969,19 +969,15 @@ export async function getLatestCollectionTag(): Promise<{ id: string; value: str
   return best ? { id: best.id, value: best.value } : null;
 }
 
-// Hero bento quota — one entry per category slot, `pick` items per category.
-// Total picks = sum of `pick` values (currently 5). Descendants of each handle
-// are auto-included via expandCategoryWithDescendants, so e.g. "lingerie" also
-// matches its sub-categories.
-type HeroQuota = { handle: string; pick: number };
-const HERO_CATEGORY_QUOTA: readonly HeroQuota[] = [
-  { handle: "dresses", pick: 2 },
-  { handle: "lingerie", pick: 1 },
-  { handle: "beachwear", pick: 1 },
-  { handle: "winter", pick: 1 },
-] as const;
-const HERO_PER_CATEGORY_POOL = 10;
-const HERO_PICK_COUNT = HERO_CATEGORY_QUOTA.reduce((s, q) => s + q.pick, 0);
+// Hero bento — surfaces the latest drop with category variety. We take the
+// newest HERO_PER_CATEGORY_POOL items from each hero category (dresses, bikini /
+// beachwear, lingerie), combine them, and shuffle-pick HERO_TILE_COUNT tiles so
+// the mix re-rolls every 60s with the ISR cache. Ordering by created_at keeps it
+// anchored to the most recent batch; intentionally NOT tag-gated (see
+// getLatestCollectionTag — fresh imports often arrive untagged).
+const HERO_TILE_COUNT = 5;
+const HERO_PER_CATEGORY_POOL = 5;
+const HERO_CATEGORY_HANDLES = ["dresses", "beachwear", "lingerie"] as const;
 
 async function resolveCategoryIds(handle: string): Promise<string[]> {
   const all = await listCategories();
@@ -1000,13 +996,10 @@ function shuffleAndPick<T>(arr: readonly T[], n: number): T[] {
 }
 
 /**
- * Returns products for the hero bento with a hard per-category quota
- * (see HERO_CATEGORY_QUOTA). Within each category we prefer items from
- * the latest collection tag, then random-pick the quota count so the
- * mix re-rolls every 60s with the ISR cache.
- *
- * Backfill order if a category is short: leftover items from other
- * categories, then global newest products, so the hero never thins out.
+ * Returns products for the hero bento: the newest HERO_PER_CATEGORY_POOL items
+ * from each hero category (dresses, bikini/beachwear, lingerie), combined and
+ * shuffle-picked to HERO_TILE_COUNT so the hero features the latest drop with
+ * category variety and re-rolls every 60s with the ISR cache.
  */
 const cachedFeaturedProducts = unstable_cache(
   async () => listFeaturedUncached(),
@@ -1022,74 +1015,44 @@ export async function listFeatured(): Promise<HttpTypes.StoreProduct[]> {
 }
 
 async function listFeaturedUncached(): Promise<HttpTypes.StoreProduct[]> {
-  const tryFetch = async (args: ListProductsArgs) => {
-    try {
-      const res = await listProducts(args);
-      return res.products;
-    } catch {
-      return [] as HttpTypes.StoreProduct[];
-    }
-  };
-
-  const perCategoryIds = await Promise.all(
-    HERO_CATEGORY_QUOTA.map((q) =>
-      resolveCategoryIds(q.handle).catch(() => [] as string[]),
+  const catIdsByHandle = await Promise.all(
+    HERO_CATEGORY_HANDLES.map((h) =>
+      resolveCategoryIds(h).catch(() => [] as string[]),
     ),
   );
 
-  // Fetch all per-category pools in parallel, newest-first. We deliberately do
-  // NOT pre-filter by the "latest collection tag" here: a fresh drop isn't
-  // always tagged `collectionN`, so gating on the tag biased the hero toward the
-  // previous (tagged) collection and hid brand-new products. Ordering by
-  // created_at pulls the genuinely newest items of each category into the pool,
-  // which is then shuffled to the quota so the mix re-rolls every 60s.
+  // Newest items per hero category, in parallel. Descendant categories are
+  // folded in via resolveCategoryIds, so e.g. "lingerie" matches its children.
   const pools = await Promise.all(
-    HERO_CATEGORY_QUOTA.map(async (q, i) => {
-      const catIds = perCategoryIds[i];
-      if (q.pick === 0 || catIds.length === 0) return [];
-      return tryFetch({
-        category: catIds,
-        order: "-created_at",
-        limit: HERO_PER_CATEGORY_POOL,
-      });
+    catIdsByHandle.map(async (catIds) => {
+      if (catIds.length === 0) return [] as HttpTypes.StoreProduct[];
+      try {
+        const res = await listProducts({
+          category: catIds,
+          order: "-created_at",
+          limit: HERO_PER_CATEGORY_POOL,
+        });
+        return res.products;
+      } catch {
+        return [] as HttpTypes.StoreProduct[];
+      }
     }),
   );
 
+  // Combine the per-category pools, dedupe, and drop thumbnail-less products
+  // (a tile with no image renders blank), then shuffle-pick the hero tiles.
   const seen = new Set<string>();
-  const picks: HttpTypes.StoreProduct[] = [];
-  const leftover: HttpTypes.StoreProduct[] = [];
-
-  for (let i = 0; i < HERO_CATEGORY_QUOTA.length; i++) {
-    const { pick } = HERO_CATEGORY_QUOTA[i];
-    const pool = pools[i].filter((p) => !seen.has(p.id));
-    const chosen = shuffleAndPick(pool, pick);
-    for (const p of chosen) {
-      seen.add(p.id);
-      picks.push(p);
-    }
-    for (const p of pool) {
-      if (!seen.has(p.id)) leftover.push(p);
-    }
-  }
-
-  if (picks.length < HERO_PICK_COUNT && leftover.length > 0) {
-    for (const p of shuffleAndPick(leftover, HERO_PICK_COUNT - picks.length)) {
+  const pool: HttpTypes.StoreProduct[] = [];
+  for (const products of pools) {
+    for (const p of products) {
       if (seen.has(p.id)) continue;
+      if (!(p.thumbnail ?? p.images?.[0]?.url)) continue;
       seen.add(p.id);
-      picks.push(p);
-    }
-  }
-  if (picks.length < HERO_PICK_COUNT) {
-    const global = await tryFetch({ order: "-created_at", limit: HERO_PER_CATEGORY_POOL });
-    for (const p of global) {
-      if (picks.length >= HERO_PICK_COUNT) break;
-      if (seen.has(p.id)) continue;
-      seen.add(p.id);
-      picks.push(p);
+      pool.push(p);
     }
   }
 
-  return shuffleAndPick(picks, picks.length);
+  return shuffleAndPick(pool, HERO_TILE_COUNT);
 }
 
 // Babe Essentials products — hand-curated by handle. Order matters: index 0 is
