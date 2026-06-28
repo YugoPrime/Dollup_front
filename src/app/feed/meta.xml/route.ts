@@ -32,7 +32,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 3600;
 
 const PRODUCT_FEED_FIELDS =
-  "id,title,handle,thumbnail,description,subtitle,metadata,updated_at," +
+  "id,title,handle,thumbnail,description,subtitle,metadata,created_at,updated_at," +
   "*variants,*variants.calculated_price,*variants.options," +
   "+variants.inventory_quantity,+variants.manage_inventory," +
   "variants.metadata,*options,*options.values,*images,*tags,*categories";
@@ -40,6 +40,12 @@ const PRODUCT_FEED_FIELDS =
 const BRAND = "Doll Up Boutique";
 const CURRENCY = "MUR";
 const DEFAULT_GOOGLE_CATEGORY = "Apparel & Accessories > Clothing";
+
+// Products created within this window get `g:custom_label_0 = new_arrival`, so a
+// Meta Product Set can filter the catalog down to a "New Arrivals" set and run
+// an Advantage+ Catalog ad that auto-refreshes with every drop. Matches the
+// storefront's `-created_at` "New Arrivals" rail concept.
+const NEW_ARRIVAL_DAYS = 30;
 
 // Medusa category handle → Google Merchant taxonomy path. Anything not in this
 // map falls back to the generic apparel bucket above; Meta tolerates the
@@ -185,6 +191,14 @@ function variantImages(v: VariantLike, product: HttpTypes.StoreProduct): string[
   return out.slice(0, 11);
 }
 
+function isNewArrival(product: HttpTypes.StoreProduct, nowMs: number): boolean {
+  const raw = (product as { created_at?: string | null }).created_at;
+  if (!raw) return false;
+  const created = Date.parse(raw);
+  if (Number.isNaN(created)) return false;
+  return nowMs - created <= NEW_ARRIVAL_DAYS * 24 * 60 * 60 * 1000;
+}
+
 function googleCategoryFor(product: HttpTypes.StoreProduct): string {
   for (const c of product.categories ?? []) {
     const handle = (c.handle ?? "").toLowerCase();
@@ -227,6 +241,7 @@ const cachedFeed = unstable_cache(
 async function buildFeed(siteUrl: string): Promise<string> {
   const products = await fetchAllProducts();
   const lastBuild = new Date().toUTCString();
+  const nowMs = Date.now();
 
   const items: string[] = [];
 
@@ -246,6 +261,7 @@ async function buildFeed(siteUrl: string): Promise<string> {
     const description = truncate(stripHtml(descSource), 4500);
     const googleCategory = googleCategoryFor(product);
     const productType = productTypeFor(product);
+    const newArrival = isNewArrival(product, nowMs);
 
     for (const rawVariant of product.variants ?? []) {
       const variant = rawVariant as VariantLike;
@@ -303,6 +319,8 @@ async function buildFeed(siteUrl: string): Promise<string> {
       lines.push(`<g:age_group>adult</g:age_group>`);
       if (sizeLabel) lines.push(`<g:size>${xmlEscape(sizeLabel)}</g:size>`);
       if (colorLabel) lines.push(`<g:color>${xmlEscape(colorLabel)}</g:color>`);
+      // Recency flag for Meta Product Set filtering → "New Arrivals" ad set.
+      if (newArrival) lines.push(`<g:custom_label_0>new_arrival</g:custom_label_0>`);
 
       items.push(`    <item>\n      ${lines.join("\n      ")}\n    </item>`);
     }
