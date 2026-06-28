@@ -17,6 +17,7 @@ import { isPrivateUnlocked } from "@/lib/private-unlock";
 import {
   isAgeRestricted,
   isPubliclyListedStoreProduct,
+  isUnlisted,
 } from "@/lib/visibility";
 import { AgeGateModal } from "@/components/product/AgeGateModal";
 
@@ -73,16 +74,23 @@ export async function generateMetadata({
 
 export default async function ProductPage({ params }: { params: RouteParams }) {
   const { handle } = await params;
-  const [{ product }, cfg, unlocked] = await Promise.all([
+  const [{ product }, cfg] = await Promise.all([
     getProductByHandle(handle),
     getStoreConfig(),
-    isPrivateUnlocked().catch(() => false),
   ]);
   if (!product) notFound();
   const productLike = product as unknown as {
     metadata?: unknown;
     categories?: Array<{ handle?: string | null }> | null;
   };
+  // Only read the unlock cookie for unlisted products. cookies() forces the
+  // whole route to render dynamically (killing ISR), so public PDPs — the vast
+  // majority of traffic — must avoid it to stay statically cacheable. The
+  // `unlocked` flag only affects whether an *unlisted* product 404s
+  // (see isPubliclyListed); listed products render regardless of it.
+  const unlocked = isUnlisted(productLike)
+    ? await isPrivateUnlocked().catch(() => false)
+    : false;
   // Unlisted products are still directly reachable by URL (per design), but
   // not when there's no unlock cookie. 404 keeps Google + curious visitors out.
   // Unlisted products 404 unless the visitor has the private-unlock cookie.
