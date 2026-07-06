@@ -137,11 +137,18 @@ New "Events / Draw" section (ops hub — not a Medusa `/app` extension, per proj
 
 ## 9. Dependencies & risks
 
-- **On-site reviews** — the rewarded action needs a working "leave a review on your order"
-  capability tied to an order. Confirm whether product/order reviews already exist in the
-  storefront; if not, a minimal review capture is part of Phase 1 scope.
-- **Loyalty account linkage** — crediting points requires matching/creating a Doll Rewards
-  account from the entry email. Confirm the loyalty module supports point credit by email.
+- **On-site reviews — CONFIRMED not built.** The only feedback UI (`FeedbackModal` →
+  `/api/feedback`) is a bug/idea form: no rating, not tied to an order, not displayed. A
+  **minimal on-site review capture is Phase-1 scope**: star + text tied to the entrant's most
+  recent order, stored in a small module, moderated in admin, displayed on PDP / a testimonials
+  wall (display can be Phase 2 if needed, but capture is Phase 1).
+- **Loyalty credit path — CONFIRMED customer-scoped.** `LoyaltyAccount` is unique per
+  `customer_id`; points are credited via `loyaltyService.awardPoints(customerId, ...)`. Entrants
+  are not logged in, so the spin-reward flow must **find-or-create a Medusa customer by the entry
+  email**, then `ensureAccount(customer.id)` + `awardPoints(..., reason: "event spin")`. This
+  reuses existing service methods and auto-enrolls every entrant into Doll Rewards. Use the
+  `orderId`-style idempotency guard keyed on the entry/spin id so a retried request can't
+  double-credit.
 - **Google policy** — incentivized Google reviews are prohibited; keep Google strictly a
   non-gated link-out.
 - **Anti-abuse** — unique single-use code + required contact + soft IP/device rate-limit +
