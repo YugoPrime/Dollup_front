@@ -13,7 +13,7 @@ export const PRODUCT_CATEGORIES_CACHE_TAG = "product-categories";
 
 const PRODUCT_LIST_FIELDS =
   "id,title,handle,thumbnail,metadata,created_at,updated_at," +
-  "variants.id,variants.title,variants.sku,variants.manage_inventory,+variants.inventory_quantity," +
+  "variants.id,variants.title,variants.sku,variants.metadata,variants.manage_inventory,+variants.inventory_quantity," +
   "variants.calculated_price.calculated_amount,variants.calculated_price.original_amount,variants.calculated_price.currency_code," +
   "variants.options.value,variants.options.option.title," +
   "options.title,options.values.value,images.url,tags.id,tags.value," +

@@ -258,6 +258,7 @@ export default async function ShopPage({
                         product={p}
                         latestCollectionTag={latestTag}
                         selectedColor={singleSelectedColor}
+                        selectedSizes={sizeFilter ?? null}
                         imagePriority={index < 2}
                       />
                     </OptimisticCardSlot>

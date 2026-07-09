@@ -41,20 +41,63 @@ function isNewArrival(product: Product, latestTag: string | null): boolean {
   return isInLatestCollection(product, latestTag) || isRecentlyCreated(product);
 }
 
-function getLowStockMessage(product: Product): string | null {
+// Canonical size map mirroring the shop filter's SIZE_ALIASES so a card can
+// tell whether a variant matches the size(s) the shopper filtered by.
+const SIZE_ALIAS: Record<string, string> = {
+  xs: "XS", s: "S", m: "M", l: "L", xl: "XL",
+  "2xl": "2XL", xxl: "2XL", "3xl": "3XL", xxxl: "3XL", "4xl": "4XL",
+  "free size": "Free Size", freesize: "Free Size", "free-size": "Free Size",
+  "one size": "Free Size",
+};
+function normalizeSize(raw: string): string {
+  const key = (raw ?? "").trim().toLowerCase();
+  return SIZE_ALIAS[key] ?? (raw ?? "").trim();
+}
+function variantSizeValue(variant: NonNullable<Product["variants"]>[number]): string | null {
+  for (const opt of variant.options ?? []) {
+    if ((opt.option?.title ?? "").toLowerCase() === "size") return opt.value ?? null;
+  }
+  return null;
+}
+// True when no size filter is active, the product has no size option, or the
+// variant's size is one of the selected sizes. Keeps size-less products
+// (accessories, one-size) from being over-filtered.
+function variantMatchesSizes(
+  variant: NonNullable<Product["variants"]>[number],
+  sizes: string[] | null,
+): boolean {
+  if (!sizes || sizes.length === 0) return true;
+  const sv = variantSizeValue(variant);
+  if (sv == null) return true;
+  const norm = normalizeSize(sv);
+  return sizes.some((s) => normalizeSize(s) === norm);
+}
+function variantInStock(
+  variant: NonNullable<Product["variants"]>[number],
+): boolean {
+  return !variant.manage_inventory || (variant.inventory_quantity ?? 0) > 0;
+}
+
+// Low-stock badge, scoped to the filtered size so "1 left" reflects the size
+// the shopper is actually looking at (not an unrelated size's leftover unit).
+function getLowStockMessage(product: Product, selectedSizes: string[] | null): string | null {
   const lowVariants = (product.variants ?? []).filter(
     (v) =>
       v.manage_inventory &&
       v.inventory_quantity != null &&
       v.inventory_quantity > 0 &&
-      v.inventory_quantity < LOW_STOCK_THRESHOLD,
+      v.inventory_quantity < LOW_STOCK_THRESHOLD &&
+      variantMatchesSizes(v, selectedSizes),
   );
   if (!lowVariants.length) return null;
   const minQty = Math.min(...lowVariants.map((v) => v.inventory_quantity ?? 0));
   return `${minQty} left`;
 }
 
-function getColorOptions(product: Product) {
+// Colors the shopper can actually buy. When a size filter is active, only
+// colors that are in stock IN THAT SIZE count — so a size=L grid never shows a
+// white swatch when only burgundy is available in L.
+function getColorOptions(product: Product, selectedSizes: string[] | null) {
   const colorOption = product.options?.find(
     (o) => (o.title ?? "").toLowerCase() === "color",
   );
@@ -65,9 +108,8 @@ function getColorOptions(product: Product) {
 
   const inStockColors = new Set<string>();
   for (const variant of product.variants ?? []) {
-    const hasStock =
-      !variant.manage_inventory || (variant.inventory_quantity ?? 0) > 0;
-    if (!hasStock) continue;
+    if (!variantInStock(variant)) continue;
+    if (!variantMatchesSizes(variant, selectedSizes)) continue;
     for (const opt of variant.options ?? []) {
       const title = (opt.option?.title ?? "").toLowerCase();
       if (title === "color" && opt.value) {
@@ -94,9 +136,32 @@ function getVariantPickerLabel(product: Product): string {
 function pickImageForColor(product: Product, color: string | null): string | null {
   const fallback = product.thumbnail ?? product.images?.[0]?.url ?? null;
   if (!color) return fallback;
+  const images = product.images ?? [];
+
+  // Prefer variant metadata.image_urls (admin-curated, authoritative) — same
+  // source of truth the PDP uses. Slug matching alone would miss e.g. a
+  // "Burgandy" variant whose image files are named "burgundy", silently
+  // falling back to the (white) thumbnail.
+  const metaSet = new Set<string>();
+  for (const v of product.variants ?? []) {
+    const hasColor = (v.options ?? []).some(
+      (o) =>
+        (o.option?.title ?? "").toLowerCase() === "color" &&
+        (o.value ?? "").toLowerCase() === color.toLowerCase(),
+    );
+    if (!hasColor) continue;
+    const meta = (v.metadata ?? {}) as { image_urls?: unknown };
+    if (Array.isArray(meta.image_urls)) {
+      for (const u of meta.image_urls) {
+        if (typeof u === "string" && u) metaSet.add(u);
+      }
+    }
+  }
+  const fromMeta = images.find((img) => metaSet.has(img.url ?? ""));
+  if (fromMeta?.url) return fromMeta.url;
+
   const needle = color.toLowerCase();
   const slug = needle.replace(/\s+/g, "-");
-  const images = product.images ?? [];
   const match = images.find((img) => {
     const url = (img.url ?? "").toLowerCase();
     if (!url) return false;
@@ -118,12 +183,14 @@ export function ProductCard({
   imageSizes = "(max-width: 768px) 50vw, 25vw",
   imagePriority = false,
   selectedColor = null,
+  selectedSizes = null,
 }: {
   product: Product;
   latestCollectionTag?: string | null;
   imageSizes?: string;
   imagePriority?: boolean;
   selectedColor?: string | null;
+  selectedSizes?: string[] | null;
 }) {
   const price = getDisplayPrice(product);
   const inStockVariant = product.variants?.find(
@@ -131,10 +198,10 @@ export function ProductCard({
   );
   const inStock = !!inStockVariant;
   const soldOut = product.variants?.length ? !inStock : false;
-  const lowStockMsg = getLowStockMessage(product);
+  const lowStockMsg = getLowStockMessage(product, selectedSizes);
   const discountPct = formatDiscountPercent(price.amount, price.original);
 
-  const colors = getColorOptions(product);
+  const colors = getColorOptions(product, selectedSizes);
   const thumb = pickImageForColor(product, selectedColor ?? colors[0] ?? null);
   const isMultiVariant = (product.variants?.length ?? 0) > 1;
 
