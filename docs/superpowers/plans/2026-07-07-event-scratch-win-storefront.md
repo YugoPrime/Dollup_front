@@ -18,13 +18,20 @@
 - Reward currency is **Doll Rewards points** (Phase 1). Prize copy must say points, not % off / vouchers.
 - Contact capture requires **both** email and WhatsApp/phone before the first spin.
 
-## API contract consumed (from Plan 1)
+## API contract consumed (from Plan 1 — BUILT & VERIFIED, branch `feat/event-scratch-win`)
 
 - `POST /store/event/validate-code` `{ code }` → `200 { ok:true }` | `400/409 { message }`
 - `POST /store/event/enter` `{ code, email, phone, consent }` → `200 { entry_id, spins_remaining }`
-- `POST /store/event/bonus-spin` `{ entry_id, kind:"review"|"social" }` → `200 { spins_remaining }`
-- `POST /store/event/spin` `{ entry_id }` → `200 { slice, type, points, spins_remaining, credited }`
+- `POST /store/event/bonus-spin` `{ entry_id, kind:"review"|"social" }` → `200 { spins_remaining }` | `400/409 { message }`
+- `POST /store/event/spin` `{ entry_id }` → `200 { slice, type, points, spins_remaining, credited, credit_pending }`
 - `POST /store/reviews` `{ email, rating, body, order_id?, product_id? }` → `200 { id, status }`
+
+### Contract notes the backend build changed (READ BEFORE IMPLEMENTING)
+
+- **Card codes are 6 chars, not 4** — format `DUB-XXXXXX` from an ambiguity-free alphabet (no `0/O/1/I`). The `CodeStep` placeholder and any validation must use 6. (Widened from 4 to kill code enumeration.)
+- **`credit_pending: boolean` is new on the spin response.** The spin is committed server-side *before* the loyalty credit runs. If the credit fails, the route still returns **200** with `credited: 0` and `credit_pending: true` — the customer DID win and the spin WAS consumed.
+- **NEVER auto-retry `POST /store/event/spin` on error.** A retry consumes another spin. On `credit_pending: true`, show the win normally (e.g. "You won 100 pts — landing in your account shortly") and do NOT re-spin. Admin reconciles stuck credits via `GET /admin/event/rewards?type=points&status=issued`.
+- **Rate limiting is NOT yet implemented** on `validate-code`/`enter` (deferred pre-launch task). Do not rely on the backend to throttle abusive input.
 
 ---
 
