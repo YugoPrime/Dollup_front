@@ -214,12 +214,18 @@ export default function AnniversaryPage() {
                 Every website order during the sale = 1 entry. One winner takes a
                 Rs 2,000 voucher. Drawn Aug 1. Free entry with any purchase.
               </p>
-              <div className="mt-8 flex justify-center">
+              <div className="mt-8 flex flex-wrap justify-center gap-4">
                 <Link
                   href="/shop?on_sale=1"
                   className="rounded-full bg-gold px-8 py-4 font-sans text-[12px] font-bold uppercase tracking-[0.14em] text-white transition-colors hover:brightness-95 md:text-[13px]"
                 >
                   Enter — Shop Now
+                </Link>
+                <Link
+                  href="/events/anniversary/draw"
+                  className="rounded-full border border-gold/40 bg-white/70 px-8 py-4 font-sans text-[12px] font-bold uppercase tracking-[0.14em] text-gold transition-colors hover:bg-white md:text-[13px]"
+                >
+                  See the wall
                 </Link>
               </div>
             </div>
