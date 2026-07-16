@@ -26,6 +26,42 @@ export const EMPTY_PAYLOAD: DrawPayload = {
   winnerId: null,
 };
 
+function isValidEntry(e: unknown): e is DrawEntry {
+  if (typeof e !== "object" || e === null) return false;
+  const r = e as Record<string, unknown>;
+  return (
+    typeof r.id === "string" &&
+    typeof r.name === "string" &&
+    typeof r.isEntry === "boolean" &&
+    typeof r.at === "string"
+  );
+}
+
+/**
+ * The Medusa store route is a cross-service contract this app doesn't
+ * control and doesn't enforce at the schema level. A 200 with valid JSON
+ * but the wrong shape (entries: null, an entry missing id, etc.) must
+ * never reach render — this page is required to never show an error.
+ * Malformed individual entries are dropped; if the top-level shape itself
+ * doesn't hold, the whole payload falls back to EMPTY_PAYLOAD.
+ */
+export function validateDrawPayload(data: unknown): DrawPayload {
+  if (typeof data !== "object" || data === null) return EMPTY_PAYLOAD;
+  const r = data as Record<string, unknown>;
+
+  if (!Array.isArray(r.entries)) return EMPTY_PAYLOAD;
+  if (typeof r.count !== "number") return EMPTY_PAYLOAD;
+  if (typeof r.entryCount !== "number") return EMPTY_PAYLOAD;
+  if (typeof r.winnerId !== "string" && r.winnerId !== null) return EMPTY_PAYLOAD;
+
+  return {
+    entries: r.entries.filter(isValidEntry),
+    count: r.count,
+    entryCount: r.entryCount,
+    winnerId: r.winnerId,
+  };
+}
+
 const BACKEND = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL;
 const PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY;
 const TIMEOUT_MS = 8_000;
@@ -42,7 +78,7 @@ export async function fetchDrawEntries(): Promise<DrawPayload> {
       next: { revalidate: 60 },
     });
     if (!res.ok) return EMPTY_PAYLOAD;
-    return (await res.json()) as DrawPayload;
+    return validateDrawPayload(await res.json());
   } catch {
     // The wall degrades to countdown + copy. It must never show an error.
     return EMPTY_PAYLOAD;

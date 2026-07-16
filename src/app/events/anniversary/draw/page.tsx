@@ -48,7 +48,13 @@ export default async function DrawPage() {
               <p className="font-sans text-[11px] font-bold uppercase tracking-[0.18em] text-ink-muted">
                 Winner
               </p>
-              <p className="mt-2 font-display text-[40px] text-[#8A6410] md:text-[52px]">
+              {/*
+                text-ink, not text-gold, deliberately: --color-gold (#D4A853)
+                on the cream background fails contrast even at display sizes.
+                The gold signalling lives in the surrounding chrome; the
+                winner's name itself stays readable.
+              */}
+              <p className="mt-2 font-display text-[40px] text-ink md:text-[52px]">
                 {winner.name}
               </p>
             </div>
