@@ -52,13 +52,17 @@ export function validateDrawPayload(data: unknown): DrawPayload {
   if (!Array.isArray(r.entries)) return EMPTY_PAYLOAD;
   if (typeof r.count !== "number") return EMPTY_PAYLOAD;
   if (typeof r.entryCount !== "number") return EMPTY_PAYLOAD;
-  if (typeof r.winnerId !== "string" && r.winnerId !== null) return EMPTY_PAYLOAD;
+  // winnerId is optional: treat an absent key the same as an explicit null
+  // (no winner yet) rather than discarding the whole payload over it.
+  if (r.winnerId !== undefined && typeof r.winnerId !== "string" && r.winnerId !== null) {
+    return EMPTY_PAYLOAD;
+  }
 
   return {
     entries: r.entries.filter(isValidEntry),
     count: r.count,
     entryCount: r.entryCount,
-    winnerId: r.winnerId,
+    winnerId: (r.winnerId as string | null | undefined) ?? null,
   };
 }
 

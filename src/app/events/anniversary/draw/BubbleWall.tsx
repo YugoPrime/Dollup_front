@@ -98,10 +98,34 @@ export function BubbleWall({ initial }: { initial: DrawPayload }) {
   // newest-first — that reintroduces the whole-wall reflow. (Once past
   // MAX_BUBBLES, the oldest shown bubble gets evicted and the wall does
   // shift by one — that's acceptable and far rarer than every-poll reflow.)
-  const shown = useMemo(
-    () => [...data.entries].slice(0, MAX_BUBBLES).reverse(),
-    [data.entries],
-  );
+  const shown = useMemo(() => {
+    // .slice() already returns a fresh array without touching data.entries,
+    // so this is safe to push() onto below without mutating source state.
+    const windowed = data.entries.slice(0, MAX_BUBBLES);
+
+    // The winner is drawn from ALL entries across the full two-week sale,
+    // but this wall only windows the MAX_BUBBLES most-recent ones (see
+    // above). On reveal day (Aug 1) it's entirely plausible the winning
+    // order isn't among the 120 most recent — this is an ad-driven sale
+    // running two weeks. If we don't special-case that, every bubble in
+    // `windowed` dims (revealed && id !== winnerId) and none of them is
+    // the winner, so the whole wall renders uniformly dark with nothing
+    // lit — on the one day the reveal is the entire point of the page.
+    // So: if the winner exists but fell outside the window, splice them
+    // in from the full unsliced list. They're appended here, before the
+    // reverse() below, which puts them FIRST in render order post-reverse.
+    // That's a deliberate choice, not an accident — on reveal day they're
+    // the only lit bubble, so leading the wall is harmless, and it avoids
+    // silently evicting some other (now-irrelevant, since reveal already
+    // happened) bubble to make room. Do not remove this: it's the only
+    // thing standing between "reveal day" and "wall dims to nothing."
+    if (data.winnerId && !windowed.some((e) => e.id === data.winnerId)) {
+      const winner = data.entries.find((e) => e.id === data.winnerId);
+      if (winner) windowed.push(winner);
+    }
+
+    return windowed.reverse();
+  }, [data.entries, data.winnerId]);
   const overflow = data.count - shown.length;
   const revealed = Boolean(data.winnerId);
 
