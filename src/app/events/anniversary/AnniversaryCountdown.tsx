@@ -13,8 +13,8 @@ type Remaining = {
   ended: boolean;
 };
 
-function computeRemaining(): Remaining {
-  const diff = SALE_END - Date.now();
+function computeRemaining(target: number): Remaining {
+  const diff = target - Date.now();
   if (diff <= 0) {
     return { days: 0, hours: 0, mins: 0, secs: 0, ended: true };
   }
@@ -35,21 +35,27 @@ const UNITS: { key: keyof Omit<Remaining, "ended">; label: string }[] = [
   { key: "secs", label: "Secs" },
 ];
 
-export function AnniversaryCountdown() {
+export function AnniversaryCountdown({
+  target = SALE_END,
+  endedLabel = "Sale ended",
+}: {
+  target?: number;
+  endedLabel?: string;
+} = {}) {
   // Start null so SSR and first client render match (avoids hydration drift
   // from a server-vs-client clock difference), then hydrate on mount.
   const [remaining, setRemaining] = useState<Remaining | null>(null);
 
   useEffect(() => {
-    setRemaining(computeRemaining());
-    const id = setInterval(() => setRemaining(computeRemaining()), 1000);
+    setRemaining(computeRemaining(target));
+    const id = setInterval(() => setRemaining(computeRemaining(target)), 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [target]);
 
   if (remaining?.ended) {
     return (
       <p className="font-display text-[28px] text-coral-700 md:text-[34px]">
-        Sale ended
+        {endedLabel}
       </p>
     );
   }
