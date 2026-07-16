@@ -190,3 +190,8 @@ input:focus, textarea:focus, select:focus {
 html[data-consent-known] [data-consent-banner] {
   display: none;
 }
+
+@keyframes drawDrift {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-8px) scale(1.03); }
+}
