@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import dynamic from "next/dynamic";
@@ -21,6 +22,14 @@ import {
 } from "@/lib/cart-client";
 import { trackAddToCart } from "@/lib/analytics";
 import { canAddItem, cartTypeOf, type CartType } from "@/lib/cart-type";
+import {
+  addDeclined,
+  giftTagOf,
+  giftsToAdd,
+  giftsToBump,
+  giftsToRevert,
+  readDeclined,
+} from "@/lib/cart-gifts";
 
 const CartDrawer = dynamic(
   () => import("./CartDrawer").then((m) => m.CartDrawer),
@@ -47,7 +56,11 @@ type CartContextValue = {
 const CartContext = createContext<CartContextValue | null>(null);
 
 const CART_FIELDS =
-  "*items,*items.variant,*items.variant.product,*items.variant.options,*items.thumbnail,*region,*shipping_methods,*promotions,metadata,+subtotal,+total,+item_total,+shipping_total,+tax_total,+discount_total";
+  // `*items.variant.product.categories`, `*items.metadata` and the per-line
+  // totals are required by src/lib/cart-gifts.ts: it identifies lingerie lines
+  // by category, recognises its own auto-added lines by metadata, and verifies
+  // a gift is genuinely free before leaving it in the cart. Don't trim them.
+  "*items,*items.variant,*items.variant.product,*items.variant.product.categories,*items.variant.options,*items.metadata,*items.thumbnail,*region,*shipping_methods,*promotions,metadata,+subtotal,+total,+item_total,+shipping_total,+tax_total,+discount_total,+items.total,+items.original_total";
 
 async function ensureCart(
   regionId: string | undefined,
@@ -184,6 +197,71 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setCart(refreshed);
   }, [cart]);
 
+  // Applies the anniversary gift rules after any cart mutation: puts the free
+  // cuff / second tape in the cart, and — critically — pulls back anything that
+  // did not end up actually free. See src/lib/cart-gifts.ts for why the
+  // "verify it's free" step is the gate rather than a date check.
+  //
+  // Guarded by a ref rather than state: this runs inside other mutations, and a
+  // re-entrant pass would fight itself. The rules are idempotent, so a second
+  // pass over a settled cart is a no-op.
+  const reconciling = useRef(false);
+  const reconcileGifts = useCallback(
+    async (current: Cart): Promise<Cart> => {
+      if (reconciling.current) return current;
+      reconciling.current = true;
+      try {
+        const sdk = getCartSdk(cartTypeOf(current) ?? getStoredCartType());
+        const declined = readDeclined(current.id);
+        let next = current;
+
+        for (const add of giftsToAdd(next, declined)) {
+          const { cart: c } = await sdk.store.cart.createLineItem(
+            next.id,
+            { variant_id: add.variantId, quantity: add.quantity, metadata: { auto_gift: add.rule } },
+            { fields: CART_FIELDS },
+          );
+          next = c;
+        }
+
+        for (const bump of giftsToBump(next, declined)) {
+          const { cart: c } = await sdk.store.cart.updateLineItem(
+            next.id,
+            bump.lineId,
+            { quantity: bump.quantity, metadata: { auto_gift: bump.rule } },
+            { fields: CART_FIELDS },
+          );
+          next = c;
+        }
+
+        // Safety net: undo anything of ours that is not actually free.
+        for (const undo of giftsToRevert(next)) {
+          if (undo.kind === "remove") {
+            await sdk.store.cart.deleteLineItem(next.id, undo.lineId);
+            const { cart: c } = await sdk.store.cart.retrieve(next.id, { fields: CART_FIELDS });
+            next = c;
+          } else {
+            const { cart: c } = await sdk.store.cart.updateLineItem(
+              next.id,
+              undo.lineId,
+              { quantity: undo.quantity, metadata: { auto_gift: null } },
+              { fields: CART_FIELDS },
+            );
+            next = c;
+          }
+        }
+        return next;
+      } catch {
+        // A failed gift pass must never break the cart. The customer keeps
+        // whatever they actually chose; they just don't get the freebie.
+        return current;
+      } finally {
+        reconciling.current = false;
+      }
+    },
+    [],
+  );
+
   const addItem = useCallback(
     async (variantId: string, quantity = 1, opts?: AddItemOpts) => {
       const intendedType: CartType = opts?.cartType ?? "instock";
@@ -222,6 +300,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           { fields: CART_FIELDS },
         );
         setCart(updated);
+        // Gift rules run after the customer's own item is in the cart.
+        const settled = await reconcileGifts(updated);
+        if (settled !== updated) setCart(settled);
         const addedLine = updated.items?.find(
           (i) => i.variant_id === variantId,
         );
@@ -240,7 +321,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         setLoading(false);
       }
     },
-    [cart],
+    [cart, reconcileGifts],
   );
 
   const updateItem = useCallback(
@@ -255,12 +336,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           { quantity },
           { fields: CART_FIELDS },
         );
-        setCart(updated);
+        // Dropping to 1 lingerie must pull the free cuff back out — otherwise
+        // the promo stops applying and they'd be charged for it.
+        setCart(await reconcileGifts(updated));
       } finally {
         setLoading(false);
       }
     },
-    [cart],
+    [cart, reconcileGifts],
   );
 
   const removeItem = useCallback(
@@ -272,6 +355,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       // updated parent cart (Medusa v2), so we avoid a second refresh round
       // trip in the happy path.
       const previousCart = cart;
+      // If they're deleting a gift we added, record it — otherwise the
+      // reconcile pass below would re-add it and they could never remove it.
+      const removedLine = cart.items?.find((i) => i.id === lineId);
+      const removedGift = removedLine ? giftTagOf(removedLine) : null;
+      if (removedGift) addDeclined(cart.id, removedGift);
       setCart({
         ...cart,
         items: cart.items?.filter((i) => i.id !== lineId) ?? [],
@@ -299,7 +387,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
               })
               .catch(() => {/* best-effort */});
           } else {
-            setCart(serverCart);
+            setCart(await reconcileGifts(serverCart));
           }
         } else {
           await refresh();
@@ -313,7 +401,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         setLoading(false);
       }
     },
-    [cart, refresh],
+    [cart, refresh, reconcileGifts],
   );
 
   const clearCart = useCallback(() => {

@@ -24,12 +24,27 @@ export async function Header() {
     <header className="sticky top-0 z-[100] border-b border-blush-400 bg-white">
       {/* Desktop-only promo bar — hidden on mobile to reclaim viewport
           space (the same free-delivery copy already appears in the cart
-          drawer, checkout, and loyalty teaser). */}
-      <div className="hidden flex-wrap items-center justify-center gap-3 bg-coral-500 px-6 py-1.5 text-[11px] font-medium tracking-wider text-white md:flex">
+          drawer, checkout, and loyalty teaser).
+
+          ⏳ TEMPORARY — anniversary sale copy, runs to 31 Jul 2026.
+          AFTER THE SALE, restore the evergreen copy:
+              <span>Free delivery on orders Rs.1500+</span>
+              <span className="opacity-50">✦</span>
+              <span>Cash on delivery available</span>
+          and drop the Link wrapper. Deliberately not date-gated: this bar
+          renders inside the root layout, so a server-side date check would
+          freeze at build time on statically-rendered pages and show the sale
+          banner on some routes and not others. */}
+      <Link
+        href="/events/anniversary"
+        className="hidden flex-wrap items-center justify-center gap-3 bg-coral-500 px-6 py-1.5 text-[11px] font-medium tracking-wider text-white transition-colors hover:bg-coral-700 md:flex"
+      >
+        <span>8 Years of Doll Up 🎂 — Up to 50% Off</span>
+        <span className="opacity-50">✦</span>
         <span>Free delivery on orders Rs.1500+</span>
         <span className="opacity-50">✦</span>
-        <span>Cash on delivery available</span>
-      </div>
+        <span className="underline underline-offset-2">Ends 31 July</span>
+      </Link>
 
       <div className="flex min-h-[72px] items-center gap-3 px-4 md:min-h-[104px] md:gap-6 md:px-8">
         <Link href="/" aria-label="Doll Up Boutique" className="flex shrink-0 items-center">
