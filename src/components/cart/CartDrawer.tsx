@@ -14,6 +14,7 @@ export function CartDrawer() {
   const { cart, open, setOpen, updateItem, removeItem, loading } = useCart();
   const items = cart?.items ?? [];
   const subtotal = cart?.subtotal ?? 0;
+  const discountTotal = cart?.discount_total ?? 0;
   const currency = cart?.currency_code ?? "MUR";
 
   const remaining = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
@@ -193,9 +194,31 @@ export function CartDrawer() {
                           +
                         </button>
                       </div>
-                      <span className="font-sans text-[13px] font-semibold">
-                        {formatPrice((item.unit_price ?? 0) * item.quantity, currency)}
-                      </span>
+                      {/* Show what the customer actually pays. `unit_price *
+                          quantity` ignores promotions, so a free GWP cuff or a
+                          BOGO tape rendered at full price and looked like a
+                          charge — while the subtotal below disagreed with it. */}
+                      {(() => {
+                        const listed = (item.unit_price ?? 0) * item.quantity;
+                        const payable = item.total ?? listed;
+                        if (payable >= listed) {
+                          return (
+                            <span className="font-sans text-[13px] font-semibold">
+                              {formatPrice(listed, currency)}
+                            </span>
+                          );
+                        }
+                        return (
+                          <span className="flex flex-col items-end leading-tight">
+                            <span className="font-sans text-[11px] text-ink-muted line-through">
+                              {formatPrice(listed, currency)}
+                            </span>
+                            <span className="font-sans text-[13px] font-bold text-coral-500">
+                              {payable === 0 ? "FREE" : formatPrice(payable, currency)}
+                            </span>
+                          </span>
+                        );
+                      })()}
                     </div>
                   </div>
                   <button
@@ -242,6 +265,19 @@ export function CartDrawer() {
                   {formatPrice(subtotal, currency)}
                 </span>
               </div>
+              {/* `cart.subtotal` is pre-discount, so without this row a cart with
+                  a free gift showed lines totalling 1,075 under a Subtotal of
+                  1,450 and the customer couldn't reconcile the two. */}
+              {discountTotal > 0 && (
+                <div className="mb-1 flex items-center justify-between">
+                  <span className="font-sans text-sm font-medium text-coral-500">
+                    Offers &amp; gifts
+                  </span>
+                  <span className="font-sans text-[15px] font-bold text-coral-500">
+                    −{formatPrice(discountTotal, currency)}
+                  </span>
+                </div>
+              )}
               <p className="mb-3.5 font-sans text-[11px] text-ink-muted">
                 Shipping &amp; taxes calculated at checkout
               </p>
