@@ -8,6 +8,7 @@ import {
   Ticket,
   Package,
   Shirt,
+  Droplets,
 } from "lucide-react";
 import { AnniversaryCountdown } from "./AnniversaryCountdown";
 
@@ -28,6 +29,9 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 type Offer = {
+  /** React key. Titles are NOT unique — tape and glue are both "Buy 1 Get 1
+   *  Free" — so never key the list on `title`. */
+  id: string;
   icon: typeof Gift;
   title: string;
   desc: string;
@@ -38,6 +42,7 @@ type Offer = {
 
 const OFFERS: Offer[] = [
   {
+    id: "sale",
     icon: Tag,
     title: "Up to 50% Off",
     desc: "Shop the anniversary sale across the store.",
@@ -45,6 +50,7 @@ const OFFERS: Offer[] = [
     cta: "Shop the sale",
   },
   {
+    id: "gwp-cuff",
     icon: Gift,
     title: "Free Gift",
     desc: "Buy 2 lingerie pieces, get a free cuff.",
@@ -57,10 +63,24 @@ const OFFERS: Offer[] = [
     cta: "Shop lingerie",
   },
   {
+    id: "bogo-tape",
     icon: Sparkles,
     title: "Buy 1 Get 1 Free",
     desc: "Boob tape — Jul 25–27 only.",
     tag: "Jul 25–27",
+    // Medusa promo BOGO-TAPE targets this exact product (is1361).
+    href: "/products/is1361",
+    cta: "Shop the tape",
+  },
+  {
+    id: "bogo-glue",
+    icon: Droplets,
+    title: "Buy 1 Get 1 Free",
+    desc: "Anti-slip glue — Jul 28–30 only.",
+    tag: "Jul 28–30",
+    // Medusa promo BOGO-GLUE targets this exact product (is2382).
+    href: "/products/is2382",
+    cta: "Shop the glue",
   },
   // NOTE: there is deliberately no generic "Pick Any 3" flat-price bundle card.
   // It was removed 2026-07-17: the card promised a flat bundle price that has no
@@ -69,12 +89,18 @@ const OFFERS: Offer[] = [
   // so any flat "3 for X" cost more than simply buying them on sale. Don't
   // re-add it without a promotion behind it.
   {
+    id: "dresses-b2g1",
     icon: Shirt,
     title: "Pick Any 3 Dresses",
     desc: "Buy 2 dresses, get the 3rd free — Jul 21–27 only.",
     tag: "Jul 21–27",
+    // Medusa promo DRESSES-B2G1 is scoped to the Dresses category
+    // (pcat_01KN5D9SQPS6KZE3V48DZNNZ5A = handle `dresses`).
+    href: "/shop?category=dresses",
+    cta: "Shop dresses",
   },
   {
+    id: "mystery-box",
     icon: Package,
     title: "Mystery Box",
     desc: "5 surprise pieces for Rs 3,500.",
@@ -183,14 +209,14 @@ export default function AnniversaryPage() {
 
               return offer.href ? (
                 <Link
-                  key={offer.title}
+                  key={offer.id}
                   href={offer.href}
                   className="block h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-coral-500 focus-visible:ring-offset-2 rounded-2xl"
                 >
                   {card}
                 </Link>
               ) : (
-                <div key={offer.title} className="h-full">
+                <div key={offer.id} className="h-full">
                   {card}
                 </div>
               );
