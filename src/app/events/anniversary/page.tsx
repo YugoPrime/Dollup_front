@@ -7,7 +7,6 @@ import {
   Sparkles,
   Ticket,
   Package,
-  Layers,
   Shirt,
 } from "lucide-react";
 import { AnniversaryCountdown } from "./AnniversaryCountdown";
@@ -49,7 +48,12 @@ const OFFERS: Offer[] = [
     icon: Gift,
     title: "Free Gift",
     desc: "Buy 2 lingerie pieces, get a free cuff.",
-    href: "/shop?category=intimates",
+    // MUST be `lingerie`, not `intimates`. The handle `intimates` is the
+    // "After Dark" category; the GWP promo (GWP-LINGERIE-CUFF) only fires on
+    // the Lingerie category (pcat_01KN5D9SVBWPSN8PB20JJFVDKF = handle
+    // `lingerie`). Pointing this at `intimates` sent customers to After Dark,
+    // where buying 2 items never triggers the free cuff.
+    href: "/shop?category=lingerie",
     cta: "Shop lingerie",
   },
   {
@@ -58,15 +62,16 @@ const OFFERS: Offer[] = [
     desc: "Boob tape — Jul 25–27 only.",
     tag: "Jul 25–27",
   },
-  {
-    icon: Layers,
-    title: "Pick Any 3",
-    desc: "Bundle & save with one flat price.",
-  },
+  // NOTE: there is deliberately no generic "Pick Any 3" flat-price bundle card.
+  // It was removed 2026-07-17: the card promised a flat bundle price that has no
+  // matching Medusa promotion, so customers adding 3 items got nothing. The flat
+  // bundle was abandoned during planning because dresses average ~Rs 778 on sale,
+  // so any flat "3 for X" cost more than simply buying them on sale. Don't
+  // re-add it without a promotion behind it.
   {
     icon: Shirt,
     title: "Pick Any 3 Dresses",
-    desc: "Mix & match dresses — Jul 21–27 only.",
+    desc: "Buy 2 dresses, get the 3rd free — Jul 21–27 only.",
     tag: "Jul 21–27",
   },
   {
