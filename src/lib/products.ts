@@ -436,10 +436,14 @@ function productMatchesParsedQuery(
   p: HttpTypes.StoreProduct,
   parsed: ParsedSearchQuery,
 ): boolean {
-  // Size filter: every parsed size must exist among the product's variant size options.
+  // Size filter: every parsed size must exist among the product's *purchasable*
+  // variant size options. Out-of-stock variants are skipped so "lingerie in XL"
+  // never returns a product whose only XL is sold out — matching the behaviour
+  // of the sidebar size filter in listWithFacetFilters.
   if (parsed.sizes.length > 0) {
     const productSizes = new Set<string>();
     for (const v of p.variants ?? []) {
+      if (!isVariantInStock(v)) continue;
       for (const o of v.options ?? []) {
         if (isSizeOption(o)) {
           const canon = canonicalSize(o.value ?? "");
