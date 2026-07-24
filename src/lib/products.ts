@@ -25,28 +25,76 @@ const PRODUCT_LIST_FIELDS =
 const CATALOG_BATCH_SIZE = 100;
 const CATALOG_MAX_BATCHES = 12;
 const CATALOG_REVALIDATE_SECONDS = 300;
-const inFlightCatalogFetches = new Map<string, Promise<HttpTypes.StoreProduct[]>>();
 
 // Single shared catalog snapshot. Previously listProducts, getShopFacets and
 // getCategoryHandlesWithStock each paged through the full catalog (3 × up to
 // 5 sequential round-trips on cache miss). Now one snapshot is fetched per
-// region with parallel batches, cached 5 min, and reused by all three
+// region with parallel batches, held in process memory, and reused by all
 // callers — which derive their result with cheap in-memory filtering.
+//
+// Stale-while-revalidate: once a snapshot exists, requests always get it
+// immediately. When it's older than CATALOG_REVALIDATE_SECONDS a background
+// refresh is kicked off (coalesced via inFlightCatalogFetches) and the NEXT
+// request picks up the fresh data. Measured on prod: a blocking refetch is
+// 2–4.5s (548 products × 6 Medusa batches at ~1–1.7s each), which is exactly
+// the "filters feel slow" complaint — only the very first request after a
+// server restart should ever pay it.
+type CatalogSnapshot = {
+  products: HttpTypes.StoreProduct[];
+  fetchedAt: number;
+};
+// Pinned on globalThis because Next can bundle this module into more than one
+// server chunk (page vs route handler); plain module state would then be a
+// separate snapshot per chunk and each would pay its own catalog fetch.
+type CatalogState = {
+  snapshots: Map<string, CatalogSnapshot>;
+  inFlight: Map<string, Promise<HttpTypes.StoreProduct[]>>;
+};
+const catalogState: CatalogState = ((
+  globalThis as { __dubCatalogState?: CatalogState }
+).__dubCatalogState ??= {
+  snapshots: new Map(),
+  inFlight: new Map(),
+});
+const catalogSnapshots = catalogState.snapshots;
+const inFlightCatalogFetches = catalogState.inFlight;
+
 async function fetchAllStoreProducts(
+  regionId: string,
+): Promise<HttpTypes.StoreProduct[]> {
+  const snapshot = catalogSnapshots.get(regionId);
+  if (snapshot) {
+    const ageMs = Date.now() - snapshot.fetchedAt;
+    if (ageMs > CATALOG_REVALIDATE_SECONDS * 1000) {
+      // Fire-and-forget: the long-running `next start` process keeps the
+      // promise alive after this response finishes. Failures keep the stale
+      // snapshot in place, so a Medusa hiccup degrades to "5-minute-old
+      // catalog" instead of an error page.
+      refreshCatalogSnapshot(regionId).catch(() => {});
+    }
+    return snapshot.products;
+  }
+  return refreshCatalogSnapshot(regionId);
+}
+
+function refreshCatalogSnapshot(
   regionId: string,
 ): Promise<HttpTypes.StoreProduct[]> {
   const existing = inFlightCatalogFetches.get(regionId);
   if (existing) return existing;
 
-  const promise = fetchAllStoreProductsUncoalesced(regionId);
+  const promise = fetchAllStoreProductsUncoalesced(regionId)
+    .then((products) => {
+      catalogSnapshots.set(regionId, { products, fetchedAt: Date.now() });
+      return products;
+    })
+    .finally(() => {
+      if (inFlightCatalogFetches.get(regionId) === promise) {
+        inFlightCatalogFetches.delete(regionId);
+      }
+    });
   inFlightCatalogFetches.set(regionId, promise);
-  try {
-    return await promise;
-  } finally {
-    if (inFlightCatalogFetches.get(regionId) === promise) {
-      inFlightCatalogFetches.delete(regionId);
-    }
-  }
+  return promise;
 }
 
 async function fetchAllStoreProductsUncoalesced(
@@ -79,12 +127,6 @@ async function fetchAllStoreProductsUncoalesced(
   );
   return [...first.products, ...rest.flat()];
 }
-
-const cachedAllStoreProducts = unstable_cache(
-  fetchAllStoreProducts,
-  ["all-store-products-v2"],
-  { tags: [PRODUCTS_CACHE_TAG], revalidate: CATALOG_REVALIDATE_SECONDS },
-);
 
 function getProductCollectionId(p: HttpTypes.StoreProduct): string | null {
   const direct = (p as { collection_id?: string | null }).collection_id;
@@ -225,7 +267,7 @@ async function listWithFacetFilters(
   args: ListProductsArgs,
   region: Awaited<ReturnType<typeof getRegion>>,
 ) {
-  const all = await cachedAllStoreProducts(region.id);
+  const all = await fetchAllStoreProducts(region.id);
 
   // Exclude pre-order products from the in-stock storefront.
   // These are served at /preorder/* and must not appear in /shop or homepage listings.
@@ -596,7 +638,7 @@ async function computeShopFacets(args: {
   // Reads the shared catalog snapshot; category/tag/q/onSale are applied in
   // memory so the sidebar facets match the grid the customer is actually
   // seeing.
-  const all = await cachedAllStoreProducts(region.id);
+  const all = await fetchAllStoreProducts(region.id);
 
   let scoped: HttpTypes.StoreProduct[] = all.filter((p) => {
     const meta = (p.metadata ?? {}) as Record<string, unknown>;
@@ -696,7 +738,7 @@ export async function getProductFacetIndex(): Promise<ProductFacetIndex> {
 const cachedProductFacetIndex = unstable_cache(
   async (): Promise<ProductFacetIndex> => {
     const region = await getRegion();
-    const all = await cachedAllStoreProducts(region.id);
+    const all = await fetchAllStoreProducts(region.id);
     const entries: ProductFacetEntry[] = [];
     for (const p of all) {
       // Skip preorder + unlisted — they aren't on /shop.
@@ -866,8 +908,8 @@ const cachedCategoryHandlesWithStock = unstable_cache(
   async (): Promise<string[]> => {
     const region = await getRegion();
     // Reads the shared catalog snapshot — the per-caller wide fetch this used
-    // to do is now consolidated into cachedAllStoreProducts.
-    const all = await cachedAllStoreProducts(region.id);
+    // to do is now consolidated into fetchAllStoreProducts.
+    const all = await fetchAllStoreProducts(region.id);
 
     const categories = await cachedCategories();
     const parentById = new Map<string, string | null>();
