@@ -5,7 +5,9 @@ export const INTIMATES_CATEGORY_HANDLE = "intimates";
 
 // Categories excluded from the Meta / Google product feed to avoid policy
 // flags. Storefront still shows these — only ad surfaces are stripped.
-export const FEED_EXCLUDED_CATEGORY_HANDLES = ["intimates", "toys"];
+// `intimates` = the "After Dark" bucket; `lingerie` is a SEPARATE category and
+// must be listed explicitly (a product in one is not necessarily in the other).
+export const FEED_EXCLUDED_CATEGORY_HANDLES = ["intimates", "lingerie", "toys"];
 
 // Cookie set by /private/[token] after a successful unlock. Lasts 30 days.
 export const PRIVATE_UNLOCK_COOKIE = "dub_private_unlock";
