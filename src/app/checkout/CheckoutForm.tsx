@@ -408,6 +408,7 @@ export function CheckoutForm() {
       // the order at complete-time, then freezes it). If we registered after
       // cart.complete, the order would be locked to no/wrong customer and
       // never appear under /account/orders.
+      let hasAccountSession = Boolean(customer);
       if (!customer && state.createAccount && state.password) {
         try {
           // Use the auth-client `register` helper — it carries the SDK-session
@@ -423,24 +424,32 @@ export function CheckoutForm() {
             lastName: state.lastName,
             phone: state.phone,
           });
-          // Bind the in-flight cart to the new customer so the order inherits
-          // the right customer_id at cart.complete. transferCart inside
-          // register() targets the localStorage cart id; this explicit call
-          // covers the current cart in case it diverged.
-          await cartSdk.store.cart.transferCart(cart.id);
+          hasAccountSession = true;
         } catch (e) {
           // Most common failure: email already registered. Don't block the
           // order — it still completes as guest. (User can claim it later
           // via the existing /forgot-password + /account flow.)
           console.warn("Account creation skipped:", e);
         }
-      } else if (customer) {
-        // Defensive: ensure cart belongs to the logged-in customer right
-        // before completion. transferCart is a no-op when already bound.
+      }
+
+      // Bind the in-flight cart to the account so the order inherits the right
+      // customer_id at cart.complete. transferCart inside register() targets the
+      // localStorage cart id; this explicit call covers the current cart in case
+      // it diverged, and is a no-op when the cart is already bound.
+      if (hasAccountSession) {
         try {
           await cartSdk.store.cart.transferCart(cart.id);
-        } catch {
-          /* best effort — let cart.complete proceed */
+        } catch (e) {
+          // Never block the order over this. But this is the exact failure that
+          // orphaned 39 orders from their accounts (transferCart 401'd because
+          // the post-register session had an empty actor_id), so log it loudly
+          // and on its own — folding it into the register() catch above is what
+          // let it hide for three months.
+          console.error(
+            "cart.transferCart failed — this order will not appear under /account/orders:",
+            e,
+          );
         }
       }
 

@@ -136,6 +136,18 @@ export async function register(args: {
     last_name: args.lastName,
     phone: args.phone,
   });
+  // The session minted above was issued while the auth identity still had no
+  // customer attached, so its `actor_id` claim is the empty string. Medusa
+  // rejects every store route that requires a *registered* customer with a bare
+  // 401 — including `POST /store/carts/:id/customer` (transferCart). That 401
+  // is why checkout-time signups left the cart on its guest customer, froze the
+  // guest id onto the order at cart.complete, and the order never showed up
+  // under /account/orders. Re-authenticate now that the customer row exists so
+  // the session carries actor_id = the new customer.
+  await clientSdk.auth.login("customer", "emailpass", {
+    email: args.email,
+    password: args.password,
+  });
   await attachStoredCartToCustomer();
   publish({ status: "ready", customer: customer ?? null });
   if (!customer) {
