@@ -15,6 +15,9 @@ export type PublicStoreConfig = {
     free_shipping_threshold_mur: number;
     return_fee_mur: number;
     preorder_eta_copy: string;
+    /** Whole hour, Mauritius time. Set daily from Telegram; see the backend's
+     *  src/lib/delivery-cutoff.ts. Drives both the copy and the checkout rule. */
+    next_day_cutoff_hour: number;
     options: StoreConfigShippingOption[];
   };
   store: {
@@ -33,8 +36,8 @@ export const FALLBACK_STORE_CONFIG: PublicStoreConfig = {
   shipping: {
     free_shipping_threshold_mur: 1500,
     return_fee_mur: 70,
-    preorder_eta_copy:
-      "Confirm before noon to receive your order the next day across Mauritius.",
+    preorder_eta_copy: "Order before noon for next-day delivery across Mauritius.",
+    next_day_cutoff_hour: 12,
     options: [],
   },
   store: {

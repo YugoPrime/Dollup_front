@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, LockKeyhole } from "lucide-react";
 import { CheckoutForm } from "./CheckoutForm";
+import { getStoreConfig } from "@/lib/store-config";
 
 export const metadata: Metadata = {
   title: "Checkout",
@@ -10,7 +11,11 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function CheckoutPage() {
+export default async function CheckoutPage() {
+  // Read at render. The owner can push the cutoff later from Telegram at any
+  // point in the day, and store config is cached for 5 minutes, so a page left
+  // open across a change keeps the value it loaded with.
+  const cfg = await getStoreConfig();
   return (
     <div className="mx-auto max-w-6xl px-4 pb-28 pt-8 lg:py-14">
       <div className="mb-7 flex flex-col gap-3 lg:mb-8 lg:flex-row lg:items-end lg:justify-between">
@@ -36,7 +41,7 @@ export default function CheckoutPage() {
           </p>
         </div>
       </div>
-      <CheckoutForm />
+      <CheckoutForm cutoffHour={cfg.shipping.next_day_cutoff_hour} />
     </div>
   );
 }

@@ -81,7 +81,7 @@ export default function PrivacyPage() {
             <ul className="list-disc space-y-1.5 pl-5">
               <li><strong>Hosting &amp; infrastructure:</strong> Coolify, Cloudflare.</li>
               <li><strong>Couriers:</strong> our delivery driver and Mauritius Post — to deliver your parcel.</li>
-              <li><strong>Payment proof channels:</strong> Juice, bank transfer, myT Money — when you send proof of payment.</li>
+              <li><strong>Payment proof channels:</strong> Juice, bank transfer — when you send proof of payment.</li>
               <li><strong>Email service</strong> (when enabled) — to send transactional and (if you opted in) marketing emails.</li>
               <li><strong>Authorities</strong> — if compelled by law (police, courts, tax authorities).</li>
             </ul>

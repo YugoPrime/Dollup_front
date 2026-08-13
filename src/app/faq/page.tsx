@@ -65,7 +65,7 @@ const SECTIONS: FaqSection[] = [
         q: "How can I pay?",
         a: (
           <p>
-            We accept <strong>Juice</strong>, <strong>bank transfer</strong>, <strong>myT Money</strong> and <strong>cash on delivery</strong>. Card payments are coming soon.
+            We accept <strong>Juice</strong>, <strong>bank transfer</strong> and <strong>cash on delivery</strong>. Card payments are coming soon.
           </p>
         ),
       },
@@ -133,7 +133,7 @@ const SECTIONS: FaqSection[] = [
         q: "How fast is delivery?",
         a: (
           <p>
-            In-stock items ship <strong>next-day</strong> if you order before 2pm. By post, count <strong>2–4 working days</strong> regular or <strong>1–2 working days</strong> express.
+            In-stock items ship <strong>next-day</strong> if you order before the day's cutoff — usually <strong>noon</strong>, shown at checkout. Order after it on a Friday and delivery moves to <strong>Monday</strong>. By post, count <strong>2–4 working days</strong> regular or <strong>1–2 working days</strong> express.
           </p>
         ),
       },

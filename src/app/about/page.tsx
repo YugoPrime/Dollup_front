@@ -101,7 +101,7 @@ export default function AboutPage() {
               },
               {
                 k: "Personal service",
-                v: "Sizing advice on demand and next-day delivery when you order before 2pm. We reply on WhatsApp, Instagram and email.",
+                v: "Sizing advice on demand and next-day delivery when you order before the day's cutoff. We reply on WhatsApp, Instagram and email.",
               },
             ].map((c) => (
               <div

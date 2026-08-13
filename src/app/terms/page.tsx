@@ -109,7 +109,7 @@ export default function TermsPage() {
             <p><strong>6.1.</strong> Validating your order means that you agree to pay the indicated price.</p>
             <p><strong>6.2.</strong> The User must pay a fixed rate corresponding to the cost of processing the order, unless they have a special offer exempting them. To find out the amount of these fees, refer to the <a href="/shipping" className="text-coral-500 hover:underline">Shipping page</a>.</p>
             <p><strong>6.3.</strong> The User&apos;s account will be debited the total amount of the order at validation, followed by a confirmation email. In the case of stock shortage or unavailability, the User&apos;s account will be re-credited if payment was already made.</p>
-            <p><strong>6.4.</strong> Payment is possible by Juice, bank transfer, myT Money or cash on delivery. Card payments are coming soon.</p>
+            <p><strong>6.4.</strong> Payment is possible by Juice, bank transfer or cash on delivery. Card payments are coming soon.</p>
             <p><strong>6.5.</strong> When payment is made by Juice or bank transfer, proof of payment must be sent to <a href="mailto:hello@dollupboutique.com" className="text-coral-500 hover:underline">hello@dollupboutique.com</a>.</p>
           </Section>
 

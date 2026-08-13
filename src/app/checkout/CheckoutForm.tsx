@@ -129,7 +129,10 @@ function Field({
   );
 }
 
-export function CheckoutForm() {
+export function CheckoutForm({ cutoffHour }: { cutoffHour: number }) {
+  // Same wording the rest of the site uses, so the date picker's error text and
+  // the shipping page can never describe different cutoffs.
+  const cutoffLabel = cutoffHour === 12 ? "noon" : `${cutoffHour - 12}pm`;
   const router = useRouter();
   const { cart, clearCart, refreshCart } = useCart();
   const { status: authStatus, customer } = useCustomer();
@@ -216,8 +219,8 @@ export function CheckoutForm() {
   );
   const showDeliveryDate = deliveryDateApplies(selectedMethod);
   const isPickup = selectedMethod === "Pick Up";
-  const minDeliveryDate = earliestDeliveryDate(new Date(), isPickup);
-  const quickDeliveryDates = nextValidDeliveryDates(3, new Date(), isPickup);
+  const minDeliveryDate = earliestDeliveryDate(new Date(), isPickup, cutoffHour);
+  const quickDeliveryDates = nextValidDeliveryDates(3, new Date(), isPickup, cutoffHour);
   const allowedPayments = allowedPaymentMethods(selectedMethod);
 
   // Clear the delivery date when the selected shipping option is not
@@ -377,7 +380,7 @@ export function CheckoutForm() {
     const dateToSend =
       showDeliveryDate &&
       state.deliveryDate &&
-      isValidDeliveryDate(state.deliveryDate, new Date(), isPickup)
+      isValidDeliveryDate(state.deliveryDate, new Date(), isPickup, cutoffHour)
         ? state.deliveryDate
         : null;
     const metadataPatch: Record<string, unknown> = {
@@ -546,7 +549,7 @@ export function CheckoutForm() {
     "No address entered";
   const reviewDate =
     state.deliveryDate &&
-    isValidDeliveryDate(state.deliveryDate, new Date(), isPickup)
+    isValidDeliveryDate(state.deliveryDate, new Date(), isPickup, cutoffHour)
       ? new Intl.DateTimeFormat("en-MU", {
           day: "numeric",
           month: "short",
@@ -727,7 +730,7 @@ export function CheckoutForm() {
             <p className="font-sans text-xs text-ink-muted">
               {isPickup
                 ? "Same-day pickup OK. Closed Sundays."
-                : "No same-day delivery. Order before 1pm for next day. Closed Sundays."}
+                : `No same-day delivery. Order before ${cutoffLabel} for next day. Closed Sundays.`}
             </p>
 
             <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:px-0 sm:pb-0 sm:flex-wrap">
@@ -768,7 +771,7 @@ export function CheckoutForm() {
               htmlFor="deliveryDate"
               className={`relative flex items-center gap-2 rounded-lg border-[1.5px] bg-white px-3 py-3 transition-colors focus-within:border-coral-500 ${
                 state.deliveryDate &&
-                !isValidDeliveryDate(state.deliveryDate, new Date(), isPickup)
+                !isValidDeliveryDate(state.deliveryDate, new Date(), isPickup, cutoffHour)
                   ? "border-coral-500"
                   : "border-blush-300"
               }`}
@@ -792,7 +795,7 @@ export function CheckoutForm() {
             </label>
 
             {state.deliveryDate &&
-              isValidDeliveryDate(state.deliveryDate, new Date(), isPickup) && (
+              isValidDeliveryDate(state.deliveryDate, new Date(), isPickup, cutoffHour) && (
                 <p className="font-sans text-[12px] text-ink-soft">
                   {isPickup ? "Pickup on " : "Delivery on "}
                   <span className="font-semibold text-ink">
@@ -806,11 +809,11 @@ export function CheckoutForm() {
               )}
 
             {state.deliveryDate &&
-              !isValidDeliveryDate(state.deliveryDate, new Date(), isPickup) && (
+              !isValidDeliveryDate(state.deliveryDate, new Date(), isPickup, cutoffHour) && (
                 <p className="font-sans text-[11px] text-coral-700">
                   {isPickup
                     ? "That date is not available — no pickups on Sundays."
-                    : "That date is not available. No same-day delivery, next-day cutoff is 1pm, no Sundays."}
+                    : `That date is not available. No same-day delivery, next-day cutoff is ${cutoffLabel}, no Sundays.`}
                 </p>
               )}
           </section>

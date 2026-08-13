@@ -129,7 +129,7 @@ export async function Footer() {
           </span>
         </div>
         <div className="flex flex-wrap gap-2">
-          {["Juice", "Bank Transfer", "myT Money", "Cash on Delivery"].map((p) => (
+          {["Juice", "Bank Transfer", "Cash on Delivery"].map((p) => (
             <span
               key={p}
               className="rounded bg-white px-2.5 py-1 text-[10px] font-bold tracking-wider text-ink shadow-[0_1px_2px_rgba(0,0,0,0.04)]"

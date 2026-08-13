@@ -123,19 +123,29 @@ function addDaysYmd(ymd: string, days: number): string {
   return fmtYmd(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate());
 }
 
+// Applies when store config can't be read. Matches DEFAULT_CUTOFF_HOUR in the
+// backend's src/lib/delivery-cutoff.ts — the two must agree, or the site and
+// the concierge promise different things.
+export const DEFAULT_NEXT_DAY_CUTOFF_HOUR = 12;
+
 // Earliest date the customer can pick. Rules:
-//  - Default (delivery): no same-day, next-day only when ordered before
-//    13:00 MU time, no Sundays.
+//  - Default (delivery): no same-day, next-day only when ordered before the
+//    cutoff (MU time), no Sundays.
 //  - allowSameDay (pickup): today is fine, no Sundays (push to Monday).
+//
+// The Friday rule falls out of these two rather than being written down: an
+// order past the cutoff on Friday goes +2 days to Sunday, and Sunday is pushed
+// to Monday. Saturday behaves the same way.
 export function earliestDeliveryDate(
   now: Date = new Date(),
   allowSameDay = false,
+  cutoffHour: number = DEFAULT_NEXT_DAY_CUTOFF_HOUR,
 ): string {
   const { year, month, day, hour } = muDateParts(now);
   const todayYmd = fmtYmd(year, month, day);
   let candidate = allowSameDay
     ? todayYmd
-    : addDaysYmd(todayYmd, hour < 13 ? 1 : 2);
+    : addDaysYmd(todayYmd, hour < cutoffHour ? 1 : 2);
   if (dowOfYmd(candidate) === 0) candidate = addDaysYmd(candidate, 1);
   return candidate;
 }
@@ -145,10 +155,11 @@ export function isValidDeliveryDate(
   ymd: string,
   now: Date = new Date(),
   allowSameDay = false,
+  cutoffHour: number = DEFAULT_NEXT_DAY_CUTOFF_HOUR,
 ): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return false;
   if (dowOfYmd(ymd) === 0) return false;
-  return ymd >= earliestDeliveryDate(now, allowSameDay);
+  return ymd >= earliestDeliveryDate(now, allowSameDay, cutoffHour);
 }
 
 // Returns the next `count` valid delivery / pickup dates starting from the
@@ -158,9 +169,10 @@ export function nextValidDeliveryDates(
   count: number,
   now: Date = new Date(),
   allowSameDay = false,
+  cutoffHour: number = DEFAULT_NEXT_DAY_CUTOFF_HOUR,
 ): string[] {
   const out: string[] = [];
-  let candidate = earliestDeliveryDate(now, allowSameDay);
+  let candidate = earliestDeliveryDate(now, allowSameDay, cutoffHour);
   while (out.length < count) {
     if (dowOfYmd(candidate) !== 0) out.push(candidate);
     candidate = addDaysYmd(candidate, 1);

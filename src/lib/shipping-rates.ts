@@ -18,8 +18,14 @@ const FALLBACKS: Record<string, { amount: number; freeOver?: number }> = {
   rodrigues: { amount: 100 },
 };
 
+/** "noon", "1pm" — matches the wording used everywhere else on the site. */
+function cutoffLabel(hour: number): string {
+  if (!Number.isFinite(hour) || hour < 12 || hour > 15) return "noon";
+  return hour === 12 ? "noon" : `${hour - 12}pm`;
+}
+
 const DISPLAY = [
-  { key: "home", label: "Home / office delivery", timeframe: "Next day if ordered before 2pm" },
+  { key: "home", label: "Home / office delivery", timeframe: "" },
   { key: "postRegular", label: "Mauritius Post (regular)", timeframe: "2–4 working days" },
   { key: "postExpress", label: "Mauritius Post (express)", timeframe: "1–2 working days" },
   { key: "pickup", label: "Pickup at Pereybere", timeframe: "When ready — we'll WhatsApp you" },
@@ -64,7 +70,10 @@ export async function getMauritiusRates(): Promise<ShippingRate[]> {
     return {
       key: d.key,
       label: d.label,
-      timeframe: d.timeframe,
+      timeframe:
+        d.key === "home"
+          ? `Next day if ordered before ${cutoffLabel(cfg.shipping.next_day_cutoff_hour)}`
+          : d.timeframe,
       amount: liveRow?.amount ?? fallback?.amount ?? null,
       currency: "MUR",
       freeOver: d.key === "home" && freeOver > 0 ? freeOver : undefined,
