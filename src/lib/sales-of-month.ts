@@ -16,7 +16,7 @@ export type SalesOfMonthConfig = {
  * must be configured in Medusa admin (price list applied to winter-tagged products).
  */
 export const salesOfMonthConfig: SalesOfMonthConfig = {
-  enabled: true,
+  enabled: false, // anniversary sale closed 31 Jul 2026
   headline: "8 Years of Doll Up 🎂 Anniversary Sale",
   percentOff: 50, // "up to 50%" — clearance tier; heroes 30%, movers 35%
   endsAt: "2026-07-31T23:59:59+04:00", // Mauritius timezone
