@@ -306,7 +306,7 @@ async function listWithFacetFilters(
   // `metadata.search_terms` enrichment field.
   if (args.q) {
     const parsed = parseSearchQuery(args.q);
-    if (parsed.sizes.length > 0 || parsed.textTokens.length > 0) {
+    if (parsed.sizes.length > 0 || parsed.colors.length > 0 || parsed.textTokens.length > 0) {
       filtered = filtered.filter((p) => productMatchesParsedQuery(p, parsed));
     }
   }
@@ -435,19 +435,44 @@ const SIZE_WORD_MAP: Record<string, string> = {
   onesize: "Free Size", "one-size": "Free Size",
 };
 
-type ParsedSearchQuery = {
+export type ParsedSearchQuery = {
   sizes: string[];
+  /** Canonical color buckets ("white", "blue") pulled out of the query. */
+  colors: string[];
   textTokens: string[];
 };
 
-function parseSearchQuery(q: string): ParsedSearchQuery {
+// Multi-word color phrases ("light blue", "off white", "hot pink") are
+// extracted before tokenization so they resolve to one canonical bucket
+// instead of splitting into "light" + "blue".
+// Lazy: COLOR_CANONICAL is declared further down the module.
+let colorPhrasesCache: string[] | null = null;
+function colorPhrases(): string[] {
+  if (!colorPhrasesCache) {
+    colorPhrasesCache = Object.keys(COLOR_CANONICAL)
+      .filter((k) => k.includes(" "))
+      .sort((a, b) => b.length - a.length);
+  }
+  return colorPhrasesCache;
+}
+
+export function parseSearchQuery(q: string): ParsedSearchQuery {
   let normalized = q.toLowerCase();
   const sizes: string[] = [];
+  const colors: string[] = [];
 
   // Extract multi-word size phrases first so they don't break apart.
   for (const [pattern, code] of SIZE_PHRASE_MAP) {
     if (pattern.test(normalized)) {
       sizes.push(code);
+      normalized = normalized.replace(pattern, " ");
+    }
+  }
+  for (const phrase of colorPhrases()) {
+    const pattern = new RegExp(`\\b${phrase.replace(/\s+/g, "\\s+")}\\b`);
+    if (pattern.test(normalized)) {
+      const canon = canonicalColor(phrase);
+      if (canon) colors.push(canon);
       normalized = normalized.replace(pattern, " ");
     }
   }
@@ -465,35 +490,66 @@ function parseSearchQuery(q: string): ParsedSearchQuery {
       sizes.push(sizeCode);
       continue;
     }
+    // "off" alone maps to cream via COLOR_CANONICAL — only treat it as a
+    // color when it came through the phrase pass ("off white").
+    const colorCode = token === "off" ? null : canonicalColor(token);
+    if (colorCode) {
+      colors.push(colorCode);
+      continue;
+    }
     textTokens.push(token);
   }
 
   return {
     sizes: [...new Set(sizes)],
+    colors: [...new Set(colors)],
     textTokens,
   };
 }
 
-function productMatchesParsedQuery(
+export function productMatchesParsedQuery(
   p: HttpTypes.StoreProduct,
-  parsed: ParsedSearchQuery,
+  parsedIn: ParsedSearchQuery,
 ): boolean {
+  let parsed = parsedIn;
   // Size filter: every parsed size must exist among the product's *purchasable*
   // variant size options. Out-of-stock variants are skipped so "lingerie in XL"
   // never returns a product whose only XL is sold out — matching the behaviour
   // of the sidebar size filter in listWithFacetFilters.
-  if (parsed.sizes.length > 0) {
-    const productSizes = new Set<string>();
+  //
+  // Color filter: "white dress in S" must find an in-stock variant that is
+  // BOTH white AND S — not a white XL plus a black S. So sizes and colors are
+  // checked per variant. Products with no color option at all fall back to
+  // text-matching the color word (title / search_terms enrichment).
+  if (parsed.sizes.length > 0 || parsed.colors.length > 0) {
+    const colorSet = new Set(parsed.colors);
+    const sizesSeen = new Set<string>();
+    let colorMatched = parsed.colors.length === 0;
+    // Decide from ALL variants (not just in-stock) whether this product has a
+    // color option, so a sold-out white never sneaks back in via text match.
+    const hasColorOption = (p.variants ?? []).some((v) =>
+      (v.options ?? []).some((o) => isColorOption(o)),
+    );
     for (const v of p.variants ?? []) {
       if (!isVariantInStock(v)) continue;
+      let vSize: string | null = null;
+      let vColor: string | null = null;
       for (const o of v.options ?? []) {
-        if (isSizeOption(o)) {
-          const canon = canonicalSize(o.value ?? "");
-          if (canon) productSizes.add(canon);
-        }
+        if (isSizeOption(o)) vSize = canonicalSize(o.value ?? "");
+        else if (isColorOption(o)) vColor = canonicalColor(o.value ?? "");
       }
+      const colorOk = parsed.colors.length === 0 || (vColor != null && colorSet.has(vColor));
+      if (!colorOk) continue;
+      colorMatched = true;
+      if (vSize) sizesSeen.add(vSize);
     }
-    if (!parsed.sizes.every((s) => productSizes.has(s))) return false;
+    if (parsed.colors.length > 0 && !hasColorOption) {
+      // No color option on this product — let the color word act as text.
+      parsed = { ...parsed, textTokens: [...parsed.textTokens, ...parsed.colors] };
+    } else {
+      if (!colorMatched) return false;
+      if (!parsed.sizes.every((s) => sizesSeen.has(s))) return false;
+    }
   }
 
   if (parsed.textTokens.length === 0) return true;
@@ -659,7 +715,7 @@ async function computeShopFacets(args: {
   }
   if (args.q) {
     const parsed = parseSearchQuery(args.q);
-    if (parsed.sizes.length > 0 || parsed.textTokens.length > 0) {
+    if (parsed.sizes.length > 0 || parsed.colors.length > 0 || parsed.textTokens.length > 0) {
       scoped = scoped.filter((p) => productMatchesParsedQuery(p, parsed));
     }
   }

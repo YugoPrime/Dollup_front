@@ -8,6 +8,7 @@ import {
   getLatestCollectionTag,
   getShopFacets,
   getCategoryHandlesWithStock,
+  parseSearchQuery,
 } from "@/lib/products";
 import { ProductCard } from "@/components/ProductCard";
 import { ShopFilterSidebar } from "@/components/shop/ShopFilterSidebar";
@@ -78,8 +79,15 @@ export default async function ShopPage({
   const colorFilter = parseMultiParam(sp.color);
   // For `selectedColor` (ProductCard hint), only use a single color: when the
   // shopper has selected 2+ colors, no per-color hero override is meaningful.
+  // A single color typed into the search ("white dress in S") acts the same
+  // way, so every card leads with its white photo.
+  const queryColors = q ? parseSearchQuery(q).colors : [];
   const singleSelectedColor =
-    colorFilter && colorFilter.length === 1 ? colorFilter[0] : null;
+    colorFilter && colorFilter.length === 1
+      ? colorFilter[0]
+      : !colorFilter && queryColors.length === 1
+        ? queryColors[0]
+        : null;
   const priceMin = sp.price_min ? Number(sp.price_min) : undefined;
   const priceMax = sp.price_max ? Number(sp.price_max) : undefined;
   const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
