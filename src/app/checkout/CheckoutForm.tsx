@@ -1205,38 +1205,13 @@ export function CheckoutForm({ cutoffHour }: { cutoffHour: number }) {
           </div>
         </section>
 
-        <div className={`${mobileStep === "review" ? "block" : "hidden"} lg:hidden`}>
+        {/* LoyaltyRedeemBox renders null for guests. Without empty:hidden this
+            wrapper stays a zero-height flex item and still costs the parent's
+            gap-8 above and below it (64px of dead space on the review step). */}
+        <div
+          className={`${mobileStep === "review" ? "block" : "hidden"} empty:hidden lg:hidden`}
+        >
           {loyaltyBox}
-        </div>
-        <div aria-hidden className="h-24 lg:hidden" />
-        <div className="fixed inset-x-0 bottom-0 z-[90] border-t border-blush-300 bg-white/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(26,18,18,0.08)] backdrop-blur lg:hidden">
-          <div className="flex gap-2">
-            {mobileStep !== "delivery" ? (
-              <button
-                type="button"
-                onClick={goBackMobileStep}
-                disabled={submitting}
-                className="flex h-12 w-24 shrink-0 items-center justify-center gap-1 rounded-md border border-blush-300 bg-white font-sans text-sm font-semibold text-ink transition-colors hover:border-coral-500 disabled:opacity-60"
-              >
-                <ChevronLeft aria-hidden className="h-4 w-4" />
-                Back
-              </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={handleMobilePrimaryAction}
-              disabled={
-                submitting ||
-                (mobileStep === "review" &&
-                  cartTypeOf(cart as unknown as { metadata?: Record<string, unknown> | null }) === "preorder" &&
-                  !termsAccepted)
-              }
-              className="flex h-12 min-w-0 flex-1 items-center justify-between gap-3 rounded-md bg-coral-500 px-4 font-sans text-sm font-semibold text-white shadow-lg transition-colors hover:bg-coral-700 disabled:opacity-60"
-            >
-              <span className="truncate">{mobilePrimaryLabel}</span>
-              <span className="shrink-0">{ctaTotalLabel}</span>
-            </button>
-          </div>
         </div>
       </form>
 
@@ -1245,7 +1220,9 @@ export function CheckoutForm({ cutoffHour }: { cutoffHour: number }) {
           cart={cart}
           submitting={submitting}
           onSubmit={handleSubmit}
-          loyaltySlot={<div className="hidden lg:block">{loyaltyBox}</div>}
+          loyaltySlot={
+            <div className="hidden lg:block lg:empty:hidden">{loyaltyBox}</div>
+          }
           selectedShippingOption={
             shippingOptions.find((o) => o.id === state.shippingOptionId) ?? null
           }
@@ -1253,6 +1230,40 @@ export function CheckoutForm({ cutoffHour }: { cutoffHour: number }) {
           termsAccepted={termsAccepted}
         />
       </div>
+      </div>
+
+      {/* The fixed mobile action bar lives outside the grid on purpose: as the
+          last child of the <form> column, the spacer that used to clear it
+          opened a ~190px hole between "Review details" and the order summary on
+          step 3. Clearance now comes from footer padding in globals.css. */}
+      <div className="fixed inset-x-0 bottom-0 z-[90] border-t border-blush-300 bg-white/95 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(26,18,18,0.08)] backdrop-blur lg:hidden">
+        <div className="flex gap-2">
+          {mobileStep !== "delivery" ? (
+            <button
+              type="button"
+              onClick={goBackMobileStep}
+              disabled={submitting}
+              className="flex h-12 w-24 shrink-0 items-center justify-center gap-1 rounded-md border border-blush-300 bg-white font-sans text-sm font-semibold text-ink transition-colors hover:border-coral-500 disabled:opacity-60"
+            >
+              <ChevronLeft aria-hidden className="h-4 w-4" />
+              Back
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={handleMobilePrimaryAction}
+            disabled={
+              submitting ||
+              (mobileStep === "review" &&
+                cartTypeOf(cart as unknown as { metadata?: Record<string, unknown> | null }) === "preorder" &&
+                !termsAccepted)
+            }
+            className="flex h-12 min-w-0 flex-1 items-center justify-between gap-3 rounded-md bg-coral-500 px-4 font-sans text-sm font-semibold text-white shadow-lg transition-colors hover:bg-coral-700 disabled:opacity-60"
+          >
+            <span className="truncate">{mobilePrimaryLabel}</span>
+            <span className="shrink-0">{ctaTotalLabel}</span>
+          </button>
+        </div>
       </div>
     </>
   );

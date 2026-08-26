@@ -78,6 +78,24 @@ body:has([data-storefront="preorder"]) > main > div {
   padding-bottom: 0 !important;
 }
 
+/* MobileBottomNav returns null on /checkout, but the layout's <main> wrapper
+   always carries pb-[64px] to clear it. On checkout that is 64px of phantom
+   whitespace above the footer, stacked on top of the page's own clearance for
+   the fixed action bar. Cancel it the same way the preorder storefront does. */
+body:has([data-checkout-page]) > main > div {
+  padding-bottom: 0 !important;
+}
+/* Checkout's mobile action bar is position:fixed, so it sits over whatever is
+   at the bottom of the viewport — at full scroll that is the footer's legal
+   links. Pad the footer instead of the form so nothing ends up unreachable.
+   Matches the bar's own height (h-12 button + py-3) plus the safe area.
+   Above lg the bar is hidden, so the padding goes away with it. */
+@media (max-width: 63.9375rem) {
+  body:has([data-checkout-page]) > footer {
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+  }
+}
+
 .skip-to-content {
   position: fixed;
   left: 1rem;

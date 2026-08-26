@@ -17,7 +17,10 @@ export default async function CheckoutPage() {
   // open across a change keeps the value it loaded with.
   const cfg = await getStoreConfig();
   return (
-    <div className="mx-auto max-w-6xl px-4 pb-28 pt-8 lg:py-14">
+    <div
+      data-checkout-page
+      className="mx-auto max-w-6xl px-4 pb-8 pt-8 lg:py-14"
+    >
       <div className="mb-7 flex flex-col gap-3 lg:mb-8 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <Link
