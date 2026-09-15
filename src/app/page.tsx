@@ -9,6 +9,7 @@ import {
 import { TrendingRail } from "@/components/home/TrendingRail";
 import { CategoryIcons } from "@/components/home/CategoryIcons";
 import { SalesOfTheMonth } from "@/components/home/SalesOfTheMonth";
+import { EssentialsBundleBanner } from "@/components/home/EssentialsBundleBanner";
 import { salesOfMonthConfig } from "@/lib/sales-of-month";
 import { sanitizeRichText } from "@/lib/sanitize-html";
 import { NewArrivalsRail } from "@/components/home/NewArrivalsRail";
@@ -53,6 +54,7 @@ export default function HomePage() {
           <HeroProductMosaic />
         </Suspense>
       </HeroBento>
+      <EssentialsBundleBanner />
       <Suspense fallback={<ProductRailSkeleton />}>
         <TrendingRailSection latestCollectionPromise={latestCollectionPromise} />
       </Suspense>
