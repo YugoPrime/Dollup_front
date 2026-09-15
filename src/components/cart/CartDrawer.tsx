@@ -7,18 +7,28 @@ import { useCart } from "./CartProvider";
 import { formatPrice } from "@/lib/format";
 import { trackViewCart } from "@/lib/analytics";
 import { cartTypeOf } from "@/lib/cart-type";
+import { cartHasEssentialsBundle } from "@/lib/essentials-bundle";
 
 const FREE_SHIPPING_THRESHOLD = 1500;
 
 export function CartDrawer() {
   const { cart, open, setOpen, updateItem, removeItem, loading } = useCart();
   const items = cart?.items ?? [];
-  const subtotal = cart?.subtotal ?? 0;
-  const discountTotal = cart?.discount_total ?? 0;
   const currency = cart?.currency_code ?? "MUR";
+  // Items only, from the lines themselves. `cart.subtotal` and
+  // `cart.discount_total` include shipping once checkout has set a method, so
+  // a returning bag read "Subtotal Rs 1,700 / Offers −Rs 510" with no total.
+  const subtotal = items.reduce((s, i) => s + (i.unit_price ?? 0) * i.quantity, 0);
+  const itemsPayable = items.reduce(
+    (s, i) => s + (i.total ?? (i.unit_price ?? 0) * i.quantity),
+    0,
+  );
+  const discountTotal = Math.max(0, subtotal - itemsPayable);
+  const bundleFreeShipping = cartHasEssentialsBundle(items);
 
-  const remaining = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
-  const progress = Math.min(100, (subtotal / FREE_SHIPPING_THRESHOLD) * 100);
+  // Medusa's free-delivery rule checks the discounted item total.
+  const remaining = bundleFreeShipping ? 0 : Math.max(0, FREE_SHIPPING_THRESHOLD - itemsPayable);
+  const progress = Math.min(100, (itemsPayable / FREE_SHIPPING_THRESHOLD) * 100);
 
   // Pre-order carts (separate Medusa sales channel) must check out on the
   // pre-order storefront, which has its own deposit flow. In-stock carts use
@@ -269,17 +279,27 @@ export function CartDrawer() {
                   a free gift showed lines totalling 1,075 under a Subtotal of
                   1,450 and the customer couldn't reconcile the two. */}
               {discountTotal > 0 && (
-                <div className="mb-1 flex items-center justify-between">
-                  <span className="font-sans text-sm font-medium text-coral-500">
-                    Offers &amp; gifts
-                  </span>
-                  <span className="font-sans text-[15px] font-bold text-coral-500">
-                    −{formatPrice(discountTotal, currency)}
-                  </span>
-                </div>
+                <>
+                  <div className="mb-1 flex items-center justify-between">
+                    <span className="font-sans text-sm font-medium text-coral-500">
+                      Offers &amp; gifts
+                    </span>
+                    <span className="font-sans text-[15px] font-bold text-coral-500">
+                      −{formatPrice(discountTotal, currency)}
+                    </span>
+                  </div>
+                  <div className="mb-1 mt-2 flex items-center justify-between border-t border-blush-100 pt-2">
+                    <span className="font-sans text-sm font-semibold text-ink">Total</span>
+                    <span className="font-sans text-[17px] font-bold">
+                      {formatPrice(itemsPayable, currency)}
+                    </span>
+                  </div>
+                </>
               )}
               <p className="mb-3.5 font-sans text-[11px] text-ink-muted">
-                Shipping &amp; taxes calculated at checkout
+                {bundleFreeShipping
+                  ? "Free delivery or postage included with the bundle"
+                  : "Shipping & taxes calculated at checkout"}
               </p>
               <Link
                 href={checkoutHref}

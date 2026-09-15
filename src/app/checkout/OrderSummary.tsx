@@ -8,6 +8,7 @@ import type { HttpTypes } from "@medusajs/types";
 import { formatPrice } from "@/lib/format";
 import { readLoyaltyRedeemMetadata } from "@/lib/loyalty-client";
 import { qualifiesForFreeHomeDelivery } from "@/lib/checkout";
+import { cartHasEssentialsBundle } from "@/lib/essentials-bundle";
 import { getCartSdk } from "@/lib/cart-client";
 import { useCart } from "@/components/cart/CartProvider";
 import { cartTypeOf } from "@/lib/cart-type";
@@ -167,10 +168,9 @@ export function OrderSummary({
   const itemSubtotal = cart.item_total ?? cart.subtotal ?? 0;
   const cartHasShippingMethod = (cart.shipping_methods?.length ?? 0) > 0;
   const fallbackShipping = selectedShippingOption?.amount ?? 0;
-  const homeDeliveryFree = qualifiesForFreeHomeDelivery(
-    selectedShippingOption?.name ?? "",
-    itemSubtotal,
-  );
+  const homeDeliveryFree =
+    cartHasEssentialsBundle(items) ||
+    qualifiesForFreeHomeDelivery(selectedShippingOption?.name ?? "", itemSubtotal);
   const shipping = cartHasShippingMethod
     ? (cart.shipping_total ?? 0)
     : homeDeliveryFree
@@ -216,6 +216,18 @@ export function OrderSummary({
           shippingDiscount,
       )
     : 0;
+  // `itemSubtotal` above is item_total — already net of automatic offers — so
+  // lines at full price (350 + 650 + 550) sat over "Subtotal Rs 1,190" with
+  // nothing between. Show the listed sum, then what automatic offers
+  // (bundles, gifts) took off; codes and rewards keep their own rows.
+  const listedSubtotal = items.reduce(
+    (sum, item) => sum + (item.unit_price ?? 0) * item.quantity,
+    0,
+  );
+  const offersDiscount = Math.max(
+    0,
+    listedSubtotal - itemSubtotal - promoDiscount - (redeemMeta?.discount_mur ?? 0),
+  );
 
   return (
     <aside className="order-first lg:sticky lg:top-24 lg:order-none lg:self-start">
@@ -270,8 +282,14 @@ export function OrderSummary({
         <dl className="space-y-1.5 font-sans text-sm">
           <div className="flex justify-between text-ink-soft">
             <dt>Subtotal</dt>
-            <dd>{formatPrice(itemSubtotal, currency)}</dd>
+            <dd>{formatPrice(listedSubtotal, currency)}</dd>
           </div>
+          {offersDiscount > 0 && (
+            <div className="flex justify-between text-coral-500">
+              <dt>Bundle &amp; offers</dt>
+              <dd>-{formatPrice(offersDiscount, currency)}</dd>
+            </div>
+          )}
           {promoDiscount > 0 && (
             <div className="flex justify-between text-coral-500">
               <dt>Promo discount</dt>

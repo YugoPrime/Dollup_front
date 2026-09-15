@@ -22,3 +22,22 @@ export const essentialsBundle = {
 export function isEssentialsBundleLive(now = Date.now()): boolean {
   return now < new Date(essentialsBundle.endsAt).getTime();
 }
+
+/**
+ * True when the cart holds all three bundle products while the offer runs —
+ * i.e. when Medusa's ESSENTIALS-FREESHIP promo makes every shipping option free.
+ * The storefront's own "free over Rs 1,500" check reads the discounted item
+ * total (Rs 1,190), so without this the bag and shipping cards claim Rs 150.
+ */
+export function cartHasEssentialsBundle(
+  items: ReadonlyArray<{ variant_id?: string | null }> | null | undefined,
+  now = Date.now(),
+): boolean {
+  if (!items?.length || !isEssentialsBundleLive(now)) return false;
+  const ids = new Set(items.map((i) => i.variant_id));
+  return (
+    ids.has(essentialsBundle.glueVariantId) &&
+    ids.has(essentialsBundle.pantyVariantId) &&
+    essentialsBundle.tapeVariants.some((v) => ids.has(v.id))
+  );
+}

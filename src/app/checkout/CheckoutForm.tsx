@@ -42,6 +42,7 @@ import {
   type FieldErrors,
   type PaymentMethod,
 } from "@/lib/checkout";
+import { cartHasEssentialsBundle } from "@/lib/essentials-bundle";
 
 type MobileCheckoutStep = "delivery" | "details" | "review";
 
@@ -525,9 +526,11 @@ export function CheckoutForm({ cutoffHour }: { cutoffHour: number }) {
   const currency = cart.currency_code ?? "MUR";
   const itemSubtotal = cart.item_total ?? cart.subtotal ?? 0;
   const cartHasShippingMethod = (cart.shipping_methods?.length ?? 0) > 0;
+  const bundleFreeShipping = cartHasEssentialsBundle(cart.items);
   const selectedShippingFree =
     selectedOption &&
     (selectedOption.amount === 0 ||
+      bundleFreeShipping ||
       qualifiesForFreeHomeDelivery(selectedOption.name ?? "", itemSubtotal));
   const ctaShipping = cartHasShippingMethod
     ? (cart.shipping_total ?? 0)
@@ -661,6 +664,7 @@ export function CheckoutForm({ cutoffHour }: { cutoffHour: number }) {
                           : "Door-to-door delivery in Mauritius.";
                 const free =
                   opt.amount === 0 ||
+                  bundleFreeShipping ||
                   qualifiesForFreeHomeDelivery(
                     opt.name ?? "",
                     cart.item_total ?? cart.subtotal ?? 0,
