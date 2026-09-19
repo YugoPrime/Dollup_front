@@ -1080,6 +1080,8 @@ export async function getLatestCollectionTag(): Promise<{ id: string; value: str
 const HERO_TILE_COUNT = 5;
 const HERO_PER_CATEGORY_POOL = 5;
 const HERO_CATEGORY_HANDLES = ["dresses", "beachwear", "lingerie"] as const;
+// Product handles kept out of the hero even when they're in the newest batch.
+const HERO_EXCLUDED_HANDLES = new Set(["is2422"]);
 
 async function resolveCategoryIds(handle: string): Promise<string[]> {
   const all = await listCategories();
@@ -1148,6 +1150,7 @@ async function listFeaturedUncached(): Promise<HttpTypes.StoreProduct[]> {
   for (const products of pools) {
     for (const p of products) {
       if (seen.has(p.id)) continue;
+      if (HERO_EXCLUDED_HANDLES.has(p.handle?.toLowerCase() ?? "")) continue;
       if (!(p.thumbnail ?? p.images?.[0]?.url)) continue;
       seen.add(p.id);
       pool.push(p);
