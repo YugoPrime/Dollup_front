@@ -34,7 +34,10 @@ import {
   EMPTY_CHECKOUT_STATE,
   isValidDeliveryDate,
   nextValidDeliveryDates,
+  pickupPaused,
   qualifiesForFreeHomeDelivery,
+  serviceBreakActive,
+  SERVICE_RESUMES_LABEL,
   shippingOptionToDeliveryMethod,
   validateCheckout,
   toMedusaAddress,
@@ -194,11 +197,27 @@ export function CheckoutForm({ cutoffHour }: { cutoffHour: number }) {
             cart_id: cart.id,
           });
         if (!cancelled) {
-          setShippingOptions(shipping_options ?? []);
-          setState((s) => ({
-            ...s,
-            shippingOptionId: s.shippingOptionId ?? shipping_options?.[0]?.id ?? null,
-          }));
+          // Break: drop pickup entirely rather than offering a date the shop
+          // can't honour. Filtering here (not just in the markup) also keeps
+          // it out of the default selection below and out of selectedOption,
+          // so a stale pickup id can never survive into the cart.
+          const usable = (shipping_options ?? []).filter(
+            (o) =>
+              !pickupPaused() ||
+              shippingOptionToDeliveryMethod(o.name ?? null) !== "Pick Up",
+          );
+          setShippingOptions(usable);
+          setState((s) => {
+            const keep =
+              s.shippingOptionId &&
+              usable.some((o) => o.id === s.shippingOptionId);
+            return {
+              ...s,
+              shippingOptionId: keep
+                ? s.shippingOptionId
+                : (usable[0]?.id ?? null),
+            };
+          });
         }
       } catch {
         if (!cancelled) setShippingOptions([]);
@@ -712,6 +731,12 @@ export function CheckoutForm({ cutoffHour }: { cutoffHour: number }) {
               })}
             </div>
           )}
+          {pickupPaused() && (
+            <p className="font-sans text-[11px] text-ink-muted">
+              Pickup at Pereybere is paused while we&apos;re on a break — it
+              comes back on {SERVICE_RESUMES_LABEL}.
+            </p>
+          )}
           {shippingOptionError ? (
             <p className="font-sans text-[11px] text-coral-700">
               {shippingOptionError}
@@ -732,9 +757,11 @@ export function CheckoutForm({ cutoffHour }: { cutoffHour: number }) {
               </span>
             </div>
             <p className="font-sans text-xs text-ink-muted">
-              {isPickup
-                ? "Same-day pickup OK. Closed Sundays."
-                : `No same-day delivery. Order before ${cutoffLabel} for next day. Closed Sundays.`}
+              {serviceBreakActive()
+                ? `We're on a break — order now and delivery resumes on ${SERVICE_RESUMES_LABEL}. Closed Sundays.`
+                : isPickup
+                  ? "Same-day pickup OK. Closed Sundays."
+                  : `No same-day delivery. Order before ${cutoffLabel} for next day. Closed Sundays.`}
             </p>
 
             <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:px-0 sm:pb-0 sm:flex-wrap">
@@ -815,9 +842,11 @@ export function CheckoutForm({ cutoffHour }: { cutoffHour: number }) {
             {state.deliveryDate &&
               !isValidDeliveryDate(state.deliveryDate, new Date(), isPickup, cutoffHour) && (
                 <p className="font-sans text-[11px] text-coral-700">
-                  {isPickup
-                    ? "That date is not available — no pickups on Sundays."
-                    : `That date is not available. No same-day delivery, next-day cutoff is ${cutoffLabel}, no Sundays.`}
+                  {serviceBreakActive()
+                    ? `That date is not available — deliveries resume on ${SERVICE_RESUMES_LABEL}, and we're closed Sundays.`
+                    : isPickup
+                      ? "That date is not available — no pickups on Sundays."
+                      : `That date is not available. No same-day delivery, next-day cutoff is ${cutoffLabel}, no Sundays.`}
                 </p>
               )}
           </section>
