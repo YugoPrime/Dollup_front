@@ -7,6 +7,7 @@ import {
   type ShippingRate,
 } from "@/lib/shipping-rates";
 import { getStoreConfig } from "@/lib/store-config";
+import { serviceBreakActive, SERVICE_RESUMES_LABEL } from "@/lib/checkout";
 
 export const metadata: Metadata = {
   title: "Shipping & Delivery",
@@ -74,6 +75,25 @@ export default async function ShippingPage() {
           </p>
         </div>
       </section>
+
+      {/* Shop break notice. Everything below still describes normal service,
+          so this sits above it and says plainly that none of it runs yet.
+          Date-gated and safe to leave in place: the page is ISR with
+          revalidate=300, so it disappears within 5 minutes of the resume
+          date without a deploy. */}
+      {serviceBreakActive() && (
+        <section className="border-b border-coral-300 bg-blush-100 px-6 py-5 md:px-10">
+          <div className="mx-auto max-w-[900px] text-center">
+            <p className="font-sans text-[14px] leading-[1.6] text-ink">
+              <strong className="text-coral-700">We&apos;re on a short break.</strong>{" "}
+              Delivery, postage and pickup at Pereybere all resume on{" "}
+              <strong>{SERVICE_RESUMES_LABEL}</strong>. You can still place
+              your order now — it goes out from that date. The fees and
+              timeframes below apply once we&apos;re back.
+            </p>
+          </div>
+        </section>
+      )}
 
       {/* Highlights */}
       <section className="px-6 py-12 md:px-10 md:py-16">

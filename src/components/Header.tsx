@@ -22,20 +22,27 @@ export async function Header() {
   }
   return (
     <header className="sticky top-0 z-[100] border-b border-blush-400 bg-white">
-      {/* Desktop-only promo bar — hidden on mobile to reclaim viewport
-          space (the same free-delivery copy already appears in the cart
-          drawer, checkout, and loyalty teaser).
+      {/* Promo bar.
 
-          Evergreen copy. When running a campaign, swap in the sale copy and
-          wrap this in a <Link> to the campaign page — then restore this copy
-          the day the sale ends. Deliberately not date-gated: this bar renders
-          inside the root layout, so a server-side date check would freeze at
-          build time on statically-rendered pages and show the sale banner on
-          some routes and not others. */}
-      <div className="hidden flex-wrap items-center justify-center gap-3 bg-coral-500 px-6 py-1.5 text-[11px] font-medium tracking-wider text-white md:flex">
+          ⚠ SHOP BREAK, ends 17 Oct 2026. Two things were changed for it and
+          both must be put back that day:
+            1. the break sentence in the last <span>, back to plain
+               "Cash on delivery available";
+            2. the wrapper class, back to `hidden ... md:flex` — the bar is
+               normally desktop-only to reclaim mobile viewport space, and is
+               shown on mobile here only because most customers arrive from
+               Instagram on a phone and need to see the break notice.
+
+          Evergreen copy otherwise. When running a campaign, swap in the sale
+          copy and wrap this in a <Link> to the campaign page — then restore
+          this copy the day the sale ends. Deliberately not date-gated: this
+          bar renders inside the root layout, so a server-side date check
+          would freeze at build time on statically-rendered pages and show the
+          sale banner on some routes and not others. */}
+      <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5 bg-coral-500 px-4 py-1.5 text-center text-[11px] font-medium tracking-wider text-white md:px-6">
         <span>Free delivery on orders Rs.1500+</span>
         <span className="opacity-50">✦</span>
-        <span>Cash on delivery available</span>
+        <span>Cash on delivery available but delivery will resume on the 17/10</span>
       </div>
 
       <div className="flex min-h-[72px] items-center gap-3 px-4 md:min-h-[104px] md:gap-6 md:px-8">
