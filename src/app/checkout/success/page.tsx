@@ -9,6 +9,7 @@ import type { HttpTypes } from "@medusajs/types";
 import { clientSdk } from "@/lib/cart-client";
 import { formatPrice } from "@/lib/format";
 import { PaymentInstructions } from "@/components/checkout/PaymentInstructions";
+import { BreakNotice } from "@/components/BreakNotice";
 import { sendCapiPurchase, trackPurchase } from "@/lib/analytics";
 import {
   ACCOUNT_TRANSFER_PAYMENT_METHOD,
@@ -139,6 +140,8 @@ function CheckoutSuccessInner() {
             Order <span className="font-semibold text-ink">#{order.display_id}</span>
           </p>
         </div>
+
+        <BreakNotice className="mb-8" />
 
         <PaymentInstructions
           paymentMethod={paymentMethod}
