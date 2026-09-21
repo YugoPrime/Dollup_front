@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { FocusTrapLayer } from "@/components/a11y/FocusTrapLayer";
 import { useCart } from "./CartProvider";
 import { formatPrice } from "@/lib/format";
+import { BreakNotice } from "@/components/BreakNotice";
 import { trackViewCart } from "@/lib/analytics";
 import { cartTypeOf } from "@/lib/cart-type";
 import { cartHasEssentialsBundle } from "@/lib/essentials-bundle";
@@ -301,6 +302,7 @@ export function CartDrawer() {
                   ? "Free delivery or postage included with the bundle"
                   : "Shipping & taxes calculated at checkout"}
               </p>
+              <BreakNotice variant="compact" className="mb-3" />
               <Link
                 href={checkoutHref}
                 onClick={() => setOpen(false)}

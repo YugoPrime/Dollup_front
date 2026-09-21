@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import type { HttpTypes } from "@medusajs/types";
 import { useCart } from "@/components/cart/CartProvider";
+import { BreakNotice } from "@/components/BreakNotice";
 import { LoyaltyRedeemBox } from "@/components/checkout/LoyaltyRedeemBox";
 import { getCartSdk } from "@/lib/cart-client";
 import { register, useCustomer } from "@/lib/auth-client";
@@ -590,6 +591,8 @@ export function CheckoutForm({ cutoffHour }: { cutoffHour: number }) {
 
   return (
     <>
+      <BreakNotice className="mb-5" />
+
       {errorBanner ? (
         <div
           role="alert"
@@ -715,6 +718,15 @@ export function CheckoutForm({ cutoffHour }: { cutoffHour: number }) {
                         <span className="mt-0.5 block font-sans text-[11px] text-ink-muted">
                           {hint}
                         </span>
+                        {serviceBreakActive() && (
+                          <span className="mt-1 block font-sans text-[11px] font-semibold text-coral-700">
+                            {method === "Postage" ||
+                            method === "Express Postage" ||
+                            method === "Rodrigues Postage"
+                              ? `Posted from ${SERVICE_RESUMES_LABEL}`
+                              : `From ${SERVICE_RESUMES_LABEL}`}
+                          </span>
+                        )}
                       </span>
                     </span>
                     <span className="shrink-0 pt-2 font-sans text-sm font-semibold text-ink">
