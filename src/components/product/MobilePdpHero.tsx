@@ -554,7 +554,7 @@ export function MobilePdpHero({
             )}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border border-ink bg-white px-3.5 font-sans text-[12px] font-semibold text-ink"
+            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-ink bg-white px-3.5 font-sans text-[12px] font-semibold text-ink"
           >
             <MessageCircle size={14} aria-hidden="true" />
             Notify me
