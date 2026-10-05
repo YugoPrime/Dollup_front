@@ -19,7 +19,7 @@ export function ShopMobileClient({
   const [open, setOpen] = useState(false);
   return (
     <div className="md:hidden">
-      <ShopFilterChips onOpenFilters={() => setOpen(true)} />
+      <ShopFilterChips />
       {children ? (
         <div className="pb-[60px]">{children}</div>
       ) : null}

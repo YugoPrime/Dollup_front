@@ -1,4 +1,5 @@
 import "server-only";
+import { deprioritizeCategories } from "./products-order";
 import { unstable_cache } from "next/cache";
 import { listStoreProducts, sdk } from "./medusa";
 import { getRegion } from "./region";
@@ -155,6 +156,9 @@ export type ListProductsArgs = {
   category?: string | string[];
   collection?: string;
   tag?: string;
+  // Category ids whose products are moved to the END of the list (stable)
+  // before pagination. Used by the unfiltered /shop grid for After Dark.
+  deprioritizeCategory?: string | string[];
   order?: string;
   onSale?: boolean;
   // Server-side facet filters (Medusa Store API has no native equivalents).
@@ -239,6 +243,9 @@ function normalizeListProductArgs(args: ListProductsArgs): ListProductsArgs {
       : args.category,
     collection: args.collection,
     tag: args.tag,
+    deprioritizeCategory: Array.isArray(args.deprioritizeCategory)
+      ? [...args.deprioritizeCategory].sort()
+      : args.deprioritizeCategory,
     order: args.order,
     onSale: args.onSale,
     size: normalizeMultiArg(args.size),
@@ -389,6 +396,15 @@ async function listWithFacetFilters(
       const bp = lowestPrice(b) ?? (dir > 0 ? Infinity : -Infinity);
       return (ap - bp) * dir;
     });
+  }
+
+  if (args.deprioritizeCategory) {
+    filtered = deprioritizeCategories(
+      filtered,
+      Array.isArray(args.deprioritizeCategory)
+        ? args.deprioritizeCategory
+        : [args.deprioritizeCategory],
+    );
   }
 
   const limit = args.limit ?? 24;
