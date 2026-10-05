@@ -139,7 +139,7 @@ export function CheckoutForm({ cutoffHour }: { cutoffHour: number }) {
   // the shipping page can never describe different cutoffs.
   const cutoffLabel = cutoffHour === 12 ? "noon" : `${cutoffHour - 12}pm`;
   const router = useRouter();
-  const { cart, clearCart, refreshCart } = useCart();
+  const { cart, clearCart, refreshCart, ready: cartReady } = useCart();
   const { status: authStatus, customer } = useCustomer();
 
   // All cart-scoped Medusa calls must go through the SDK whose publishable key
@@ -510,6 +510,27 @@ export function CheckoutForm({ cutoffHour }: { cutoffHour: number }) {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  // The stored cart is still being retrieved: show a skeleton, never the
+  // empty-bag screen. Before this guard, every checkout load flashed
+  // "Your bag is empty / Continue Shopping" for the length of the request.
+  if (!cartReady) {
+    return (
+      <div
+        aria-busy="true"
+        aria-live="polite"
+        className="rounded-xl border border-blush-400 bg-white p-6"
+      >
+        <p className="sr-only">Loading your bag…</p>
+        <div className="animate-pulse space-y-4" aria-hidden="true">
+          <div className="h-5 w-40 rounded bg-blush-100" />
+          <div className="h-12 rounded bg-blush-100" />
+          <div className="h-12 rounded bg-blush-100" />
+          <div className="h-12 w-2/3 rounded bg-blush-100" />
+        </div>
+      </div>
+    );
   }
 
   if (!cart || (cart.items?.length ?? 0) === 0) {

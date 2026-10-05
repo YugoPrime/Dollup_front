@@ -43,6 +43,10 @@ type AddItemOpts = { cartType?: CartType };
 type CartContextValue = {
   cart: Cart | null;
   loading: boolean;
+  // False until the cart stored in localStorage has been retrieved (or there
+  // is none). Consumers that branch on "empty bag" must wait for it: before
+  // this flips, `cart` is null even when the shopper has items.
+  ready: boolean;
   itemCount: number;
   open: boolean;
   setOpen: (v: boolean) => void;
@@ -110,6 +114,7 @@ async function ensureCart(
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(false);
+  const [ready, setReady] = useState(false);
   const [open, setOpen] = useState(false);
 
   // Cart-resume from email: if the URL carries ?cart_id=..., adopt it as the
@@ -152,10 +157,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           else clearStoredCartId();
         } catch {
           clearStoredCartId();
+        } finally {
+          setReady(true);
         }
       })();
       return;
     }
+    // No stored cart: nothing to wait for. The idle pre-create below is a
+    // background optimisation, not something the UI should block on.
+    setReady(true);
     // No cart yet — pre-create one during browser idle so the user's first
     // "Add to Bag" doesn't pay the region.list + cart.create round-trip cost.
     // Gated behind requestIdleCallback so brief bouncers don't pollute the DB.
@@ -418,6 +428,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const value: CartContextValue = {
     cart,
     loading,
+    ready,
     itemCount,
     open,
     setOpen,
