@@ -32,7 +32,7 @@ export function HeroBento({ children }: { children: ReactNode }) {
       <div className="absolute -right-20 -top-20 h-[220px] w-[220px] rounded-full bg-white/45" aria-hidden />
       <div className="absolute -bottom-8 -left-8 h-[120px] w-[120px] rounded-full bg-coral-500/15" aria-hidden />
       <span
-        className="absolute right-20 top-12 font-display text-[22px] text-coral-500"
+        className="absolute right-20 top-12 font-display text-[22px] text-coral-450"
         style={{ transform: "rotate(15deg)" }}
         aria-hidden
       >
@@ -47,7 +47,7 @@ export function HeroBento({ children }: { children: ReactNode }) {
           <h1 className="font-display text-[56px] leading-[0.92] tracking-[-1.5px] text-ink md:text-[72px]">
             Doll up,
             <br />
-            <em className="text-coral-500">babe.</em>
+            <em className="text-coral-450">babe.</em>
           </h1>
           <p className="mt-4 max-w-[380px] font-sans text-[14px] leading-[1.5] text-ink-soft">
             From everyday essentials to statement looks.

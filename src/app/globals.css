@@ -11,9 +11,16 @@
   --color-blush-400: #EAD9D6;
   --color-coral-300: #F1A899;
   --color-coral-400: #ED8773;
-  --color-coral-500: #E5604A;
+  /* coral-450 is the original brand coral (#E5604A). It fails WCAG AA for
+     text (3.44:1 on white) so it is reserved for LARGE display accents and
+     decoration only — hero "babe.", section-title italics, blobs. */
+  --color-coral-450: #E5604A;
+  /* coral-500 is the working brand coral for buttons, badges, links and any
+     text under 24px: 4.74:1 on white, 4.5:1 on cream, both AA. Hover/active
+     go to coral-700, which is darker again so the state change stays visible. */
+  --color-coral-500: #C64A36;
   --color-coral-600: #D4857A;
-  --color-coral-700: #B84A38;
+  --color-coral-700: #A8412F;
   --color-coral-900: #8B2E2E;
   --color-ink: #1A1212;
   --color-ink-soft: #4A3A3A;

@@ -65,7 +65,7 @@ export function BabeEssentials({ products }: { products: Product[] }) {
         <header className="mb-6 text-center">
           <p className="mb-2 font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-coral-500">★ Wardrobe heroes</p>
           <h2 className="font-display text-[28px] leading-none text-ink md:text-[36px]">
-            Babe <em className="not-italic text-coral-500" style={{ fontStyle: "italic" }}>essentials</em>
+            Babe <em className="not-italic text-coral-450" style={{ fontStyle: "italic" }}>essentials</em>
           </h2>
           <p className="mx-auto mt-2 max-w-[420px] font-sans text-[12px] leading-[1.5] text-ink-muted md:text-[14px]">
             The little extras that make every look hit harder.

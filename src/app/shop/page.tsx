@@ -222,7 +222,7 @@ export default async function ShopPage({
             <span>Shop</span>
           </p>
           <h1 className="mt-1 font-display text-[28px] capitalize leading-none text-ink md:text-[44px]">
-            {title} <em className="not-italic text-coral-500" style={{ fontStyle: "italic" }}>collection</em>
+            {title} <em className="not-italic text-coral-450" style={{ fontStyle: "italic" }}>collection</em>
           </h1>
           <p className="mt-1.5 font-sans text-[11px] text-ink-muted md:text-[12px]">{total} {total === 1 ? "style" : "styles"}</p>
         </div>
