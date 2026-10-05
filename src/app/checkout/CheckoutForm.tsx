@@ -652,7 +652,7 @@ export function CheckoutForm({ cutoffHour }: { cutoffHour: number }) {
                 } disabled:opacity-70`}
               >
                 <span
-                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] ${
+                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] ${
                     active
                       ? "bg-white text-coral-600"
                       : "bg-white text-ink-soft"

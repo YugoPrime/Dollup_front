@@ -127,7 +127,7 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
           />
         </>
       )}
-      <nav aria-label="Breadcrumb" className="hidden px-4 py-3 font-sans text-[10px] font-bold uppercase tracking-wider text-ink-muted md:block md:px-8 md:py-4">
+      <nav aria-label="Breadcrumb" className="hidden px-4 py-3 font-sans text-[11px] font-bold uppercase tracking-wider text-ink-muted md:block md:px-8 md:py-4">
         <Link href="/" className="hover:text-coral-500">Home</Link>
         <span className="mx-1.5 text-blush-400">/</span>
         <Link href="/shop" className="hover:text-coral-500">Shop</Link>
@@ -145,7 +145,7 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
         <span className="mx-1.5 text-blush-400">/</span>
         <span className="text-ink">{product.title}</span>
         {productCode && (
-          <span className="ml-2 font-sans text-[10px] font-semibold text-ink-muted">
+          <span className="ml-2 font-sans text-[11px] font-semibold text-ink-muted">
             <span className="text-blush-400">·</span>{" "}
             <span className="text-ink-muted">{productCode}</span>
           </span>

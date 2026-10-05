@@ -33,6 +33,10 @@ type SearchParams = Promise<{
 }>;
 
 const PER_PAGE = 24;
+// Categories that make up the After Dark range. The nav links to "intimates";
+// adult games/toys are catalogued under "toys". Both are pushed to the end of
+// the unfiltered grid (see deprioritizeCategory below).
+const AFTER_DARK_CATEGORY_HANDLES = ["intimates", "toys"];
 const SITE_URL = "https://dollupboutique.com";
 
 export async function generateMetadata({
@@ -116,15 +120,14 @@ export default async function ShopPage({
 
   // Unfiltered default grid: the newest import used to lead "All products",
   // which put the After Dark range above the dresses. Keep "newest" within
-  // each group but list After Dark (handle "intimates") after everything
-  // else. Any explicit filter, search, sale view or sort turns this off.
+  // each group but list the After Dark categories after everything else.
+  // Any explicit filter, search, sale view or sort turns this off.
   const isDefaultGrid =
     !matchedCategory && !q && !tagValue && !onSale && sortKey === "new";
-  const intimatesCategory = isDefaultGrid
-    ? allCategories.find((c) => c.handle === "intimates")
-    : null;
-  const deprioritizeCategory = intimatesCategory
-    ? expandCategoryWithDescendants(intimatesCategory.id, allCategories)
+  const deprioritizeCategory = isDefaultGrid
+    ? allCategories
+        .filter((c) => AFTER_DARK_CATEGORY_HANDLES.includes(c.handle ?? ""))
+        .flatMap((c) => expandCategoryWithDescendants(c.id, allCategories))
     : undefined;
 
   // Sort: "price-asc"/"price-desc" go through a server-side re-sort because
@@ -207,7 +210,7 @@ export default async function ShopPage({
         >
           <div className="mx-auto flex max-w-[1280px] items-center justify-between gap-4">
             <div>
-              <p className="font-sans text-[10px] font-bold uppercase tracking-[0.22em] text-white/80">
+              <p className="font-sans text-[11px] font-bold uppercase tracking-[0.22em] text-white/80">
                 Feeling bold?
               </p>
               <p className="mt-0.5 font-display text-[18px] leading-tight md:text-[22px]">

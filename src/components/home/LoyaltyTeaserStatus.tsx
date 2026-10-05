@@ -29,7 +29,7 @@ export function LoyaltyTeaserStatus() {
 
   return (
     <div className="text-center md:text-left">
-      <p className="mb-2 font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-coral-500">
+      <p className="mb-2 font-sans text-[11px] font-bold uppercase tracking-[0.2em] text-coral-500">
         Doll Rewards
       </p>
       {isMember ? (
@@ -66,7 +66,7 @@ export function LoyaltyTeaserStatus() {
             >
               Join Doll Rewards
             </Link>
-            <p className="mt-2 font-sans text-[10px] tracking-wider text-ink-muted">
+            <p className="mt-2 font-sans text-[11px] tracking-wider text-ink-muted">
               Already 1,200+ members | Free to join
             </p>
           </div>

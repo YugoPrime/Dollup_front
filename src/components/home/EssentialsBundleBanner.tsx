@@ -47,7 +47,7 @@ export function EssentialsBundleBanner() {
 
         <div className="flex flex-col gap-5 px-5 py-6 md:flex-row md:items-center md:justify-between md:gap-8 md:px-10 md:py-7">
           <div>
-            <p className="font-sans text-[10px] font-bold uppercase tracking-[0.22em] text-coral-500">
+            <p className="font-sans text-[11px] font-bold uppercase tracking-[0.22em] text-coral-500">
               Until {endsDay} only
             </p>
             {/* Mobile carries the headline + contents the crop left out; desktop's artwork already shows them. */}

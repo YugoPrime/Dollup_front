@@ -61,7 +61,7 @@ export function ProductGalleryDesktop({ images, alt }: { images: Img[]; alt?: st
             placeholder="blur"
             blurDataURL={PDP_FALLBACK_BLUR}
           />
-          <span className="pointer-events-none absolute right-3 bottom-3 flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 font-sans text-[10px] font-semibold uppercase tracking-wider text-ink">
+          <span className="pointer-events-none absolute right-3 bottom-3 flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 font-sans text-[11px] font-semibold uppercase tracking-wider text-ink">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M15 3h6v6" />
               <path d="M9 21H3v-6" />

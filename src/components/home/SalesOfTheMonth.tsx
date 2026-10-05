@@ -63,7 +63,7 @@ export function SalesOfTheMonth({ descriptionHtml }: { descriptionHtml: string }
       <div className="absolute -right-24 -top-16 h-[220px] w-[220px] rounded-full bg-coral-500/20" aria-hidden />
       <div className="absolute -bottom-12 -left-12 h-[140px] w-[140px] rounded-full bg-coral-300/15" aria-hidden />
       <div className="relative mx-auto max-w-[680px] px-6 text-center">
-        <p className="mb-3 font-sans text-[10px] font-bold uppercase tracking-[0.3em] text-coral-300">
+        <p className="mb-3 font-sans text-[11px] font-bold uppercase tracking-[0.3em] text-coral-300">
           — Limited time · ends {new Date(cfg.endsAt).toLocaleDateString("en-MU", { weekday: "long" })} —
         </p>
         <h2 className="font-display text-[36px] leading-[0.95] md:text-[60px]">

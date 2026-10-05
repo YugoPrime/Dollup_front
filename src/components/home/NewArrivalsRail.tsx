@@ -12,7 +12,7 @@ const ViewAllTile = ({ href }: { href: string }) => (
   >
     <div className="mb-2 font-display text-[44px] leading-none transition-transform group-hover:translate-x-1">-&gt;</div>
     <div className="font-sans text-[11px] font-bold uppercase tracking-[0.14em]">View all</div>
-    <div className="mt-1 font-sans text-[10px] opacity-85">New arrivals</div>
+    <div className="mt-1 font-sans text-[11px] opacity-85">New arrivals</div>
   </Link>
 );
 

@@ -24,7 +24,7 @@ export function CategoryIcons() {
           {CATEGORIES.map((c) => (
             <Link key={c.label} href={c.href} className="flex w-[54px] shrink-0 flex-col items-center text-center">
               <CategoryCircle category={c} size={54} />
-              <span className="mt-1.5 line-clamp-1 font-sans text-[10px] font-bold leading-tight text-ink">{c.label}</span>
+              <span className="mt-1.5 line-clamp-1 font-sans text-[11px] font-bold leading-tight text-ink">{c.label}</span>
             </Link>
           ))}
         </div>

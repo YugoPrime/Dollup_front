@@ -20,7 +20,7 @@ export function MysteryBoxTeaser() {
 
       <div className="relative mx-auto grid max-w-[1080px] items-center gap-8 px-6 md:grid-cols-[1.2fr_1fr] md:gap-12 md:px-10">
         <div className="text-center md:text-left">
-          <p className="mb-3 font-sans text-[10px] font-bold uppercase tracking-[0.22em] text-coral-300">
+          <p className="mb-3 font-sans text-[11px] font-bold uppercase tracking-[0.22em] text-coral-300">
             Mystery Box
           </p>
           <h2 className="font-display text-[30px] leading-[1.02] md:text-[48px]">
@@ -43,7 +43,7 @@ export function MysteryBoxTeaser() {
             >
               Spin the wheel
             </Link>
-            <p className="font-sans text-[10px] uppercase tracking-[0.18em] text-white/50">
+            <p className="font-sans text-[11px] uppercase tracking-[0.18em] text-white/50">
               Mauritius only · Free delivery
             </p>
           </div>
@@ -60,7 +60,7 @@ export function MysteryBoxTeaser() {
                   : "")
               }
             >
-              <p className="font-sans text-[9px] uppercase tracking-[0.18em] text-white/50 md:text-[10px]">
+              <p className="font-sans text-[11px] uppercase tracking-[0.18em] text-white/50 md:text-[11px]">
                 {stat.label}
               </p>
               <p className="mt-1 font-display text-[20px] text-white md:text-[26px]">

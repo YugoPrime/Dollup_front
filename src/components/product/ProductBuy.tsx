@@ -444,7 +444,7 @@ function OptionGroup({
   return (
     <div>
       <div className="mb-2.5 flex items-baseline justify-between">
-        <span id={labelId} className="font-sans text-[10px] font-bold uppercase tracking-[0.1em] text-ink">{title}</span>
+        <span id={labelId} className="font-sans text-[11px] font-bold uppercase tracking-[0.1em] text-ink">{title}</span>
         {rightLink && (
           <a href={rightLink.href} className="font-sans text-[11px] font-semibold text-coral-500">
             {rightLink.label}
@@ -465,7 +465,6 @@ function OptionGroup({
                 aria-label={disabled ? `${v} — sold out` : v}
                 title={disabled ? `${v} — sold out` : v}
                 tabIndex={i === focusableIndex ? 0 : -1}
-                disabled={disabled}
                 onClick={() => onSelect(v)}
                 onKeyDown={(e) => handleKeyDown(e, i)}
                 className={`relative h-8 w-8 rounded-full border-2 border-white ${
@@ -498,7 +497,6 @@ function OptionGroup({
                 aria-disabled={disabled || undefined}
                 aria-label={disabled ? `${v} — sold out` : undefined}
                 tabIndex={i === focusableIndex ? 0 : -1}
-                disabled={disabled}
                 onClick={() => onSelect(v)}
                 onKeyDown={(e) => handleKeyDown(e, i)}
                 className={`min-h-11 rounded-md border py-2.5 font-sans text-[13px] font-semibold transition-colors ${

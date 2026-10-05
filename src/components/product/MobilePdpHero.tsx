@@ -409,7 +409,7 @@ export function MobilePdpHero({
                   onClick={() =>
                     setSelected((sel) => ({ ...sel, [sizeOption.id]: s.value }))
                   }
-                  disabled={!s.available}
+                  aria-disabled={!s.available || undefined}
                   role="radio"
                   aria-checked={active}
                   aria-label={s.available ? `Size ${s.value}` : `Size ${s.value} — sold out`}
@@ -471,7 +471,7 @@ export function MobilePdpHero({
                       <span className="block h-full w-full bg-blush-100" />
                     )}
                     {!c.available ? (
-                      <span className="absolute inset-0 flex items-center justify-center bg-white/65 font-sans text-[10px] font-bold uppercase tracking-wider text-ink">
+                      <span className="absolute inset-0 flex items-center justify-center bg-white/65 font-sans text-[11px] font-bold uppercase tracking-wider text-ink">
                         Out
                       </span>
                     ) : null}

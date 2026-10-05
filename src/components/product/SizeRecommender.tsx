@@ -123,7 +123,7 @@ export function SizeRecommender({
           <div className="grid grid-cols-3 gap-2">
             {MEASUREMENT_KEYS.map((key) => (
               <label key={key} className="block">
-                <span className="mb-1 block font-sans text-[10px] font-bold uppercase tracking-[0.08em] text-ink-muted">
+                <span className="mb-1 block font-sans text-[11px] font-bold uppercase tracking-[0.08em] text-ink-muted">
                   {LABELS[key]}
                 </span>
                 <input
@@ -144,14 +144,14 @@ export function SizeRecommender({
               <div className="rounded-lg border border-coral-300 bg-white p-3">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-sans text-[10px] font-bold uppercase tracking-[0.12em] text-coral-500">
+                    <p className="font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-coral-500">
                       Recommended size
                     </p>
                     <p className="mt-1 font-display text-[30px] leading-none text-ink">
                       {recommendation.size}
                     </p>
                   </div>
-                  <span className="rounded-full bg-blush-100 px-2 py-1 font-sans text-[10px] font-bold uppercase tracking-[0.08em] text-ink-soft">
+                  <span className="rounded-full bg-blush-100 px-2 py-1 font-sans text-[11px] font-bold uppercase tracking-[0.08em] text-ink-soft">
                     {chartLabel}
                   </span>
                 </div>

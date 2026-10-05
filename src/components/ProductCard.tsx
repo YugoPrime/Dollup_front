@@ -186,15 +186,30 @@ function toQuickAddProduct(
   thumb: string | null,
   price: ReturnType<typeof getDisplayPrice>,
 ): QuickAddProduct {
-  const options = (product.options ?? []).map((o) => ({
-    id: o.id,
-    title: o.title ?? "",
-    values: ((o.values ?? []).map((v) => v.value).filter(Boolean) as string[]),
-  }));
+  // Keyed by option TITLE, not id: the catalog list fetch
+  // (PRODUCT_LIST_FIELDS) carries `options.title` and
+  // `variants.options.option.title` but no option ids, while the PDP fetch
+  // carries ids. Titles are present in both shapes.
+  const keyOf = (title: string | null | undefined) => (title ?? "").trim().toLowerCase();
+  const idToKey = new Map<string, string>();
+  const options = (product.options ?? []).map((o) => {
+    const key = keyOf(o.title);
+    if (o.id) idToKey.set(o.id, key);
+    return {
+      id: key,
+      title: o.title ?? "",
+      values: ((o.values ?? []).map((v) => v.value).filter(Boolean) as string[]),
+    };
+  });
   const variants = (product.variants ?? []).map((v) => {
     const values: Record<string, string> = {};
     for (const o of v.options ?? []) {
-      if (o.option_id && o.value) values[o.option_id] = o.value;
+      const key = o.option?.title
+        ? keyOf(o.option.title)
+        : o.option_id
+          ? idToKey.get(o.option_id)
+          : undefined;
+      if (key && o.value) values[key] = o.value;
     }
     return { id: v.id, values, buyable: variantInStock(v) };
   });

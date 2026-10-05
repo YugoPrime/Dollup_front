@@ -16,7 +16,7 @@ export function HeaderCartButton() {
         <path d="M16 10a4 4 0 0 1-8 0" />
       </svg>
       {itemCount > 0 && (
-        <span aria-hidden="true" className="absolute right-[4px] top-[4px] flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-coral-500 px-1 text-[10px] font-bold text-white">
+        <span aria-hidden="true" className="absolute right-[4px] top-[4px] flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-coral-500 px-1 text-[11px] font-bold text-white">
           {itemCount}
         </span>
       )}
