@@ -31,6 +31,20 @@ export type AuthState = {
 };
 
 const EVENT = "dub:auth-change";
+// "1" after a session was found, "0" after the last check came back as a
+// guest. Lets a guest skip the /store/customers/me round-trip (a 401 logged
+// to the console on every page) until something — login, register, OAuth —
+// publishes a customer again.
+const AUTH_HINT_KEY = "dub_auth_hint";
+
+function readAuthHint(): "1" | "0" | null {
+  try {
+    const v = window.localStorage.getItem(AUTH_HINT_KEY);
+    return v === "1" || v === "0" ? v : null;
+  } catch {
+    return null;
+  }
+}
 
 let state: AuthState = { status: "loading", customer: null };
 let initStarted = false;
@@ -38,6 +52,13 @@ let initStarted = false;
 function publish(next: AuthState) {
   state = next;
   if (typeof window !== "undefined") {
+    if (next.status === "ready") {
+      try {
+        window.localStorage.setItem(AUTH_HINT_KEY, next.customer ? "1" : "0");
+      } catch {
+        // Storage blocked: the next load simply checks the session again.
+      }
+    }
     window.dispatchEvent(new CustomEvent(EVENT));
   }
 }
@@ -58,6 +79,10 @@ async function init() {
     // One-time migration: pre-cookie sessions stored a JWT in localStorage.
     if (window.localStorage.getItem(MEDUSA_JWT_KEY)) {
       window.localStorage.removeItem(MEDUSA_JWT_KEY);
+    }
+    if (readAuthHint() === "0") {
+      publish({ status: "ready", customer: null });
+      return;
     }
   }
   const customer = await fetchCustomer();
