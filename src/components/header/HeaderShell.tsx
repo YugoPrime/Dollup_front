@@ -26,7 +26,9 @@ export function HeaderShell({
   className: string;
 }) {
   const ref = useRef<HTMLElement>(null);
-  const [hidden, setHidden] = useState(false);
+  // Negative = header slid up by its own height; 0 = pinned at the top.
+  // Measured inside the scroll handler so render never touches the ref.
+  const [offset, setOffset] = useState(0);
 
   useEffect(() => {
     let lastY = window.scrollY;
@@ -45,17 +47,17 @@ export function HeaderShell({
         window.innerWidth > MOBILE_MAX_WIDTH ||
         document.body.style.overflow === "hidden"
       ) {
-        setHidden(false);
+        setOffset(0);
         upwardRun = 0;
         return;
       }
 
       if (delta > 0) {
         upwardRun = 0;
-        if (y > HIDE_AFTER) setHidden(true);
+        if (y > HIDE_AFTER) setOffset(-(ref.current?.offsetHeight ?? 0));
       } else if (delta < 0) {
         upwardRun += -delta;
-        if (upwardRun > REVEAL_THRESHOLD || y <= HIDE_AFTER) setHidden(false);
+        if (upwardRun > REVEAL_THRESHOLD || y <= HIDE_AFTER) setOffset(0);
       }
     };
 
@@ -70,15 +72,13 @@ export function HeaderShell({
   }, []);
 
   // Keyboard users tabbing into the header must always be able to see it.
-  const onFocusCapture = () => setHidden(false);
-
-  const offset = hidden && ref.current ? -ref.current.offsetHeight : 0;
+  const onFocusCapture = () => setOffset(0);
 
   return (
     <header
       ref={ref}
       className={className}
-      data-hidden={hidden ? "" : undefined}
+      data-hidden={offset < 0 ? "" : undefined}
       onFocusCapture={onFocusCapture}
       style={{
         top: offset,

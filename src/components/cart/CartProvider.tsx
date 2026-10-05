@@ -165,7 +165,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
     // No stored cart: nothing to wait for. The idle pre-create below is a
     // background optimisation, not something the UI should block on.
-    setReady(true);
+    // (Deferred a tick so the flip happens outside the effect body.)
+    const readyTimer = window.setTimeout(() => setReady(true), 0);
     // No cart yet — pre-create one during browser idle so the user's first
     // "Add to Bag" doesn't pay the region.list + cart.create round-trip cost.
     // Gated behind requestIdleCallback so brief bouncers don't pollute the DB.
@@ -194,6 +195,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
       cancelIdle(handle);
+      window.clearTimeout(readyTimer);
     };
   }, []);
 
