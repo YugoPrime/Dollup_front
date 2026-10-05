@@ -43,7 +43,7 @@ export function MobileBottomNav() {
       <Link
         key={item.href}
         href={item.href}
-        className={`group flex flex-1 flex-col items-center gap-1 py-2.5 font-sans text-[10px] font-semibold tracking-wide transition-colors ${
+        className={`group flex flex-1 flex-col items-center gap-1 py-2.5 font-sans text-[11px] font-semibold tracking-wide transition-colors ${
           active ? "text-coral-500" : "text-ink-muted hover:text-ink"
         }`}
       >
@@ -75,13 +75,13 @@ export function MobileBottomNav() {
       <div className="relative flex flex-1 items-end justify-center">
         <button
           onClick={() => setOpen(true)}
-          aria-label="Cart"
+          aria-label={itemCount > 0 ? `Cart, ${itemCount} ${itemCount === 1 ? "item" : "items"}` : "Cart"}
           className="-translate-y-3 flex h-14 w-14 items-center justify-center rounded-full bg-coral-500 text-white shadow-[0_6px_18px_rgba(229,96,74,0.45)] ring-4 ring-white transition active:scale-95"
         >
           <span className="relative flex items-center justify-center">
             {Icon.Bag}
             {itemCount > 0 && (
-              <span className="absolute -right-2 -top-2 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-ink px-1 text-[10px] font-bold text-white ring-2 ring-white">
+              <span aria-hidden="true" className="absolute -right-2 -top-2 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-ink px-1 text-[11px] font-bold text-white ring-2 ring-white">
                 {itemCount}
               </span>
             )}

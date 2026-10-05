@@ -15,6 +15,8 @@ const FREE_SHIPPING_THRESHOLD = 1500;
 export function CartDrawer() {
   const { cart, open, setOpen, updateItem, removeItem, loading } = useCart();
   const items = cart?.items ?? [];
+  // Header count matches the badge: units, not lines.
+  const unitCount = items.reduce((s, i) => s + (i.quantity ?? 0), 0);
   const currency = cart?.currency_code ?? "MUR";
   // Items only, from the lines themselves. `cart.subtotal` and
   // `cart.discount_total` include shipping once checkout has set a method, so
@@ -108,7 +110,7 @@ export function CartDrawer() {
           <h2 id="cart-drawer-title" className="font-display text-lg font-semibold text-ink">
             My Bag{" "}
             <span className="font-sans text-[13px] font-normal text-ink-muted">
-              ({items.length})
+              ({unitCount})
             </span>
           </h2>
           <button
@@ -175,12 +177,15 @@ export function CartDrawer() {
                     ) : null}
                   </div>
                   <div className="flex flex-1 flex-col gap-[3px]">
-                    <div className="font-display text-[13px] font-medium leading-tight text-ink">
+                    <div className="font-display text-[14px] font-medium leading-tight text-ink">
                       {item.product_title}
                     </div>
-                    <div className="font-sans text-[11px] text-ink-muted">
-                      {item.variant_title}
-                    </div>
+                    {item.variant_title &&
+                    item.variant_title.toLowerCase() !== "default variant" ? (
+                      <div className="font-sans text-[12px] text-ink-muted">
+                        {item.variant_title}
+                      </div>
+                    ) : null}
                     <div className="mt-1.5 flex items-center justify-between">
                       <div className="flex items-center overflow-hidden rounded border border-blush-400">
                         <button
