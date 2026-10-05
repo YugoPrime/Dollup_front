@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import type { HttpTypes } from "@medusajs/types";
 import { ProductCard } from "@/components/ProductCard";
 
@@ -17,8 +18,12 @@ export function YouMayAlsoLike({
           <h2 className="font-display text-[22px] leading-none text-ink md:text-[28px]">
             You may also <em className="not-italic text-coral-500" style={{ fontStyle: "italic" }}>like</em>
           </h2>
-          <Link href="/shop" className="font-sans text-[10px] font-bold uppercase tracking-wider text-coral-500 md:text-[12px]">
-            See all →
+          <Link
+            href="/shop"
+            className="inline-flex min-h-11 items-center gap-1 font-sans text-[12px] font-bold uppercase tracking-wider text-coral-500 md:text-[13px]"
+          >
+            See all
+            <ArrowRight size={14} aria-hidden="true" />
           </Link>
         </div>
         <div className="flex gap-2.5 overflow-x-auto px-4 pb-2 md:hidden">
