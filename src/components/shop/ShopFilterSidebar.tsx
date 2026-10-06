@@ -342,7 +342,7 @@ export function ShopFilterSidebar({
 function Group({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <section className="mb-4 border-b border-blush-100 pb-4 last:mb-0 last:border-0 last:pb-0">
-      <h4 className="mb-2.5 font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-ink-muted">{label}</h4>
+      <h4 className="mb-2.5 font-sans text-[11px] font-bold uppercase tracking-[0.18em] text-ink-muted">{label}</h4>
       {children}
     </section>
   );

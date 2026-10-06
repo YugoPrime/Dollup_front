@@ -7,6 +7,7 @@ import {
   ProductCardQuickAdd,
   ProductCardWishlistButton,
 } from "@/components/ProductCardActions";
+import type { QuickAddProduct } from "@/components/ProductCardVariantSheet";
 
 type Product = HttpTypes.StoreProduct;
 
@@ -177,6 +178,51 @@ function pickImageForColor(product: Product, color: string | null): string | nul
   return match?.url ?? fallback;
 }
 
+// Serialisable slice handed to the client-side quick-add sheet. Keeps the
+// client bundle free of the full Medusa product while still carrying every
+// option/variant combination with its stock state.
+function toQuickAddProduct(
+  product: Product,
+  thumb: string | null,
+  price: ReturnType<typeof getDisplayPrice>,
+): QuickAddProduct {
+  // Keyed by option TITLE, not id: the catalog list fetch
+  // (PRODUCT_LIST_FIELDS) carries `options.title` and
+  // `variants.options.option.title` but no option ids, while the PDP fetch
+  // carries ids. Titles are present in both shapes.
+  const keyOf = (title: string | null | undefined) => (title ?? "").trim().toLowerCase();
+  const idToKey = new Map<string, string>();
+  const options = (product.options ?? []).map((o) => {
+    const key = keyOf(o.title);
+    if (o.id) idToKey.set(o.id, key);
+    return {
+      id: key,
+      title: o.title ?? "",
+      values: ((o.values ?? []).map((v) => v.value).filter(Boolean) as string[]),
+    };
+  });
+  const variants = (product.variants ?? []).map((v) => {
+    const values: Record<string, string> = {};
+    for (const o of v.options ?? []) {
+      const key = o.option?.title
+        ? keyOf(o.option.title)
+        : o.option_id
+          ? idToKey.get(o.option_id)
+          : undefined;
+      if (key && o.value) values[key] = o.value;
+    }
+    return { id: v.id, values, buyable: variantInStock(v) };
+  });
+  return {
+    title: product.title,
+    handle: product.handle,
+    thumbnail: thumb,
+    priceLabel: formatPrice(price.amount, price.currency),
+    options,
+    variants,
+  };
+}
+
 export function ProductCard({
   product,
   latestCollectionTag = null,
@@ -210,7 +256,7 @@ export function ProductCard({
       <div className="relative aspect-[3/4] overflow-hidden bg-blush-100">
         {soldOut && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/65">
-            <span className="font-sans text-[11px] font-semibold uppercase tracking-widest text-ink-muted">
+            <span className="font-sans text-[12px] font-semibold uppercase tracking-widest text-ink-muted">
               Sold Out
             </span>
           </div>
@@ -218,17 +264,17 @@ export function ProductCard({
 
         <div className="absolute left-2 top-2 z-[3] flex flex-col gap-1.5">
           {isNewArrival(product, latestCollectionTag) && (
-            <span className="rounded bg-coral-500 px-2 py-1 font-sans text-[9px] font-bold uppercase tracking-wider text-white">
+            <span className="rounded bg-coral-500 px-2 py-0.5 font-sans text-[11px] font-bold uppercase tracking-wider text-white">
               New
             </span>
           )}
           {discountPct && (
-            <span className="rounded bg-coral-500 px-2 py-1 font-sans text-[9px] font-bold uppercase tracking-wider text-white">
+            <span className="rounded bg-coral-500 px-2 py-0.5 font-sans text-[11px] font-bold uppercase tracking-wider text-white">
               {discountPct}
             </span>
           )}
           {lowStockMsg && !discountPct && (
-            <span className="rounded border border-coral-500 bg-white px-2 py-1 font-sans text-[9px] font-bold uppercase tracking-wider text-coral-500">
+            <span className="rounded border border-coral-500 bg-white px-2 py-0.5 font-sans text-[11px] font-bold uppercase tracking-wider text-coral-500">
               {lowStockMsg}
             </span>
           )}
@@ -247,48 +293,48 @@ export function ProductCard({
 
         {!soldOut && (
           <ProductCardQuickAdd
-            productHandle={product.handle}
             isMultiVariant={isMultiVariant}
             variantId={isMultiVariant ? null : inStockVariant?.id}
             label={getVariantPickerLabel(product)}
+            quickAdd={toQuickAddProduct(product, thumb, price)}
           />
         )}
       </div>
 
-      <div className="flex min-h-[110px] flex-col px-3 pb-3 pt-2.5">
+      <div className="flex min-h-[118px] flex-col px-3 pb-3 pt-2.5">
         <Link
           href={`/products/${product.handle}`}
-          className="line-clamp-2 min-h-[34px] font-sans text-[12px] leading-[1.3] text-ink before:absolute before:inset-0 before:z-[1] before:content-['']"
+          className="line-clamp-2 min-h-[37px] font-sans text-[14px] leading-[1.3] text-ink before:absolute before:inset-0 before:z-[1] before:content-['']"
         >
           {product.title}
         </Link>
         <div className="mt-1.5 flex items-baseline gap-1.5">
           <span
-            className={`font-sans text-[13px] font-bold ${
+            className={`font-sans text-[16px] font-semibold ${
               soldOut ? "text-coral-300" : price.onSale ? "text-coral-500" : "text-ink"
             }`}
           >
             {formatPrice(price.amount, price.currency)}
           </span>
           {price.onSale && (
-            <span className="font-sans text-[11px] text-ink-muted line-through">
+            <span className="font-sans text-[12px] text-ink-muted line-through">
               {formatPrice(price.original, price.currency)}
             </span>
           )}
         </div>
-        <div className="mt-auto flex h-4 items-center gap-1 pt-1.5">
+        <div className="mt-auto flex h-5 items-center gap-1 pt-1.5">
           {colors.length > 1 && (
             <>
               {colors.slice(0, MAX_COLOR_DOTS).map((c) => (
                 <span
                   key={c}
                   title={c}
-                  className="h-3 w-3 rounded-full border border-black/10"
+                  className="h-3.5 w-3.5 rounded-full border border-black/10"
                   style={{ background: colorNameToHex(c) }}
                 />
               ))}
               {colors.length > MAX_COLOR_DOTS && (
-                <span className="flex h-3 min-w-[18px] items-center justify-center rounded-full border border-ink-muted bg-white px-1 font-sans text-[7px] font-bold text-ink-muted">
+                <span className="flex h-4 min-w-[22px] items-center justify-center rounded-full border border-ink-muted bg-white px-1 font-sans text-[10px] font-bold text-ink-muted">
                   +{colors.length - MAX_COLOR_DOTS}
                 </span>
               )}

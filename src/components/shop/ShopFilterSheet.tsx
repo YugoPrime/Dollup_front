@@ -181,7 +181,7 @@ export function ShopFilterSheet({
           <div className="flex items-baseline gap-2">
             <h3 className="font-display text-[22px] leading-none text-ink">Filters</h3>
             {totalActive > 0 && (
-              <span className="rounded-full bg-coral-500 px-2 py-0.5 font-sans text-[10px] font-bold text-white">
+              <span className="rounded-full bg-coral-500 px-2 py-0.5 font-sans text-[11px] font-bold text-white">
                 {totalActive}
               </span>
             )}
@@ -397,7 +397,7 @@ export function ShopFilterSheet({
                           )
                         )}
                       </span>
-                      <span className={`font-sans text-[10px] capitalize ${active ? "font-semibold text-coral-500" : "text-ink-soft"}`}>
+                      <span className={`font-sans text-[11px] capitalize ${active ? "font-semibold text-coral-500" : "text-ink-soft"}`}>
                         {c}
                       </span>
                     </button>
@@ -470,7 +470,7 @@ function AccordionRow({
         <span className="flex items-baseline gap-2">
           <span className="font-display text-[16px] text-ink">{label}</span>
           {count > 0 && (
-            <span className="rounded-full bg-coral-500 px-1.5 py-0.5 font-sans text-[9px] font-bold text-white">
+            <span className="rounded-full bg-coral-500 px-1.5 py-0.5 font-sans text-[11px] font-bold text-white">
               {count}
             </span>
           )}

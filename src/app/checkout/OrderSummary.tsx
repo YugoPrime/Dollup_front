@@ -94,7 +94,7 @@ function PromoCodeBox({ cart }: { cart: Cart }) {
 
   return (
     <div className="mb-5 border-b border-blush-100 pb-5">
-      <p className="mb-2 flex items-center gap-1.5 font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-coral-500">
+      <p className="mb-2 flex items-center gap-1.5 font-sans text-[11px] font-bold uppercase tracking-[0.18em] text-coral-500">
         <Tag aria-hidden className="h-3 w-3" />
         Promo
       </p>
@@ -255,7 +255,7 @@ export function OrderSummary({
                     />
                   ) : null}
                 </div>
-                <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-ink px-1 font-sans text-[10px] font-semibold text-white">
+                <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-ink px-1 font-sans text-[11px] font-semibold text-white">
                   {item.quantity}
                 </span>
               </div>
@@ -308,7 +308,7 @@ export function OrderSummary({
           </div>
           {mysteryBox ? (
             <div className="rounded-lg border border-coral-500/40 bg-coral-50 p-3 text-coral-700">
-              <dt className="font-sans text-[10px] font-bold uppercase tracking-[0.14em]">
+              <dt className="font-sans text-[11px] font-bold uppercase tracking-[0.14em]">
                 Mystery Box
               </dt>
               <dd className="mt-1 font-sans text-[12px] text-ink">
@@ -391,7 +391,7 @@ function PreorderPaymentBreakdown({
 
   return (
     <div className="mt-4 rounded-lg border border-sage-200 bg-sage-100/30 p-3">
-      <p className="font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-sage-700">
+      <p className="font-sans text-[11px] font-bold uppercase tracking-[0.18em] text-sage-700">
         Pre-order payment split
       </p>
       <dl className="mt-2 space-y-1 font-sans text-[13px]">

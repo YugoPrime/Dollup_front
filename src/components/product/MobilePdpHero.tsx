@@ -11,6 +11,8 @@ import { trackViewItem } from "@/lib/analytics";
 import { extractProductCode } from "@/lib/product-meta";
 import { PDP_FALLBACK_BLUR } from "@/lib/blur-data";
 import { ProductAccordion } from "@/components/product/ProductAccordion";
+import { MessageCircle } from "lucide-react";
+import { restockWhatsAppUrl } from "@/lib/restock";
 
 type Product = HttpTypes.StoreProduct;
 
@@ -187,19 +189,10 @@ export function MobilePdpHero({
         .map((v) => v.value)
         .filter((v): v is string => !!v) ?? [];
 
-    // Globally-available sizes: at least one in-stock variant carries this
-    // size value, regardless of other option picks. Fully-OOS sizes get
-    // hidden entirely; in-context unavailability (size OOS for current
-    // color but available for another color) still renders as disabled.
-    const globallyAvailable = new Set<string>();
-    for (const v of variants) {
-      if (!isVariantBuyable(v)) continue;
-      for (const opt of v.options ?? []) {
-        if (opt.option_id === sizeOption.id && opt.value) {
-          globallyAvailable.add(opt.value);
-        }
-      }
-    }
+    // Every size is rendered. Sold-out sizes (for the current colour, or
+    // everywhere) come through as `available: false` and draw disabled +
+    // struck, so the shopper sees the full size run and can ask for a
+    // restock instead of assuming the dress only comes in M and L.
 
     const seen = new Map<string, SizeOpt>();
     for (const v of variants) {
@@ -229,7 +222,6 @@ export function MobilePdpHero({
       }
     }
     const list = allValues
-      .filter((v) => globallyAvailable.has(v))
       .map<SizeOpt>(
         (v) => seen.get(v) ?? { value: v, variantId: null, available: false },
       );
@@ -375,13 +367,28 @@ export function MobilePdpHero({
             hugging the bottom so the model stays visible. Pulled lower now
             that the frosted size bar is gone and sizes live in a right-edge
             rail. */}
-        <div className="pointer-events-none absolute inset-x-5 bottom-[88px]">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-[240px] bg-gradient-to-t from-black/65 via-black/30 to-transparent"
+        />
+        <div className="pointer-events-none absolute inset-x-5 bottom-[88px] pr-14">
           <h1
-            className="font-display text-[18px] font-semibold leading-tight text-white"
+            className="font-display text-[20px] font-semibold leading-tight text-white"
             style={{ textShadow: "0 2px 8px rgba(0,0,0,0.55)" }}
           >
             {product.title}
           </h1>
+          <p
+            className="mt-1 flex items-baseline gap-2 font-sans text-[17px] font-semibold text-white"
+            style={{ textShadow: "0 1px 6px rgba(0,0,0,0.5)" }}
+          >
+            {formatPrice(price.amount, price.currency)}
+            {price.onSale ? (
+              <span className="text-[13px] font-normal text-white/80 line-through">
+                {formatPrice(price.original, price.currency)}
+              </span>
+            ) : null}
+          </p>
         </div>
 
         {/* Vertical size rail on the right edge — just the size labels, no
@@ -402,10 +409,11 @@ export function MobilePdpHero({
                   onClick={() =>
                     setSelected((sel) => ({ ...sel, [sizeOption.id]: s.value }))
                   }
-                  disabled={!s.available}
+                  aria-disabled={!s.available || undefined}
                   role="radio"
                   aria-checked={active}
-                  className={`pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full font-sans text-[12px] font-semibold transition-colors ${
+                  aria-label={s.available ? `Size ${s.value}` : `Size ${s.value} — sold out`}
+                  className={`pointer-events-auto flex h-11 w-11 items-center justify-center rounded-full font-sans text-[13px] font-semibold transition-colors ${
                     active
                       ? "bg-coral-500 text-white shadow-[0_2px_8px_rgba(0,0,0,0.22)]"
                       : s.available
@@ -463,7 +471,7 @@ export function MobilePdpHero({
                       <span className="block h-full w-full bg-blush-100" />
                     )}
                     {!c.available ? (
-                      <span className="absolute inset-0 flex items-center justify-center bg-white/65 font-sans text-[9px] font-bold uppercase tracking-wider text-ink">
+                      <span className="absolute inset-0 flex items-center justify-center bg-white/65 font-sans text-[11px] font-bold uppercase tracking-wider text-ink">
                         Out
                       </span>
                     ) : null}
@@ -479,14 +487,14 @@ export function MobilePdpHero({
             <button
               type="button"
               onClick={scrollToSizeChart}
-              className="z-10 flex shrink-0 items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 font-sans text-[11px] font-semibold uppercase tracking-wider text-ink shadow-[0_2px_8px_rgba(0,0,0,0.12)]"
+              className="z-10 flex min-h-10 shrink-0 items-center gap-1.5 rounded-full bg-white/95 px-3.5 py-1.5 font-sans text-[12px] font-semibold uppercase tracking-wider text-ink shadow-[0_2px_8px_rgba(0,0,0,0.12)]"
             >
             <svg
               width="13"
               height="13"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#E5604A"
+              stroke="#C64A36"
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -531,7 +539,27 @@ export function MobilePdpHero({
       </div>
 
       {error ? (
-        <p className="px-5 pt-3 font-sans text-[12px] text-coral-700">{error}</p>
+        <p className="px-5 pt-3 font-sans text-[13px] text-coral-700">{error}</p>
+      ) : null}
+
+      {!inStock && matchedVariant ? (
+        <div className="mx-4 mt-3 flex items-center justify-between gap-3 rounded-xl border border-blush-100 bg-cream px-3 py-2.5">
+          <p className="font-sans text-[13px] text-ink-soft">
+            {currentSize ? `Size ${currentSize} is sold out.` : "This option is sold out."}
+          </p>
+          <a
+            href={restockWhatsAppUrl(
+              product.title ?? "",
+              currentSize ? `Size: ${currentSize}` : "",
+            )}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-ink bg-white px-3.5 font-sans text-[12px] font-semibold text-ink"
+          >
+            <MessageCircle size={14} aria-hidden="true" />
+            Notify me
+          </a>
+        </div>
       ) : null}
 
       {/* Description + size chart + support details, mobile-only. Size Chart
@@ -597,7 +625,7 @@ export function MobilePdpHero({
                 : adding || cartLoading
                   ? "Adding…"
                   : added
-                    ? "Added ✓"
+                    ? "Added"
                     : "Add to Bag"}
             </span>
           </span>

@@ -21,7 +21,7 @@ export function TrendingRail({
           </h2>
           <Link
             href="/shop?sort=trending"
-            className="font-sans text-[10px] font-bold uppercase tracking-[0.1em] text-coral-500 md:text-[12px]"
+            className="font-sans text-[11px] font-bold uppercase tracking-[0.1em] text-coral-500 md:text-[12px]"
           >
             See all →
           </Link>

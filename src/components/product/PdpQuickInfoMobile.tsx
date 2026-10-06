@@ -44,11 +44,11 @@ export function PdpQuickInfoMobile({ price, sizes, buyAnchorId }: Props) {
         </span>
         {price.onSale && (
           <span className="mt-1 flex items-baseline gap-1.5">
-            <span className="font-sans text-[11px] text-ink-muted line-through">
+            <span className="font-sans text-[12px] text-ink-muted line-through">
               {formatPrice(price.original, price.currency)}
             </span>
             {discountPct && (
-              <span className="font-sans text-[10px] font-bold uppercase tracking-wider text-coral-500">
+              <span className="font-sans text-[11px] font-bold uppercase tracking-wider text-coral-500">
                 Save {discountPct.replace("-", "")}
               </span>
             )}
@@ -69,8 +69,8 @@ export function PdpQuickInfoMobile({ price, sizes, buyAnchorId }: Props) {
               aria-disabled={!s.available}
               className={
                 s.available
-                  ? "min-w-[32px] rounded-md border border-ink bg-white px-2 py-1 font-sans text-[11px] font-semibold text-ink transition-colors hover:border-coral-500 hover:text-coral-500"
-                  : "min-w-[32px] rounded-md border border-blush-100 bg-blush-100 px-2 py-1 font-sans text-[11px] font-semibold text-ink-muted line-through"
+                  ? "min-h-10 min-w-[40px] rounded-md border border-ink bg-white px-2.5 py-1 font-sans text-[12px] font-semibold text-ink transition-colors hover:border-coral-500 hover:text-coral-500"
+                  : "min-h-10 min-w-[40px] rounded-md border border-blush-100 bg-blush-100 px-2.5 py-1 font-sans text-[12px] font-semibold text-ink-muted line-through"
               }
             >
               {s.value}

@@ -8,6 +8,7 @@ import { HeaderSearchMobileOverlay } from "@/components/header/HeaderSearchMobil
 import { HeaderAccountMenu } from "@/components/header/HeaderAccountMenu";
 import { HeaderCartButton } from "@/components/header/HeaderCartButton";
 import { HeaderMobileMenu } from "@/components/header/HeaderMobileMenu";
+import { HeaderShell } from "@/components/header/HeaderShell";
 
 export async function Header() {
   // Hide menu entries for categories that are completely out of stock. Falls
@@ -21,7 +22,7 @@ export async function Header() {
     console.error("Header nav stock-filter failed; using full list:", err);
   }
   return (
-    <header className="sticky top-0 z-[100] border-b border-blush-400 bg-white">
+    <HeaderShell className="sticky top-0 z-[100] border-b border-blush-400 bg-white">
       {/* Promo bar.
 
           ⚠ SHOP BREAK, ends 17 Oct 2026. Two things were changed for it and
@@ -39,7 +40,7 @@ export async function Header() {
           bar renders inside the root layout, so a server-side date check
           would freeze at build time on statically-rendered pages and show the
           sale banner on some routes and not others. */}
-      <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5 bg-coral-500 px-4 py-1.5 text-center text-[11px] font-medium tracking-wider text-white md:px-6">
+      <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5 bg-coral-500 px-4 py-1.5 text-center text-[12px] font-medium tracking-wider text-white md:px-6">
         <span>Free delivery on orders Rs.1500+</span>
         <span className="opacity-50">✦</span>
         <span>Cash on delivery available but delivery will resume on the 17/10</span>
@@ -90,6 +91,6 @@ export async function Header() {
         </div>
         <HeaderMobileMenu navLinks={visibleNav} />
       </div>
-    </header>
+    </HeaderShell>
   );
 }

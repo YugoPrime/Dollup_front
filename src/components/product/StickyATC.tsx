@@ -54,7 +54,7 @@ export function StickyATC({
           {formatPrice(price.amount, price.currency)}
         </span>
         {price.onSale && (
-          <span className="mt-0.5 font-sans text-[10px] text-ink-muted line-through">
+          <span className="mt-0.5 font-sans text-[11px] text-ink-muted line-through">
             {formatPrice(price.original, price.currency)}
           </span>
         )}

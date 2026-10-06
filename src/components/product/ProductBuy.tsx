@@ -10,6 +10,8 @@ import { trackViewItem } from "@/lib/analytics";
 import { colorNameToHex } from "@/lib/colors";
 import { PDP_SELECT_SIZE_EVENT } from "@/components/product/PdpQuickInfoMobile";
 import { PDP_COLOR_CHANGE_EVENT } from "@/components/product/ProductGallery";
+import { MessageCircle } from "lucide-react";
+import { restockWhatsAppUrl } from "@/lib/restock";
 
 type Product = HttpTypes.StoreProduct;
 const LOW_STOCK_THRESHOLD = 5;
@@ -70,6 +72,11 @@ export function ProductBuy({
 
   const colorOption = options.find((o) => (o.title ?? "").toLowerCase() === "color");
   const sizeOption = options.find((o) => (o.title ?? "").toLowerCase() === "size");
+  // "Size M, Colour Black" — what the shopper is asking to be notified about.
+  const selectedSummary = options
+    .map((o) => (selected[o.id] ? `${o.title}: ${selected[o.id]}` : null))
+    .filter(Boolean)
+    .join(", ");
   const otherOptions = options.filter((o) => o !== colorOption && o !== sizeOption);
 
   // Globally-available values per option: a value is kept only if at least
@@ -94,12 +101,13 @@ export function ProductBuy({
     return result;
   }, [options, variants]);
 
-  const visibleValues = (opt: { id: string; values?: Array<{ value?: string | null }> | null }) => {
-    const all = (opt.values ?? []).map((v) => v.value).filter(Boolean) as string[];
-    const avail = globallyAvailableByOption[opt.id];
-    if (!avail) return all;
-    return all.filter((v) => avail.has(v));
-  };
+  // Every option value is rendered. Sold-out ones come back from
+  // `disabledByOption` as disabled + struck, so a shopper can see the dress
+  // exists in S and XL (and ask to be notified) instead of concluding it only
+  // comes in M and L. `globallyAvailableByOption` is kept for the restock
+  // prompt below.
+  const visibleValues = (opt: { id: string; values?: Array<{ value?: string | null }> | null }) =>
+    (opt.values ?? []).map((v) => v.value).filter(Boolean) as string[];
 
   const sizeValues = useMemo(
     () => (sizeOption ? visibleValues(sizeOption) : []),
@@ -259,14 +267,14 @@ export function ProductBuy({
           </span>
         )}
         {discountPct && (
-          <span className="rounded bg-blush-100 px-2 py-1 font-sans text-[10px] font-bold uppercase tracking-wider text-coral-500">
+          <span className="rounded bg-blush-100 px-2 py-1 font-sans text-[11px] font-bold uppercase tracking-wider text-coral-500">
             Save {discountPct.replace("-", "")}
           </span>
         )}
       </div>
 
       <p
-        className="-mt-3 font-sans text-[11px] font-bold uppercase tracking-wider text-emerald-700"
+        className="-mt-3 font-sans text-[12px] font-bold uppercase tracking-wider text-emerald-700"
         aria-live="polite"
       >
         {inStock ? (
@@ -286,8 +294,20 @@ export function ProductBuy({
         )}
       </p>
 
+      {!inStock ? (
+        <a
+          href={restockWhatsAppUrl(product.title, selectedSummary)}
+          target="_blank"
+          rel="noreferrer"
+          className="-mt-2 inline-flex min-h-11 w-fit items-center gap-2 rounded-full border border-blush-400 bg-white px-4 font-sans text-[13px] font-semibold text-ink transition-colors hover:border-coral-500 hover:text-coral-500"
+        >
+          <MessageCircle size={16} aria-hidden="true" />
+          Notify me when it&apos;s back
+        </a>
+      ) : null}
+
       {matchedVariant?.sku && (
-        <p className="-mt-2 font-sans text-[11px] uppercase tracking-[0.1em] text-ink-muted">
+        <p className="-mt-2 font-sans text-[12px] uppercase tracking-[0.1em] text-ink-muted">
           SKU: <span className="text-ink">{matchedVariant.sku}</span>
         </p>
       )}
@@ -367,7 +387,7 @@ export function ProductBuy({
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 border-y border-blush-100 py-4 font-sans text-[10px] font-semibold uppercase tracking-wider text-ink">
+      <div className="grid grid-cols-2 gap-2 border-y border-blush-100 py-4 font-sans text-[11px] font-semibold uppercase tracking-wider text-ink">
         {[
           { ico: "⌖", line1: "Free delivery", line2: freeShippingThreshold > 0 ? `${formatPrice(freeShippingThreshold, "MUR")}+` : "available" },
           { ico: "✦", line1: "Cash on", line2: "delivery" },
@@ -424,7 +444,7 @@ function OptionGroup({
   return (
     <div>
       <div className="mb-2.5 flex items-baseline justify-between">
-        <span id={labelId} className="font-sans text-[10px] font-bold uppercase tracking-[0.1em] text-ink">{title}</span>
+        <span id={labelId} className="font-sans text-[11px] font-bold uppercase tracking-[0.1em] text-ink">{title}</span>
         {rightLink && (
           <a href={rightLink.href} className="font-sans text-[11px] font-semibold text-coral-500">
             {rightLink.label}
@@ -445,7 +465,6 @@ function OptionGroup({
                 aria-label={disabled ? `${v} — sold out` : v}
                 title={disabled ? `${v} — sold out` : v}
                 tabIndex={i === focusableIndex ? 0 : -1}
-                disabled={disabled}
                 onClick={() => onSelect(v)}
                 onKeyDown={(e) => handleKeyDown(e, i)}
                 className={`relative h-8 w-8 rounded-full border-2 border-white ${
@@ -478,10 +497,9 @@ function OptionGroup({
                 aria-disabled={disabled || undefined}
                 aria-label={disabled ? `${v} — sold out` : undefined}
                 tabIndex={i === focusableIndex ? 0 : -1}
-                disabled={disabled}
                 onClick={() => onSelect(v)}
                 onKeyDown={(e) => handleKeyDown(e, i)}
-                className={`rounded-md border py-2.5 font-sans text-[12px] font-semibold transition-colors ${
+                className={`min-h-11 rounded-md border py-2.5 font-sans text-[13px] font-semibold transition-colors ${
                   selected === v
                     ? "border-ink bg-ink text-white"
                     : disabled

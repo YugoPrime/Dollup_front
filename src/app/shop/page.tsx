@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { ArrowRight } from "lucide-react";
 import {
   listProducts,
   listCategories,
@@ -32,6 +33,10 @@ type SearchParams = Promise<{
 }>;
 
 const PER_PAGE = 24;
+// Categories that make up the After Dark range. The nav links to "intimates";
+// adult games/toys are catalogued under "toys". Both are pushed to the end of
+// the unfiltered grid (see deprioritizeCategory below).
+const AFTER_DARK_CATEGORY_HANDLES = ["intimates", "toys"];
 const SITE_URL = "https://dollupboutique.com";
 
 export async function generateMetadata({
@@ -113,6 +118,18 @@ export default async function ShopPage({
 
   const tagId = tagValue ? await getTagIdByValue(tagValue).catch(() => null) : null;
 
+  // Unfiltered default grid: the newest import used to lead "All products",
+  // which put the After Dark range above the dresses. Keep "newest" within
+  // each group but list the After Dark categories after everything else.
+  // Any explicit filter, search, sale view or sort turns this off.
+  const isDefaultGrid =
+    !matchedCategory && !q && !tagValue && !onSale && sortKey === "new";
+  const deprioritizeCategory = isDefaultGrid
+    ? allCategories
+        .filter((c) => AFTER_DARK_CATEGORY_HANDLES.includes(c.handle ?? ""))
+        .flatMap((c) => expandCategoryWithDescendants(c.id, allCategories))
+    : undefined;
+
   // Sort: "price-asc"/"price-desc" go through a server-side re-sort because
   // Store API order on a computed field is unreliable. Other keys map to
   // standard Medusa order strings.
@@ -123,14 +140,16 @@ export default async function ShopPage({
   else if (sortKey === "new") order = "-created_at";
   // "popular" falls through to default ordering — no popularity metric yet.
 
-  const offset = (page - 1) * PER_PAGE;
-
   // Fetch facets in parallel with the product list so the sidebar always shows
   // sizes/colors/price-range that exist within the current category/tag scope.
   const [productsRes, facets] = await Promise.all([
+    // Cumulative pages: ?page=3 renders products 1..72 so "Load more" keeps
+    // everything above it in place (no scroll-position loss, back button
+    // still works, canonical stays per page for SEO).
     listProducts({
-      limit: PER_PAGE,
-      offset,
+      limit: PER_PAGE * page,
+      offset: 0,
+      deprioritizeCategory,
       q,
       category: categoryFilter,
       tag: tagId ?? undefined,
@@ -180,7 +199,7 @@ export default async function ShopPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: jsonLd(
-            shopItemListJsonLd(products, page, PER_PAGE, title),
+            shopItemListJsonLd(products, 1, PER_PAGE, title),
           ),
         }}
       />
@@ -191,7 +210,7 @@ export default async function ShopPage({
         >
           <div className="mx-auto flex max-w-[1280px] items-center justify-between gap-4">
             <div>
-              <p className="font-sans text-[10px] font-bold uppercase tracking-[0.22em] text-white/80">
+              <p className="font-sans text-[11px] font-bold uppercase tracking-[0.22em] text-white/80">
                 Feeling bold?
               </p>
               <p className="mt-0.5 font-display text-[18px] leading-tight md:text-[22px]">
@@ -204,27 +223,25 @@ export default async function ShopPage({
                 </em>
               </p>
             </div>
-            <span
-              aria-hidden
-              className="font-sans text-[20px] transition-transform group-hover:translate-x-1 md:text-[24px]"
-            >
-              →
-            </span>
+            <ArrowRight
+              aria-hidden="true"
+              className="h-5 w-5 shrink-0 transition-transform group-hover:translate-x-1 md:h-6 md:w-6"
+            />
           </div>
         </Link>
       ) : null}
 
       <div className="border-b border-blush-100 bg-white px-4 py-4 md:flex md:items-end md:justify-between md:px-8 md:py-6">
         <div>
-          <p className="font-sans text-[10px] font-bold uppercase tracking-[0.14em] text-ink-muted">
+          <p className="font-sans text-[11px] font-bold uppercase tracking-[0.14em] text-ink-muted">
             <Link href="/" className="hover:text-coral-500">Home</Link>
             <span className="mx-1.5 text-blush-400">/</span>
             <span>Shop</span>
           </p>
           <h1 className="mt-1 font-display text-[28px] capitalize leading-none text-ink md:text-[44px]">
-            {title} <em className="not-italic text-coral-500" style={{ fontStyle: "italic" }}>collection</em>
+            {title} <em className="not-italic text-coral-450" style={{ fontStyle: "italic" }}>collection</em>
           </h1>
-          <p className="mt-1.5 font-sans text-[11px] text-ink-muted md:text-[12px]">{total} {total === 1 ? "style" : "styles"}</p>
+          <p className="mt-1.5 font-sans text-[12px] text-ink-muted md:text-[13px]">{total} {total === 1 ? "style" : "styles"}</p>
         </div>
         <div className="mt-3 md:mt-0">
           <ShopSortDropdown />
@@ -259,7 +276,7 @@ export default async function ShopPage({
           ) : (
             <>
               <OptimisticGrid>
-                <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-4">
+                <div id="shop-grid" className="grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-4">
                   {products.map((p, index) => (
                     <OptimisticCardSlot key={p.id} productId={p.id}>
                       <ProductCard
@@ -273,7 +290,7 @@ export default async function ShopPage({
                   ))}
                 </div>
               </OptimisticGrid>
-              <Pagination page={page} total={total} sp={sp} />
+              <LoadMore page={page} total={total} shown={products.length} sp={sp} />
             </>
           )}
         </div>
@@ -364,24 +381,25 @@ function EmptyState() {
   return (
     <div className="flex flex-col items-center px-10 py-20 text-center">
       <p className="mb-2 font-display text-lg text-ink">No products found</p>
-      <p className="font-sans text-[13px] text-ink-muted">Try adjusting your filters or check back soon.</p>
+      <p className="font-sans text-[14px] text-ink-muted">Try adjusting your filters or check back soon.</p>
     </div>
   );
 }
 
-function Pagination({
+function LoadMore({
   page,
   total,
+  shown,
   sp,
 }: {
   page: number;
   total: number;
+  shown: number;
   sp: Awaited<SearchParams>;
 }) {
-  const totalPages = Math.ceil(total / PER_PAGE);
-  if (totalPages <= 1) return null;
+  const hasMore = shown < total;
 
-  const buildHref = (p: number) => {
+  const nextHref = (() => {
     const params = new URLSearchParams();
     if (sp.category) params.set("category", sp.category);
     if (sp.q) params.set("q", sp.q);
@@ -392,32 +410,27 @@ function Pagination({
     if (sp.on_sale) params.set("on_sale", sp.on_sale);
     if (sp.price_min) params.set("price_min", sp.price_min);
     if (sp.price_max) params.set("price_max", sp.price_max);
-    if (p > 1) params.set("page", String(p));
-    const qs = params.toString();
-    return qs ? `/shop?${qs}` : "/shop";
-  };
+    params.set("page", String(page + 1));
+    return `/shop?${params.toString()}`;
+  })();
 
   return (
-    <nav className="mt-10 flex items-center justify-center gap-2 pb-6">
-      {page > 1 && (
+    <nav
+      aria-label="More products"
+      className="mt-10 flex flex-col items-center gap-4 pb-6"
+    >
+      <p className="font-sans text-[13px] text-ink-soft" aria-live="polite">
+        Showing {shown} of {total} {total === 1 ? "style" : "styles"}
+      </p>
+      {hasMore ? (
         <Link
-          href={buildHref(page - 1)}
-          className="rounded border-[1.5px] border-coral-500 px-5 py-2 font-sans text-[13px] font-semibold text-coral-500 hover:bg-blush-100"
+          href={nextHref}
+          scroll={false}
+          className="inline-flex min-h-12 items-center justify-center rounded-full border-2 border-coral-500 bg-white px-8 font-sans text-[13px] font-bold uppercase tracking-[0.12em] text-coral-500 transition-colors hover:bg-blush-100"
         >
-          ← Previous
+          Load more
         </Link>
-      )}
-      <span className="px-3 font-sans text-[13px] text-ink-soft">
-        Page {page} of {totalPages}
-      </span>
-      {page < totalPages && (
-        <Link
-          href={buildHref(page + 1)}
-          className="rounded bg-coral-500 px-5 py-2 font-sans text-[13px] font-semibold text-white hover:bg-coral-700"
-        >
-          Next →
-        </Link>
-      )}
+      ) : null}
     </nav>
   );
 }

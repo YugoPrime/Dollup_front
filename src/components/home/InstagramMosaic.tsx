@@ -30,7 +30,7 @@ export function InstagramMosaic() {
     <section className="bg-white py-10 md:py-14">
       <div className="mx-auto max-w-[1200px] px-4 md:px-10">
         <header className="mb-6 text-center">
-          <p className="mb-2 font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-coral-500">
+          <p className="mb-2 font-sans text-[11px] font-bold uppercase tracking-[0.2em] text-coral-500">
             ★ As worn by you
           </p>
           <h2 className="font-display text-[26px] leading-none text-ink md:text-[36px]">

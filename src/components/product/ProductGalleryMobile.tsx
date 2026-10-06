@@ -74,7 +74,7 @@ export function ProductGalleryMobile({ images, alt }: { images: Img[]; alt?: str
       </div>
 
       {/* Counter (bottom-right) */}
-      <div className="absolute right-3 bottom-3 rounded-md bg-black/55 px-2 py-1 font-sans text-[10px] font-semibold text-white">
+      <div className="absolute right-3 bottom-3 rounded-md bg-black/55 px-2 py-1 font-sans text-[11px] font-semibold text-white">
         {active + 1} / {images.length}
       </div>
 

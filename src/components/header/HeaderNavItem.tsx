@@ -7,8 +7,9 @@ import type { NavLink } from "@/lib/nav";
 function HotBadge() {
   return (
     <span
-      aria-label="Hot"
-      className="ml-1 inline-flex items-center gap-0.5 rounded-full bg-gradient-to-r from-coral-500 to-coral-700 px-1.5 py-[2px] font-sans text-[9px] font-bold uppercase leading-none tracking-wider text-white shadow-[0_1px_2px_rgba(229,96,74,0.35)]"
+      aria-label=", hot"
+      role="img"
+      className="ml-1 inline-flex items-center gap-0.5 rounded-full bg-gradient-to-r from-coral-500 to-coral-700 px-1.5 py-[2px] font-sans text-[11px] font-bold uppercase leading-none tracking-wider text-white shadow-[0_1px_2px_rgba(229,96,74,0.35)]"
     >
       <svg
         width="9"
