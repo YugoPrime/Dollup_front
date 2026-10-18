@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { FocusTrapLayer } from "@/components/a11y/FocusTrapLayer";
 import { useCart } from "@/components/cart/CartProvider";
@@ -143,7 +144,14 @@ export function ProductCardVariantSheet({
   // swatch tap stays a selection, not a surprise add.
   const triggerIsColor = triggerOption ? isColor(triggerOption) : false;
 
-  return (
+  // Portalled to <body>. The card that opens this sheet lifts on hover with
+  // `translate`, and a transform on any ancestor makes that ancestor the
+  // containing block for `position: fixed` — the sheet was laid out inside
+  // the card and clipped by its overflow-hidden. Its backdrop also sat inside
+  // the card, so pointing at it kept the card hovered. Rendered here, it is
+  // always relative to the viewport. (Only ever mounted client-side: the
+  // card loads it with `ssr: false`.)
+  return createPortal(
     <FocusTrapLayer
       ariaLabel={`Choose options for ${product.title}`}
       className="fixed inset-0 z-[210]"
@@ -297,6 +305,7 @@ export function ProductCardVariantSheet({
           </Link>
         ) : null}
       </div>
-    </FocusTrapLayer>
+    </FocusTrapLayer>,
+    document.body,
   );
 }
