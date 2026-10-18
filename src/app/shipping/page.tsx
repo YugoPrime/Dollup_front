@@ -7,7 +7,7 @@ import {
   type ShippingRate,
 } from "@/lib/shipping-rates";
 import { getStoreConfig } from "@/lib/store-config";
-import { serviceBreakActive, SERVICE_RESUMES_LABEL } from "@/lib/checkout";
+import { FREE_POSTAGE_UNTIL_LABEL, freePostageActive } from "@/lib/checkout";
 
 export const metadata: Metadata = {
   title: "Shipping & Delivery",
@@ -28,6 +28,14 @@ function renderFee(rate: ShippingRate): React.ReactNode {
   if (rate.amount == null) return "—";
   if (rate.amount === 0) {
     return <strong className="text-coral-500">Free</strong>;
+  }
+  if (rate.key === "postRegular" && freePostageActive()) {
+    return (
+      <>
+        <strong className="text-coral-500">Free until {FREE_POSTAGE_UNTIL_LABEL}</strong>{" "}
+        · usually {formatPrice(rate.amount, rate.currency)}
+      </>
+    );
   }
   if (rate.freeOver != null) {
     return (
@@ -76,20 +84,18 @@ export default async function ShippingPage() {
         </div>
       </section>
 
-      {/* Shop break notice. Everything below still describes normal service,
-          so this sits above it and says plainly that none of it runs yet.
-          Date-gated and safe to leave in place: the page is ISR with
-          revalidate=300, so it disappears within 5 minutes of the resume
-          date without a deploy. */}
-      {serviceBreakActive() && (
+      {/* Free postage offer. Date-gated and safe to leave in place: the page
+          is ISR with revalidate=300, so it disappears within 5 minutes of the
+          end of 1 Nov without a deploy. */}
+      {freePostageActive() && (
         <section className="border-b border-coral-300 bg-blush-100 px-6 py-5 md:px-10">
           <div className="mx-auto max-w-[900px] text-center">
             <p className="font-sans text-[14px] leading-[1.6] text-ink">
-              <strong className="text-coral-700">We&apos;re on a short break.</strong>{" "}
-              Delivery, postage and pickup at Pereybere all resume on{" "}
-              <strong>{SERVICE_RESUMES_LABEL}</strong>. You can still place
-              your order now — it goes out from that date. The fees and
-              timeframes below apply once we&apos;re back.
+              <strong className="text-coral-700">
+                Free postage until {FREE_POSTAGE_UNTIL_LABEL}.
+              </strong>{" "}
+              Registered Postage is free on every order, whatever the amount.
+              Express and Rodrigues Postage are charged as usual.
             </p>
           </div>
         </section>

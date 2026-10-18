@@ -5,8 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { FocusTrapLayer } from "@/components/a11y/FocusTrapLayer";
 import { useCart } from "./CartProvider";
 import { formatPrice } from "@/lib/format";
-import { BreakNotice } from "@/components/BreakNotice";
 import { trackViewCart } from "@/lib/analytics";
+import { FREE_POSTAGE_UNTIL_LABEL, freePostageActive } from "@/lib/checkout";
 import { cartTypeOf } from "@/lib/cart-type";
 import { cartHasEssentialsBundle } from "@/lib/essentials-bundle";
 
@@ -264,6 +264,11 @@ export function CartDrawer() {
                       style={{ width: `${progress}%` }}
                     />
                   </div>
+                  {freePostageActive() && (
+                    <p className="mt-2 text-center font-sans text-[11px] text-ink-muted">
+                      Postage is free on every order until {FREE_POSTAGE_UNTIL_LABEL}
+                    </p>
+                  )}
                 </>
               ) : (
                 <p className="text-center font-sans text-xs font-medium text-emerald-700">
@@ -307,7 +312,6 @@ export function CartDrawer() {
                   ? "Free delivery or postage included with the bundle"
                   : "Shipping & taxes calculated at checkout"}
               </p>
-              <BreakNotice variant="compact" className="mb-3" />
               <Link
                 href={checkoutHref}
                 onClick={() => setOpen(false)}

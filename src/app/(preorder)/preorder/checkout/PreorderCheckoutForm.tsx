@@ -10,6 +10,7 @@ import { cartTypeOf } from "@/lib/cart-type";
 import { formatPrice } from "@/lib/format";
 import {
   EMPTY_CHECKOUT_STATE,
+  qualifiesForFreePostage,
   shippingOptionToDeliveryMethod,
   toMedusaAddress,
   validateCheckout,
@@ -230,7 +231,9 @@ export function PreorderCheckoutForm() {
                       </span>
                     </span>
                     <span className="font-sans text-sm text-ink-soft">
-                      {o.amount === 0 ? "Free" : formatPrice(o.amount, currency)}
+                      {o.amount === 0 || qualifiesForFreePostage(o.name)
+                        ? "Free"
+                        : formatPrice(o.amount, currency)}
                     </span>
                   </label>
                 );

@@ -9,6 +9,7 @@ import { HeaderAccountMenu } from "@/components/header/HeaderAccountMenu";
 import { HeaderCartButton } from "@/components/header/HeaderCartButton";
 import { HeaderMobileMenu } from "@/components/header/HeaderMobileMenu";
 import { HeaderShell } from "@/components/header/HeaderShell";
+import { PromoBar } from "@/components/header/PromoBar";
 
 export async function Header() {
   // Hide menu entries for categories that are completely out of stock. Falls
@@ -23,28 +24,10 @@ export async function Header() {
   }
   return (
     <HeaderShell className="sticky top-0 z-[100] border-b border-blush-400 bg-white">
-      {/* Promo bar.
-
-          ⚠ SHOP BREAK, ends 17 Oct 2026. Two things were changed for it and
-          both must be put back that day:
-            1. the break sentence in the last <span>, back to plain
-               "Cash on delivery available";
-            2. the wrapper class, back to `hidden ... md:flex` — the bar is
-               normally desktop-only to reclaim mobile viewport space, and is
-               shown on mobile here only because most customers arrive from
-               Instagram on a phone and need to see the break notice.
-
-          Evergreen copy otherwise. When running a campaign, swap in the sale
-          copy and wrap this in a <Link> to the campaign page — then restore
-          this copy the day the sale ends. Deliberately not date-gated: this
-          bar renders inside the root layout, so a server-side date check
-          would freeze at build time on statically-rendered pages and show the
-          sale banner on some routes and not others. */}
-      <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5 bg-coral-500 px-4 py-1.5 text-center text-[12px] font-medium tracking-wider text-white md:px-6">
-        <span>Free delivery on orders Rs.1500+</span>
-        <span className="opacity-50">✦</span>
-        <span>Cash on delivery available but delivery will resume on the 17/10</span>
-      </div>
+      {/* Promo bar — free postage until 1 Nov 2026, then evergreen copy.
+          Date-gated in the browser; see PromoBar for why and for the cleanup
+          to do on the next deploy after the offer. */}
+      <PromoBar />
 
       <div className="flex min-h-[72px] items-center gap-3 px-4 md:min-h-[104px] md:gap-6 md:px-8">
         <Link href="/" aria-label="Doll Up Boutique" className="flex shrink-0 items-center">

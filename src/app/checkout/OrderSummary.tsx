@@ -7,7 +7,7 @@ import { Tag } from "lucide-react";
 import type { HttpTypes } from "@medusajs/types";
 import { formatPrice } from "@/lib/format";
 import { readLoyaltyRedeemMetadata } from "@/lib/loyalty-client";
-import { qualifiesForFreeHomeDelivery } from "@/lib/checkout";
+import { qualifiesForFreeHomeDelivery, qualifiesForFreePostage } from "@/lib/checkout";
 import { cartHasEssentialsBundle } from "@/lib/essentials-bundle";
 import { getCartSdk } from "@/lib/cart-client";
 import { useCart } from "@/components/cart/CartProvider";
@@ -168,12 +168,13 @@ export function OrderSummary({
   const itemSubtotal = cart.item_total ?? cart.subtotal ?? 0;
   const cartHasShippingMethod = (cart.shipping_methods?.length ?? 0) > 0;
   const fallbackShipping = selectedShippingOption?.amount ?? 0;
-  const homeDeliveryFree =
+  const fallbackShippingFree =
     cartHasEssentialsBundle(items) ||
-    qualifiesForFreeHomeDelivery(selectedShippingOption?.name ?? "", itemSubtotal);
+    qualifiesForFreeHomeDelivery(selectedShippingOption?.name ?? "", itemSubtotal) ||
+    qualifiesForFreePostage(selectedShippingOption?.name ?? "");
   const shipping = cartHasShippingMethod
     ? (cart.shipping_total ?? 0)
-    : homeDeliveryFree
+    : fallbackShippingFree
       ? 0
       : fallbackShipping;
   const fallbackDiscount = cart.discount_total ?? 0;
