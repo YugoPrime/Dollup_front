@@ -11,6 +11,7 @@ import { CategoryIcons } from "@/components/home/CategoryIcons";
 import { SalesOfTheMonth } from "@/components/home/SalesOfTheMonth";
 import { EssentialsBundleBanner } from "@/components/home/EssentialsBundleBanner";
 import { salesOfMonthConfig } from "@/lib/sales-of-month";
+import { salePhase } from "@/lib/sale-campaign";
 import { sanitizeRichText } from "@/lib/sanitize-html";
 import { NewArrivalsRail } from "@/components/home/NewArrivalsRail";
 import { LoyaltyTeaser } from "@/components/home/LoyaltyTeaser";
@@ -64,7 +65,10 @@ export default function HomePage() {
       <Suspense fallback={<ProductRailSkeleton />}>
         <NewArrivalsSection latestCollectionPromise={latestCollectionPromise} />
       </Suspense>
-      <SalesOfTheMonth descriptionHtml={sanitizeRichText(salesOfMonthConfig.description)} />
+      <SalesOfTheMonth
+        descriptionHtml={sanitizeRichText(salesOfMonthConfig.description)}
+        initialActive={salePhase(new Date(), salesOfMonthConfig) === "active"}
+      />
       <Suspense fallback={<EssentialsSkeleton />}>
         <BabeEssentialsSection />
       </Suspense>

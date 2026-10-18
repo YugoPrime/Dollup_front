@@ -1,26 +1,45 @@
+import { SALE_CAMPAIGN, SALE_PATH } from "./sale-campaign";
+
 export type SalesOfMonthConfig = {
   enabled: boolean;
   headline: string;
   percentOff: number;
-  endsAt: string; // ISO timestamp
+  startsAt: string; // ISO timestamp, hidden before
+  endsAt: string; // ISO timestamp, hidden after
   ctaUrl: string;
   ctaLabel: string;
   description: string;
 };
 
 /**
- * Hand-edited config for the home page "Sales of the Month" banner.
- * Edit and redeploy to update the sale. Set `enabled: false` to hide the section.
+ * Config for the home page "Sales of the Month" banner. It follows the sale
+ * campaign in sale-campaign.ts (name, dates, percent, copy), so it appears
+ * when the sale starts and disappears when it ends with no deploy. Set
+ * `enabled: false` to hide the section.
  *
  * NOTE: This component only renders the banner. The actual price reduction
- * must be configured in Medusa admin (price list applied to winter-tagged products).
+ * is the dated sale price list in Medusa admin.
  */
 export const salesOfMonthConfig: SalesOfMonthConfig = {
-  enabled: false, // anniversary sale closed 31 Jul 2026
-  headline: "8 Years of Doll Up 🎂 Anniversary Sale",
-  percentOff: 50, // "up to 50%" — clearance tier; heroes 30%, movers 35%
-  endsAt: "2026-07-31T23:59:59+04:00", // Mauritius timezone
-  ctaUrl: "/events/anniversary",
-  ctaLabel: "Shop the anniversary sale",
-  description: "8 years, thank you! Up to 50% off dresses, lingerie &amp; essentials — plus a free gift, bundles &amp; a Rs 2,000 prize draw. Toys excluded.",
+  enabled: true,
+  headline: SALE_CAMPAIGN.name,
+  percentOff: SALE_CAMPAIGN.maxPercent,
+  startsAt: SALE_CAMPAIGN.startsAt,
+  endsAt: SALE_CAMPAIGN.endsAt,
+  ctaUrl: SALE_PATH,
+  ctaLabel: "Shop the sale",
+  description: SALE_CAMPAIGN.bannerDescription,
 };
+
+/**
+ * Splits a banner headline into a plain lead and an italic accent: on the
+ * first " of " ("Sales" + "of the Month"), otherwise before the last word
+ * ("October" + "Sale"). A single word has no accent.
+ */
+export function splitHeadline(headline: string): [lead: string, accent: string | null] {
+  const of = headline.indexOf(" of ");
+  if (of > 0) return [headline.slice(0, of), headline.slice(of + 1)];
+  const lastSpace = headline.lastIndexOf(" ");
+  if (lastSpace > 0) return [headline.slice(0, lastSpace), headline.slice(lastSpace + 1)];
+  return [headline, null];
+}
