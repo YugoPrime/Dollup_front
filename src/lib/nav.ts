@@ -1,3 +1,5 @@
+import { SALE_PATH } from "./sale-campaign";
+
 export type NavLink = {
   label: string;
   href: string;
@@ -23,7 +25,7 @@ export const NAV_LINKS: NavLink[] = [
   { label: "After Dark", href: "/shop?category=intimates", badge: "hot" },
   { label: "Beachwear", href: "/shop?category=beachwear" },
   { label: "Accessories", href: "/shop?category=accessories" },
-  { label: "Sale", href: "/shop?on_sale=1" },
+  { label: "Sale", href: SALE_PATH },
 ];
 
 export const FOOTER_SHOP = [
@@ -33,7 +35,7 @@ export const FOOTER_SHOP = [
   { label: "After Dark", href: "/shop?category=intimates" },
   { label: "Beachwear", href: "/shop?category=beachwear" },
   { label: "Accessories", href: "/shop?category=accessories" },
-  { label: "Sale", href: "/shop?on_sale=1" },
+  { label: "Sale", href: SALE_PATH },
 ];
 
 export const FOOTER_HELP = [
