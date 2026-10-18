@@ -16,6 +16,7 @@ import { ShopFilterSidebar } from "@/components/shop/ShopFilterSidebar";
 import { ShopSortDropdown } from "@/components/shop/ShopSortDropdown";
 import { ShopMobileClient } from "@/components/shop/ShopMobileClient";
 import { OptimisticGrid, OptimisticCardSlot } from "@/components/shop/OptimisticGrid";
+import { AFTER_DARK_CATEGORY_HANDLES } from "@/lib/products-order";
 
 export const revalidate = 300;
 
@@ -33,10 +34,6 @@ type SearchParams = Promise<{
 }>;
 
 const PER_PAGE = 24;
-// Categories that make up the After Dark range. The nav links to "intimates";
-// adult games/toys are catalogued under "toys". Both are pushed to the end of
-// the unfiltered grid (see deprioritizeCategory below).
-const AFTER_DARK_CATEGORY_HANDLES = ["intimates", "toys"];
 const SITE_URL = "https://dollupboutique.com";
 
 export async function generateMetadata({

@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useSyncExternalStore } from "react";
-import { salesOfMonthConfig } from "@/lib/sales-of-month";
+import { salePhase } from "@/lib/sale-campaign";
+import { salesOfMonthConfig, splitHeadline } from "@/lib/sales-of-month";
 
 type Remaining = { d: number; h: number; m: number; s: number; expired: boolean };
 
@@ -41,13 +42,29 @@ function Unit({ n, label }: { n: number; label: string }) {
   return (
     <div className="min-w-[52px] rounded-lg bg-white px-2.5 py-1.5">
       <div className="font-display text-[24px] leading-none text-coral-500">{n.toString().padStart(2, "0")}</div>
-      <div className="mt-0.5 font-sans text-[8px] font-bold uppercase tracking-wider text-ink-muted">{label}</div>
+      <div className="mt-0.5 font-sans text-[11px] font-bold uppercase tracking-wider text-ink-muted">{label}</div>
     </div>
   );
 }
 
-export function SalesOfTheMonth({ descriptionHtml }: { descriptionHtml: string }) {
+export function SalesOfTheMonth({
+  descriptionHtml,
+  initialActive,
+}: {
+  descriptionHtml: string;
+  /** Whether the sale window was open when the server rendered the page. */
+  initialActive: boolean;
+}) {
   const cfg = salesOfMonthConfig;
+  // Window check (start AND end). The server snapshot is the server's own
+  // answer, so hydration matches the HTML; the browser re-checks every 1s,
+  // which shows the banner at the start and hides it at the end even when
+  // the ISR page is a few minutes stale.
+  const active = useSyncExternalStore(
+    subscribe,
+    () => salePhase(Date.now(), cfg) === "active",
+    () => initialActive,
+  );
   // useSyncExternalStore returns ZERO during SSR + first client render (avoiding
   // the time-based hydration mismatch), then updates every 1s once subscribed.
   const r = useSyncExternalStore(
@@ -56,7 +73,8 @@ export function SalesOfTheMonth({ descriptionHtml }: { descriptionHtml: string }
     () => ZERO,
   );
 
-  if (!cfg.enabled || r.expired) return null;
+  if (!cfg.enabled || !active) return null;
+  const [lead, accent] = splitHeadline(cfg.headline);
 
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-ink via-[#3a1a16] to-[#5e2418] py-10 text-white md:py-20">
@@ -67,10 +85,10 @@ export function SalesOfTheMonth({ descriptionHtml }: { descriptionHtml: string }
           — Limited time · ends {new Date(cfg.endsAt).toLocaleDateString("en-MU", { weekday: "long" })} —
         </p>
         <h2 className="font-display text-[36px] leading-[0.95] md:text-[60px]">
-          {cfg.headline.split(" of ")[0]}{" "}
-          {cfg.headline.includes(" of ") && (
+          {lead}{" "}
+          {accent && (
             <em className="not-italic text-coral-300" style={{ fontStyle: "italic" }}>
-              of {cfg.headline.split(" of ")[1]}
+              {accent}
             </em>
           )}
         </h2>

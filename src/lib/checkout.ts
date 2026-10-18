@@ -92,7 +92,7 @@ export function paymentClearedBeforeShipApplies(
 }
 
 // MU is UTC+4 fixed (no DST). Build today's MU calendar day from a JS Date.
-function muDateParts(d: Date): { year: number; month: number; day: number; hour: number; dow: number } {
+export function muDateParts(d: Date): { year: number; month: number; day: number; hour: number; dow: number } {
   const muMs = d.getTime() + 4 * 60 * 60 * 1000;
   const mu = new Date(muMs);
   return {

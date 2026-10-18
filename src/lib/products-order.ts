@@ -6,6 +6,11 @@ type WithCategories = {
   categories?: { id?: string | null }[] | null;
 };
 
+// Categories that make up the After Dark range. The nav links to "intimates";
+// adult games/toys are catalogued under "toys". Both go to the end of the
+// unfiltered /shop grid (see deprioritizeCategories).
+export const AFTER_DARK_CATEGORY_HANDLES = ["intimates", "toys"];
+
 /**
  * Stable partition: every product that belongs to one of `categoryIds` is
  * moved after every product that does not, with relative order preserved on
