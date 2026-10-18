@@ -2,6 +2,7 @@
 // the category chips and the default order. Same plain-script style as
 // checkout-free-postage.test.ts — run with `npx tsx src/lib/sale-listing.test.ts`.
 import { discountPercent, formatDiscountPercent } from "./format"
+import { SALE_CAMPAIGN } from "./sale-campaign"
 import {
   distinctTiers,
   orderSaleProducts,
@@ -131,20 +132,132 @@ check("no chips without products", saleCategoryChips([], CATS, CHIP_HANDLES), []
 
 // --- default order ---
 
-const all = [p1, p2, p3, p4, p5, p6, p7]
-const percents = new Map(all.map((p) => [p.id, productSalePercent(p) ?? 0]))
-// Tiers: p1/p4/p5/p6 = 50, p3 = 30, p2/p7 = 15.
+// Same shape as the real tree: Bodysuits sits under Tops, Pajamas under
+// Lingerie, Sports Leggings under Bottoms, Belts under Accessories.
+const TREE: [handle: string, parent: string | null][] = [
+  ["women", null],
+  ["beachwear", "women"], ["bikini-sets", "beachwear"], ["one-pieces", "beachwear"], ["cover-ups", "beachwear"],
+  ["clothing", "women"], ["dresses", "clothing"], ["two-piece-outfits", "clothing"], ["jumpsuits", "clothing"],
+  ["plus-size", "clothing"], ["winter", "clothing"], ["hoodies", "winter"], ["sweaters-&-cardigans", "winter"],
+  ["tops", "clothing"], ["bodysuits", "tops"], ["tank-tops-&-camis", "tops"],
+  ["bottoms", "clothing"], ["skirts", "bottoms"], ["pants", "bottoms"], ["sports-leggings", "bottoms"],
+  ["lingerie", "clothing"], ["pajamas", "lingerie"],
+  ["accessories", "women"], ["essentials", "accessories"], ["jewelry", "accessories"], ["belts", "accessories"],
+  ["intimates", "women"],
+]
+const ORDER_CATS: SaleCategory[] = TREE.map(([handle, parent]) => ({
+  id: `pcat_${handle}`,
+  handle,
+  name: handle,
+  parent_category_id: parent ? `pcat_${parent}` : null,
+}))
+// Snapshot shape: each product carries its own category's id and handle.
+const item = (handle: string, category: string, tier: number, created = "2026-05-01") => ({
+  id: handle,
+  handle,
+  created_at: created,
+  categories: [{ id: `pcat_${category}`, handle: category }],
+  variants: [v(1000, 1000 - tier * 10)],
+})
+const CATALOG = [
+  // Not pinned, 50%.
+  item("st7", "dresses", 50, "2026-05-01"),
+  item("is1016", "dresses", 50),
+  item("tr6", "skirts", 50),
+  item("is900", "intimates", 50),
+  item("is1361", "essentials", 50),
+  item("ss700", "essentials", 50),
+  item("is20", "plus-size", 50),
+  item("nr1", "plus-size", 50),
+  item("is710", "lingerie", 50),
+  item("is722", "pajamas", 50),
+  item("is1192", "bodysuits", 50),
+  item("is1500", "belts", 50),
+  item("is1760", "jewelry", 50),
+  item("is1458", "sports-leggings", 50),
+  item("is1774", "hoodies", 50),
+  item("is2201", "sweaters-&-cardigans", 50),
+  item("is2041", "bikini-sets", 50),
+  item("is1621", "two-piece-outfits", 50),
+  item("st508", "dresses", 50, "2026-05-03"),
+  item("is2237", "dresses", 50),
+  // Not pinned, 30% and 15%.
+  item("is1515", "lingerie", 30),
+  item("cb10023", "bikini-sets", 30),
+  item("is2259", "dresses", 30),
+  item("is2380", "lingerie", 15),
+  item("is2341", "dresses", 15),
+  // The carousel-ad handles, shuffled and across tiers.
+  item("is2446", "bikini-sets", 15),
+  item("is2364", "dresses", 30),
+  item("is2138", "dresses", 50),
+  item("is1906", "bikini-sets", 30),
+  item("is2297", "two-piece-outfits", 30),
+  item("is2358", "jumpsuits", 50),
+  item("is2296", "dresses", 50),
+  item("is2281", "dresses", 30),
+  item("is2265", "dresses", 50),
+  item("is2344", "dresses", 50),
+]
+const catalogPercents = new Map(CATALOG.map((p) => [p.id, productSalePercent(p) ?? 0]))
+const ordered = orderSaleProducts(CATALOG, catalogPercents, ORDER_CATS, SALE_CAMPAIGN)
+const ids = (list: { id: string }[]) => list.map((p) => p.id)
+
+check("pinned config", SALE_CAMPAIGN.featuredHandles, [
+  "is2138", "is2296", "is2344", "is2358", "is2265", "is2281", "is2297", "is2364", "is1906", "is2446",
+])
+check("fixture tiers", [catalogPercents.get("is2446"), catalogPercents.get("is2281"), catalogPercents.get("st7")], [15, 30, 50])
+check("All: pinned first in config order, whatever their tier", ids(ordered.slice(0, 10)), [...SALE_CAMPAIGN.featuredHandles])
+check("All: then deepest tier, category rank, IS number desc, non-IS last", ids(ordered.slice(10)), [
+  // 50%: dresses (IS desc, then non-IS by newest created_at), two-piece,
+  // swim, knits, tops/bottoms (Sports Leggings via Bottoms), accessories
+  // (Belts via Accessories), lingerie/bodysuits (Bodysuits by its own
+  // category, Pajamas via Lingerie), essentials, then unlisted (After Dark,
+  // Plus Size).
+  "is2237", "is1016", "st508", "st7",
+  "is1621",
+  "is2041",
+  "is2201", "is1774",
+  "is1458", "tr6",
+  "is1760", "is1500",
+  "is1192", "is722", "is710",
+  "is1361", "ss700",
+  "is900", "is20", "nr1",
+  // 30%, then 15%.
+  "is2259", "cb10023", "is1515",
+  "is2341", "is2380",
+])
+
+// Chips filter the ordered list: rules 2–4 hold inside the subset and pinned
+// products lead it when they match.
 check(
-  "deepest first, then newest, After Dark last within its tier",
-  orderSaleProducts(all, percents, ["dark"]).map((p) => p.id),
-  ["p5", "p4", "p1", "p6", "p3", "p2", "p7"],
+  "30% chip",
+  ids(ordered.filter((p) => catalogPercents.get(p.id) === 30)),
+  ["is2281", "is2297", "is2364", "is1906", "is2259", "cb10023", "is1515"],
+)
+const swim = new Set(["pcat_beachwear", "pcat_bikini-sets", "pcat_one-pieces", "pcat_cover-ups"])
+check(
+  "Beachwear chip",
+  ids(ordered.filter((p) => p.categories.some((c) => swim.has(c.id)))),
+  ["is1906", "is2446", "is2041", "cb10023"],
+)
+
+check(
+  "missing pinned handles are skipped",
+  ids(orderSaleProducts([item("is1016", "dresses", 50), item("is2446", "bikini-sets", 15)], catalogPercents, ORDER_CATS, SALE_CAMPAIGN)),
+  ["is2446", "is1016"],
 )
 check(
-  "no After Dark rule when a category is picked",
-  orderSaleProducts(all, percents, []).map((p) => p.id),
-  ["p6", "p5", "p4", "p1", "p3", "p2", "p7"],
+  "without the category tree, a product's own handle still ranks",
+  ids(orderSaleProducts(
+    [item("is5", "essentials", 50), item("is4", "pajamas", 50), item("is3", "dresses", 50)],
+    catalogPercents,
+    [],
+    { featuredHandles: [], categoryOrder: SALE_CAMPAIGN.categoryOrder },
+  )),
+  ["is3", "is5", "is4"], // pajamas can't reach Lingerie without the tree: unlisted
 )
-check("input left untouched", all.map((p) => p.id), ["p1", "p2", "p3", "p4", "p5", "p6", "p7"])
+check("input left untouched", ids(CATALOG.slice(0, 3)), ["st7", "is1016", "tr6"])
 
 console.log(ok ? "ALL PASS" : "FAILURES ABOVE")
 if (!ok) process.exit(1)

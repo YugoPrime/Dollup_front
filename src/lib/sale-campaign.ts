@@ -26,6 +26,31 @@ export const SALE_CAMPAIGN = {
   /** Search and social description for /sale. */
   description:
     "Up to 50% off dresses, swimwear, lingerie and essentials, plus free postage on every order. 19 Oct – 1 Nov, Mauritius only.",
+  /**
+   * Pinned to the top of /sale in this order (the carousel-ad cards). Any
+   * that are sold out or not on sale are skipped.
+   */
+  featuredHandles: [
+    "is2138", "is2296", "is2344", "is2358", "is2265",
+    "is2281", "is2297", "is2364", "is1906", "is2446",
+  ],
+  /**
+   * Category order within a discount tier on /sale, by category handle. A
+   * product unlisted here ranks as its nearest listed parent (Pajamas as
+   * Lingerie); anything with no listed parent (Plus Size, After Dark) comes
+   * after every group.
+   */
+  categoryOrder: [
+    ["dresses"],
+    ["two-piece-outfits"],
+    ["jumpsuits"],
+    ["bikini-sets", "one-pieces", "cover-ups", "beachwear"],
+    ["sweaters-&-cardigans", "hoodies", "winter"],
+    ["tops", "tank-tops-&-camis", "skirts", "pants", "bottoms"],
+    ["accessories", "bags", "shoes", "jewelry"],
+    ["lingerie", "bodysuits"],
+    ["essentials"],
+  ],
 } as const;
 
 /** The campaign landing page (src/app/sale). */

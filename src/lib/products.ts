@@ -1,5 +1,6 @@
 import "server-only";
-import { AFTER_DARK_CATEGORY_HANDLES, deprioritizeCategories } from "./products-order";
+import { deprioritizeCategories } from "./products-order";
+import { SALE_CAMPAIGN } from "./sale-campaign";
 import {
   distinctTiers,
   orderSaleProducts,
@@ -883,7 +884,9 @@ export type SaleListing = {
  * snapshot (no extra Medusa calls beyond the cached category list). The
  * products come through listWithFacetFilters({ onSale: true }), so /sale
  * hides exactly what /shop?on_sale=1 hides: pre-orders, unlisted and sold-out
- * products, and anything without a reduced in-stock variant.
+ * products, and anything without a reduced in-stock variant. Ordered by
+ * orderSaleProducts with the campaign's featured handles and category order,
+ * then filtered, so a chip keeps the same order inside its subset.
  */
 export async function listSaleProducts(args: {
   tier?: string;
@@ -914,14 +917,7 @@ export async function listSaleProducts(args: {
     ? new Set(expandCategoryWithDescendants(matched.id, categories))
     : null;
 
-  // After Dark goes last in the all-categories view, like the default /shop grid.
-  const lastCategoryIds = categoryIds
-    ? []
-    : categories
-        .filter((c) => AFTER_DARK_CATEGORY_HANDLES.includes(c.handle ?? ""))
-        .flatMap((c) => expandCategoryWithDescendants(c.id, categories));
-
-  const filtered = orderSaleProducts(onSale, percents, lastCategoryIds).filter(
+  const filtered = orderSaleProducts(onSale, percents, categories, SALE_CAMPAIGN).filter(
     (p) =>
       (tier == null || percents.get(p.id) === tier) &&
       (!categoryIds || (p.categories ?? []).some((c) => categoryIds.has(c.id))),

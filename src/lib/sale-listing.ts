@@ -3,7 +3,6 @@
 // products-order.ts) so they can be unit-tested; listSaleProducts in
 // products.ts applies them to the shared catalog snapshot.
 import { discountPercent, getDisplayPrice } from "./format";
-import { deprioritizeCategories } from "./products-order";
 
 type PricedVariant = NonNullable<
   Parameters<typeof getDisplayPrice>[0]["variants"]
@@ -11,8 +10,9 @@ type PricedVariant = NonNullable<
 
 export type SaleProductLike = {
   id: string;
+  handle?: string | null;
   created_at?: string | null;
-  categories?: { id?: string | null }[] | null;
+  categories?: { id?: string | null; handle?: string | null }[] | null;
   variants?: PricedVariant[] | null;
 };
 
@@ -100,19 +100,89 @@ function createdAt(p: SaleProductLike): number {
   return Number.isFinite(t) ? t : 0;
 }
 
+// "is2138" → 2138. Older imports use other prefixes (tr6, st508, cb10023)
+// and carry supplier photos with the price printed on them, so any handle
+// not in the IS shape counts as oldest. The IS number is the cheapest proxy
+// for photo quality the catalog has.
+const IS_HANDLE = /^is(\d+)$/i;
+function handleNumber(handle: string | null | undefined): number {
+  const m = IS_HANDLE.exec(handle ?? "");
+  return m ? Number(m[1]) : -1;
+}
+
+export type SaleOrder = {
+  /** Pinned first, in this order; handles not on sale are skipped. */
+  featuredHandles: readonly string[];
+  /** Category handle groups, best first, for the order within a tier. */
+  categoryOrder: readonly (readonly string[])[];
+};
+
 /**
- * Default /sale order: deepest discount first, then the shop's usual order
- * within each tier: newest first, with `lastCategoryIds` (After Dark in the
- * all-categories view) after everything else.
+ * Default /sale order:
+ *   1. `featuredHandles` first, in config order.
+ *   2. The rest by discount, deepest first.
+ *   3. Within a tier, by `categoryOrder` group. Each of a product's
+ *      categories counts, as itself or its nearest listed parent (Pajamas →
+ *      Lingerie), and the best group wins; no listed group → after all.
+ *   4. Then newest first by IS number, non-IS handles last (ties: newest
+ *      created_at).
+ * Filter after ordering: a chip's subset then keeps rules 2–4, and pinned
+ * products lead it whenever they match.
  */
 export function orderSaleProducts<T extends SaleProductLike>(
   products: T[],
   percents: ReadonlyMap<string, number>,
-  lastCategoryIds: Iterable<string>,
+  categories: SaleCategory[],
+  order: SaleOrder,
 ): T[] {
-  const newest = [...products].sort((a, b) => createdAt(b) - createdAt(a));
-  // Both sorts are stable, so the tier sort keeps the order within each tier.
-  return deprioritizeCategories(newest, lastCategoryIds).sort(
-    (a, b) => (percents.get(b.id) ?? 0) - (percents.get(a.id) ?? 0),
-  );
+  const byHandle = new Map(products.map((p) => [(p.handle ?? "").toLowerCase(), p]));
+  const pinned: T[] = [];
+  for (const h of order.featuredHandles) {
+    const p = byHandle.get(h.toLowerCase());
+    if (p && !pinned.includes(p)) pinned.push(p);
+  }
+
+  const groupByHandle = new Map<string, number>();
+  order.categoryOrder.forEach((group, i) => {
+    for (const h of group) groupByHandle.set(h, i);
+  });
+  const byId = new Map(categories.map((c) => [c.id, c]));
+  const unranked = order.categoryOrder.length;
+  const categoryRank = (p: T): number => {
+    let best = unranked;
+    for (const pc of p.categories ?? []) {
+      let cur = pc.id ? byId.get(pc.id) : undefined;
+      let handle = pc.handle ?? cur?.handle;
+      // Walk up the tree; the guard stops a malformed parent loop.
+      for (let depth = 0; handle && depth < 10; depth++) {
+        const rank = groupByHandle.get(handle);
+        if (rank !== undefined) {
+          best = Math.min(best, rank);
+          break;
+        }
+        cur = cur?.parent_category_id ? byId.get(cur.parent_category_id) : undefined;
+        handle = cur?.handle;
+      }
+    }
+    return best;
+  };
+
+  const rest = products
+    .filter((p) => !pinned.includes(p))
+    .map((p) => ({
+      p,
+      tier: percents.get(p.id) ?? 0,
+      rank: categoryRank(p),
+      number: handleNumber(p.handle),
+      created: createdAt(p),
+    }))
+    .sort(
+      (a, b) =>
+        b.tier - a.tier ||
+        a.rank - b.rank ||
+        b.number - a.number ||
+        b.created - a.created,
+    )
+    .map((k) => k.p);
+  return [...pinned, ...rest];
 }

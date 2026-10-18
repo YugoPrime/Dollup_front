@@ -8,7 +8,7 @@ type WithCategories = {
 
 // Categories that make up the After Dark range. The nav links to "intimates";
 // adult games/toys are catalogued under "toys". Both go to the end of the
-// unfiltered /shop and /sale grids (see deprioritizeCategories).
+// unfiltered /shop grid (see deprioritizeCategories).
 export const AFTER_DARK_CATEGORY_HANDLES = ["intimates", "toys"];
 
 /**
