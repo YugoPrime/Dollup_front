@@ -128,33 +128,35 @@ function addDaysYmd(ymd: string, days: number): string {
 // the concierge promise different things.
 export const DEFAULT_NEXT_DAY_CUTOFF_HOUR = 12;
 
-// ─── Shop break, Sept–Oct 2026 ────────────────────────────────────────────
-// The boutique is on a break. Orders can still be placed, but nothing is
-// handed over until this date: home delivery, postage AND pickup at
-// Pereybere all resume on 17 Oct 2026.
+// ─── Free postage, 18 Oct – 1 Nov 2026 ────────────────────────────────────
+// Registered Postage is free on every order through this MU calendar day.
+// Medusa gives the discount itself (automatic promotion FREEPOSTAGE, whose
+// campaign ends 23:59 MU the same day); this only makes the site say "Free"
+// before the option is picked. Express and Rodrigues Postage stay paid.
 //
-// Deliberately self-expiring. Everything below compares against the live MU
-// calendar day and the checkout form evaluates it in the browser, so from
-// 17 Oct the normal cutoff rules come back and pickup reappears on its own —
-// no deploy needed. To end the break early, set this to today or earlier.
-export const SERVICE_RESUMES_YMD = "2026-10-17";
+// Self-expiring: callers compare against the live MU calendar day, so the
+// "Free" labels drop on 2 Nov with no deploy. Move this and the campaign end
+// date together, or the site promises a price Medusa won't charge.
+export const FREE_POSTAGE_UNTIL_YMD = "2026-11-01";
 
-/** How the resume date is written in customer-facing copy. */
-export const SERVICE_RESUMES_LABEL = "17/10";
+/** How the end date is written in customer-facing copy. */
+export const FREE_POSTAGE_UNTIL_LABEL = "1 Nov";
 
-/** True while the break is still on (MU calendar day before the resume date). */
-export function serviceBreakActive(now: Date = new Date()): boolean {
+/** True through the last MU calendar day of the offer. */
+export function freePostageActive(now: Date = new Date()): boolean {
   const { year, month, day } = muDateParts(now);
-  return fmtYmd(year, month, day) < SERVICE_RESUMES_YMD;
+  return fmtYmd(year, month, day) <= FREE_POSTAGE_UNTIL_YMD;
 }
 
-/**
- * Pickup at Pereybere is unavailable for the whole break — unlike delivery
- * and postage it can't be "ordered now, handed over later", so the option is
- * hidden at checkout rather than date-shifted.
- */
-export function pickupPaused(now: Date = new Date()): boolean {
-  return serviceBreakActive(now);
+/** Registered Postage (in-stock or pre-order) while the offer runs. */
+export function qualifiesForFreePostage(
+  optionName: string,
+  now: Date = new Date(),
+): boolean {
+  return (
+    freePostageActive(now) &&
+    shippingOptionToDeliveryMethod(optionName) === "Postage"
+  );
 }
 
 // Earliest date the customer can pick. Rules:
@@ -175,9 +177,6 @@ export function earliestDeliveryDate(
   let candidate = allowSameDay
     ? todayYmd
     : addDaysYmd(todayYmd, hour < cutoffHour ? 1 : 2);
-  // Break: nothing goes out before service resumes, so the picker can't offer
-  // an earlier day whatever the cutoff works out to. No-op once past the date.
-  if (candidate < SERVICE_RESUMES_YMD) candidate = SERVICE_RESUMES_YMD;
   if (dowOfYmd(candidate) === 0) candidate = addDaysYmd(candidate, 1);
   return candidate;
 }

@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import type { HttpTypes } from "@medusajs/types";
 import { useCart } from "@/components/cart/CartProvider";
-import { BreakNotice } from "@/components/BreakNotice";
 import { LoyaltyRedeemBox } from "@/components/checkout/LoyaltyRedeemBox";
 import { getCartSdk } from "@/lib/cart-client";
 import { register, useCustomer } from "@/lib/auth-client";
@@ -35,10 +34,9 @@ import {
   EMPTY_CHECKOUT_STATE,
   isValidDeliveryDate,
   nextValidDeliveryDates,
-  pickupPaused,
+  FREE_POSTAGE_UNTIL_LABEL,
   qualifiesForFreeHomeDelivery,
-  serviceBreakActive,
-  SERVICE_RESUMES_LABEL,
+  qualifiesForFreePostage,
   shippingOptionToDeliveryMethod,
   validateCheckout,
   toMedusaAddress,
@@ -198,15 +196,7 @@ export function CheckoutForm({ cutoffHour }: { cutoffHour: number }) {
             cart_id: cart.id,
           });
         if (!cancelled) {
-          // Break: drop pickup entirely rather than offering a date the shop
-          // can't honour. Filtering here (not just in the markup) also keeps
-          // it out of the default selection below and out of selectedOption,
-          // so a stale pickup id can never survive into the cart.
-          const usable = (shipping_options ?? []).filter(
-            (o) =>
-              !pickupPaused() ||
-              shippingOptionToDeliveryMethod(o.name ?? null) !== "Pick Up",
-          );
+          const usable = shipping_options ?? [];
           setShippingOptions(usable);
           setState((s) => {
             const keep =
@@ -572,7 +562,8 @@ export function CheckoutForm({ cutoffHour }: { cutoffHour: number }) {
     selectedOption &&
     (selectedOption.amount === 0 ||
       bundleFreeShipping ||
-      qualifiesForFreeHomeDelivery(selectedOption.name ?? "", itemSubtotal));
+      qualifiesForFreeHomeDelivery(selectedOption.name ?? "", itemSubtotal) ||
+      qualifiesForFreePostage(selectedOption.name ?? ""));
   const ctaShipping = cartHasShippingMethod
     ? (cart.shipping_total ?? 0)
     : selectedShippingFree
@@ -612,8 +603,6 @@ export function CheckoutForm({ cutoffHour }: { cutoffHour: number }) {
 
   return (
     <>
-      <BreakNotice className="mb-5" />
-
       {errorBanner ? (
         <div
           role="alert"
@@ -695,11 +684,14 @@ export function CheckoutForm({ cutoffHour }: { cutoffHour: number }) {
                         method === "Rodrigues Postage"
                       ? Mail
                       : Truck;
+                const freePostage = qualifiesForFreePostage(label);
                 const hint =
                   method === "Pick Up"
                     ? "Collect from Doll Up Boutique."
                     : method === "Postage"
-                      ? "Registered post across Mauritius."
+                      ? freePostage
+                        ? `Registered post across Mauritius. Free until ${FREE_POSTAGE_UNTIL_LABEL}.`
+                        : "Registered post across Mauritius."
                       : method === "Express Postage"
                         ? "Faster courier dispatch."
                         : method === "Rodrigues Postage"
@@ -708,6 +700,7 @@ export function CheckoutForm({ cutoffHour }: { cutoffHour: number }) {
                 const free =
                   opt.amount === 0 ||
                   bundleFreeShipping ||
+                  freePostage ||
                   qualifiesForFreeHomeDelivery(
                     opt.name ?? "",
                     cart.item_total ?? cart.subtotal ?? 0,
@@ -739,15 +732,6 @@ export function CheckoutForm({ cutoffHour }: { cutoffHour: number }) {
                         <span className="mt-0.5 block font-sans text-[11px] text-ink-muted">
                           {hint}
                         </span>
-                        {serviceBreakActive() && (
-                          <span className="mt-1 block font-sans text-[11px] font-semibold text-coral-700">
-                            {method === "Postage" ||
-                            method === "Express Postage" ||
-                            method === "Rodrigues Postage"
-                              ? `Posted from ${SERVICE_RESUMES_LABEL}`
-                              : `From ${SERVICE_RESUMES_LABEL}`}
-                          </span>
-                        )}
                       </span>
                     </span>
                     <span className="shrink-0 pt-2 font-sans text-sm font-semibold text-ink">
@@ -763,12 +747,6 @@ export function CheckoutForm({ cutoffHour }: { cutoffHour: number }) {
                 );
               })}
             </div>
-          )}
-          {pickupPaused() && (
-            <p className="font-sans text-[11px] text-ink-muted">
-              Pickup at Pereybere is paused while we&apos;re on a break — it
-              comes back on {SERVICE_RESUMES_LABEL}.
-            </p>
           )}
           {shippingOptionError ? (
             <p className="font-sans text-[11px] text-coral-700">
@@ -790,11 +768,9 @@ export function CheckoutForm({ cutoffHour }: { cutoffHour: number }) {
               </span>
             </div>
             <p className="font-sans text-xs text-ink-muted">
-              {serviceBreakActive()
-                ? `We're on a break — order now and delivery resumes on ${SERVICE_RESUMES_LABEL}. Closed Sundays.`
-                : isPickup
-                  ? "Same-day pickup OK. Closed Sundays."
-                  : `No same-day delivery. Order before ${cutoffLabel} for next day. Closed Sundays.`}
+              {isPickup
+                ? "Same-day pickup OK. Closed Sundays."
+                : `No same-day delivery. Order before ${cutoffLabel} for next day. Closed Sundays.`}
             </p>
 
             <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:px-0 sm:pb-0 sm:flex-wrap">
@@ -875,11 +851,9 @@ export function CheckoutForm({ cutoffHour }: { cutoffHour: number }) {
             {state.deliveryDate &&
               !isValidDeliveryDate(state.deliveryDate, new Date(), isPickup, cutoffHour) && (
                 <p className="font-sans text-[11px] text-coral-700">
-                  {serviceBreakActive()
-                    ? `That date is not available — deliveries resume on ${SERVICE_RESUMES_LABEL}, and we're closed Sundays.`
-                    : isPickup
-                      ? "That date is not available — no pickups on Sundays."
-                      : `That date is not available. No same-day delivery, next-day cutoff is ${cutoffLabel}, no Sundays.`}
+                  {isPickup
+                    ? "That date is not available — no pickups on Sundays."
+                    : `That date is not available. No same-day delivery, next-day cutoff is ${cutoffLabel}, no Sundays.`}
                 </p>
               )}
           </section>
