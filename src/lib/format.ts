@@ -64,11 +64,30 @@ function pickLowestPricedVariant<T extends NonNullable<WithPrice["variants"]>[nu
   return best;
 }
 
+// Sale prices are set as a % off, then rounded DOWN to a multiple of Rs 5,
+// which nudges the real discount up: Rs 425 → 210 at 50% off is 50.6%, and
+// plain rounding badged it "-51%" under an "up to 50%" banner (7 of the 276
+// October sale products did this). Flooring to the 5% step gives back the
+// tier the owner set, and never overstates a discount.
+const DISCOUNT_STEP_PERCENT = 5;
+
+/** Whole % off, floored to the 5% step (under 5%: the whole %, at least 1). */
+export function discountPercent(
+  amount: number | null | undefined,
+  original: number | null | undefined,
+): number | null {
+  if (amount == null || original == null || original <= 0 || original <= amount) {
+    return null;
+  }
+  const exact = ((original - amount) * 100) / original;
+  if (exact < DISCOUNT_STEP_PERCENT) return Math.max(1, Math.floor(exact));
+  return Math.floor(exact / DISCOUNT_STEP_PERCENT) * DISCOUNT_STEP_PERCENT;
+}
+
 export function formatDiscountPercent(
   amount: number | null | undefined,
   original: number | null | undefined,
 ): string | null {
-  if (amount == null || original == null || original <= amount) return null;
-  const pct = Math.round(((original - amount) / original) * 100);
-  return `-${pct}%`;
+  const pct = discountPercent(amount, original);
+  return pct == null ? null : `-${pct}%`;
 }
