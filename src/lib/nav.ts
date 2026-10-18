@@ -70,6 +70,15 @@ function categoryHandleFromHref(href: string): string | null {
   return params.get("category");
 }
 
+// Category handles the header menu links to, at its leaf level (Dresses,
+// Lingerie, Beachwear, ... but not the "Outfit" parent). The /sale page uses
+// the same groups for its category chips.
+export const NAV_CATEGORY_HANDLES: string[] = NAV_LINKS.flatMap(
+  (link) => link.children?.map((c) => c.href) ?? [link.href],
+)
+  .map(categoryHandleFromHref)
+  .filter((h): h is string => h != null);
+
 // Drops nav entries whose target category has no in-stock products. Non-category
 // links (New Arrivals, Sale) pass through. A parent stays when any of its
 // children remain, even if the parent's own category is empty.

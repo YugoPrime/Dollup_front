@@ -1,5 +1,13 @@
 import "server-only";
-import { deprioritizeCategories } from "./products-order";
+import { AFTER_DARK_CATEGORY_HANDLES, deprioritizeCategories } from "./products-order";
+import {
+  distinctTiers,
+  orderSaleProducts,
+  parseTierParam,
+  productSalePercent,
+  saleCategoryChips,
+  type SaleCategoryChip,
+} from "./sale-listing";
 import { unstable_cache } from "next/cache";
 import { listStoreProducts, sdk } from "./medusa";
 import { getRegion } from "./region";
@@ -855,6 +863,79 @@ const cachedProductFacetIndex = unstable_cache(
   ["product-facet-index-v1"],
   { tags: [PRODUCTS_CACHE_TAG], revalidate: CATALOG_REVALIDATE_SECONDS },
 );
+
+// --- /sale campaign page ---
+
+export type SaleListing = {
+  products: HttpTypes.StoreProduct[];
+  /** Products matching the applied tier + category, before the page slice. */
+  count: number;
+  /** Distinct % tiers on sale, deepest first. */
+  tiers: number[];
+  categories: SaleCategoryChip[];
+  /** What was applied; unknown `?off=` / `?category=` values fall back to all. */
+  tier: number | null;
+  category: { handle: string; name: string } | null;
+};
+
+/**
+ * Everything the /sale grid needs, derived in memory from the shared catalog
+ * snapshot (no extra Medusa calls beyond the cached category list). The
+ * products come through listWithFacetFilters({ onSale: true }), so /sale
+ * hides exactly what /shop?on_sale=1 hides: pre-orders, unlisted and sold-out
+ * products, and anything without a reduced in-stock variant.
+ */
+export async function listSaleProducts(args: {
+  tier?: string;
+  category?: string;
+  /** Category handles offered as chips (the header menu's level). */
+  chipHandles: string[];
+  limit: number;
+}): Promise<SaleListing> {
+  const region = await getRegion();
+  const [{ products: onSale }, categories] = await Promise.all([
+    listWithFacetFilters({ onSale: true, limit: Number.MAX_SAFE_INTEGER }, region),
+    listCategories().catch(() => []),
+  ]);
+
+  const percents = new Map<string, number>();
+  for (const p of onSale) {
+    const pct = productSalePercent(p);
+    if (pct != null) percents.set(p.id, pct);
+  }
+  const tiers = distinctTiers(percents.values());
+  const tier = parseTierParam(args.tier, tiers);
+
+  // Same handle matching as /shop: trailing slashes trimmed, descendants
+  // included (?category=beachwear covers bikini sets, one-pieces, ...).
+  const handle = args.category?.replace(/\/+$/, "");
+  const matched = handle ? categories.find((c) => c.handle === handle) : undefined;
+  const categoryIds = matched
+    ? new Set(expandCategoryWithDescendants(matched.id, categories))
+    : null;
+
+  // After Dark goes last in the all-categories view, like the default /shop grid.
+  const lastCategoryIds = categoryIds
+    ? []
+    : categories
+        .filter((c) => AFTER_DARK_CATEGORY_HANDLES.includes(c.handle ?? ""))
+        .flatMap((c) => expandCategoryWithDescendants(c.id, categories));
+
+  const filtered = orderSaleProducts(onSale, percents, lastCategoryIds).filter(
+    (p) =>
+      (tier == null || percents.get(p.id) === tier) &&
+      (!categoryIds || (p.categories ?? []).some((c) => categoryIds.has(c.id))),
+  );
+
+  return {
+    products: filtered.slice(0, args.limit),
+    count: filtered.length,
+    tiers,
+    categories: saleCategoryChips(onSale, categories, args.chipHandles),
+    tier,
+    category: matched ? { handle: matched.handle, name: matched.name } : null,
+  };
+}
 
 // Canonical color name → display label. Variants in the catalog use messy
 // spellings ("burgandy"/"burgundy", "Light Pink"/"lightpink"/"l.pink"); this
