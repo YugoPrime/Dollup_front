@@ -144,6 +144,12 @@ const nextConfig: NextConfig = {
         headers: longLivedAssetHeaders,
       },
       {
+        // Never cached by the browser or Cloudflare (which caches .js), or a
+        // fix to the worker could not reach phones that already have it.
+        source: "/sw.js",
+        headers: [{ key: "Cache-Control", value: "no-cache, no-store, must-revalidate" }],
+      },
+      {
         source: "/(.*)",
         headers: [
           {
