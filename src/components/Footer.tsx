@@ -5,6 +5,7 @@ import { getStoreConfig } from "@/lib/store-config";
 import { NewsletterForm } from "./NewsletterForm";
 import { FeedbackLink } from "@/components/feedback/FeedbackLink";
 import { FooterCol } from "@/components/FooterCol";
+import { InstallAppButton } from "@/components/pwa/InstallAppButton";
 
 export async function Footer() {
   const cfg = await getStoreConfig();
@@ -106,6 +107,7 @@ export async function Footer() {
               Doll Rewards — Join &amp; earn points
             </span>
           </Link>
+          <InstallAppButton />
         </div>
 
         <FooterCol title="Shop" links={FOOTER_SHOP} />

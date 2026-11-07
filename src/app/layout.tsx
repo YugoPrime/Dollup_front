@@ -11,6 +11,7 @@ import { TagManager, TagManagerNoScript } from "@/components/analytics/TagManage
 import { RouteChangeTracker } from "@/components/analytics/RouteChangeTracker";
 import { ConsentBanner } from "@/components/analytics/ConsentBanner";
 import { CONSENT_BOOTSTRAP_SCRIPT } from "@/lib/analytics";
+import { PwaSetup } from "@/components/pwa/PwaSetup";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -40,6 +41,12 @@ export const metadata: Metadata = {
     template: "%s — Doll Up Boutique",
   },
   description: SITE_DESCRIPTION,
+  // iPhone "Add to Home Screen": open full-screen, labelled "Doll Up".
+  appleWebApp: {
+    capable: true,
+    title: "Doll Up",
+    statusBarStyle: "default",
+  },
   openGraph: {
     type: "website",
     siteName: "Doll Up Boutique",
@@ -161,6 +168,7 @@ export default function RootLayout({
           <RouteChangeTracker />
         </Suspense>
         <ConsentBanner />
+        <PwaSetup />
       </body>
     </html>
   );
