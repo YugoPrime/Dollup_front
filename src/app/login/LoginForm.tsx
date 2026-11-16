@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { login } from "@/lib/auth-client";
+import { authErrorKind, type AuthErrorKind } from "@/lib/auth-errors";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { safeRedirectPath } from "@/lib/safe-redirect";
 
@@ -11,14 +12,19 @@ export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const redirect = safeRedirectPath(params.get("redirect"));
+  const registerHref = `/register${
+    redirect !== "/account" ? `?redirect=${encodeURIComponent(redirect)}` : ""
+  }`;
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorKind, setErrorKind] = useState<AuthErrorKind | null>(null);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setErrorKind(null);
     if (!email || !password) {
       setError("Please enter your email and password.");
       return;
@@ -29,10 +35,16 @@ export function LoginForm() {
       await login(email, password);
       router.replace(redirect);
     } catch (err) {
+      const kind = authErrorKind(err);
+      setErrorKind(kind);
+      // The backend says "Invalid email or password" both for a wrong password
+      // and for an email with no account here, so the hint below covers both.
       const msg =
-        err instanceof Error && err.message
-          ? err.message
-          : "Couldn't sign you in. Check your email and password.";
+        kind === "invalid-credentials"
+          ? "That email and password don't match."
+          : err instanceof Error && err.message
+            ? err.message
+            : "Couldn't sign you in. Check your email and password.";
       setError(msg);
       setSubmitting(false);
     }
@@ -53,7 +65,26 @@ export function LoginForm() {
           role="alert"
           className="mt-5 rounded-md border border-coral-500 bg-blush-100 px-3 py-2 font-sans text-[13px] text-coral-700"
         >
-          {error}
+          <p>{error}</p>
+          {errorKind === "invalid-credentials" && (
+            <p className="mt-1 text-ink-soft">
+              Forgot it?{" "}
+              <Link
+                href="/forgot-password"
+                className="font-semibold text-coral-700 underline underline-offset-2"
+              >
+                Reset your password
+              </Link>
+              . No account on our new site yet?{" "}
+              <Link
+                href={registerHref}
+                className="font-semibold text-coral-700 underline underline-offset-2"
+              >
+                Create one
+              </Link>
+              .
+            </p>
+          )}
         </div>
       )}
 
@@ -121,11 +152,7 @@ export function LoginForm() {
       <p className="mt-5 text-center font-sans text-[13px] text-ink-muted">
         New to Doll Up?{" "}
         <Link
-          href={`/register${
-            redirect !== "/account"
-              ? `?redirect=${encodeURIComponent(redirect)}`
-              : ""
-          }`}
+          href={registerHref}
           className="font-semibold text-coral-500 hover:text-coral-700"
         >
           Create an account

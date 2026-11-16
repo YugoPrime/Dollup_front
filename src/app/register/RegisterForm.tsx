@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { register } from "@/lib/auth-client";
+import { authErrorKind, type AuthErrorKind } from "@/lib/auth-errors";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { safeRedirectPath } from "@/lib/safe-redirect";
 
@@ -11,6 +12,9 @@ export function RegisterForm() {
   const router = useRouter();
   const params = useSearchParams();
   const redirect = safeRedirectPath(params.get("redirect"));
+  const loginHref = `/login${
+    redirect !== "/account" ? `?redirect=${encodeURIComponent(redirect)}` : ""
+  }`;
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -20,9 +24,11 @@ export function RegisterForm() {
   const [confirm, setConfirm] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorKind, setErrorKind] = useState<AuthErrorKind | null>(null);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setErrorKind(null);
     if (!firstName || !lastName || !email || !password) {
       setError("Please fill in all required fields.");
       return;
@@ -47,10 +53,17 @@ export function RegisterForm() {
       });
       router.replace(redirect);
     } catch (err) {
+      const kind = authErrorKind(err);
+      setErrorKind(kind);
+      // Shown raw before, this read "Identity with email already exists" and
+      // gave no way forward, so returning shoppers went back and forth
+      // between this page and /login.
       const msg =
-        err instanceof Error && err.message
-          ? err.message
-          : "Couldn't create your account. The email may already be registered.";
+        kind === "account-exists"
+          ? "You already have an account with this email."
+          : err instanceof Error && err.message
+            ? err.message
+            : "Couldn't create your account. The email may already be registered.";
       setError(msg);
       setSubmitting(false);
     }
@@ -71,7 +84,25 @@ export function RegisterForm() {
           role="alert"
           className="mt-5 rounded-md border border-coral-500 bg-blush-100 px-3 py-2 font-sans text-[13px] text-coral-700"
         >
-          {error}
+          <p>{error}</p>
+          {errorKind === "account-exists" && (
+            <p className="mt-1 text-ink-soft">
+              <Link
+                href={loginHref}
+                className="font-semibold text-coral-700 underline underline-offset-2"
+              >
+                Sign in
+              </Link>{" "}
+              instead, or{" "}
+              <Link
+                href="/forgot-password"
+                className="font-semibold text-coral-700 underline underline-offset-2"
+              >
+                reset your password
+              </Link>{" "}
+              if you&apos;ve forgotten it.
+            </p>
+          )}
         </div>
       )}
 
@@ -193,11 +224,7 @@ export function RegisterForm() {
       <p className="mt-5 text-center font-sans text-[13px] text-ink-muted">
         Already have an account?{" "}
         <Link
-          href={`/login${
-            redirect !== "/account"
-              ? `?redirect=${encodeURIComponent(redirect)}`
-              : ""
-          }`}
+          href={loginHref}
           className="font-semibold text-coral-500 hover:text-coral-700"
         >
           Sign in

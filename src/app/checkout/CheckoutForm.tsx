@@ -874,10 +874,10 @@ export function CheckoutForm({ cutoffHour }: { cutoffHour: number }) {
                     id="checkout-login-reminder-title"
                     className="font-sans text-sm font-semibold text-ink"
                   >
-                    Already have an account?
+                    No account needed
                   </p>
                   <p className="font-sans text-xs text-ink-muted">
-                    Sign in for faster checkout with your saved addresses and orders.
+                    Order as a guest below. Have an account? Log in to use your saved addresses.
                   </p>
                 </div>
               </div>
