@@ -5,7 +5,9 @@ import type { HttpTypes } from "@medusajs/types";
 import {
   clearStoredCartId,
   clientSdk,
+  getCartSdk,
   getStoredCartId,
+  getStoredCartType,
   MEDUSA_JWT_KEY,
 } from "@/lib/cart-client";
 import { safeRedirectPath } from "@/lib/safe-redirect";
@@ -14,14 +16,32 @@ import { clearWishlist } from "@/lib/wishlist-client";
 // Bind any guest/stale cart in localStorage to the just-authenticated customer.
 // Without this, a cart whose customer_id was stamped in a prior session keeps
 // that id forever, and routes that check ownership (e.g. loyalty redeem) 403.
+//
+// A failed transfer never clears the bag. It used to, and a session without a
+// customer yet (see rebindSessionToCustomer) 401s here, so signing in emptied
+// the shopper's bag. A stale or completed cart id needs no handling here:
+// CartProvider drops it when it can't load it.
 async function attachStoredCartToCustomer(): Promise<void> {
   const cartId = getStoredCartId();
   if (!cartId) return;
   try {
-    await clientSdk.store.cart.transferCart(cartId);
-  } catch {
-    clearStoredCartId();
+    // A pre-order bag sits in its own sales channel, so it needs the SDK
+    // carrying the pre-order publishable key.
+    await getCartSdk(getStoredCartType()).store.cart.transferCart(cartId);
+  } catch (err) {
+    console.warn("Couldn't attach the bag to this account:", err);
   }
+}
+
+// A session minted before the customer record existed carries actor_id "", and
+// Medusa answers 401 on every route that needs a registered customer
+// (/store/customers/me, transferCart), so the shopper is logged out on the next
+// page load. Swap it for a fresh one: /auth/token/refresh re-reads the auth
+// identity, which customer.create has just linked, and the SDK posts the new
+// token to /auth/session. `token` is the one login or the OAuth callback
+// returned; refresh only accepts a bearer token, not the session cookie.
+async function rebindSessionToCustomer(token: string): Promise<void> {
+  await clientSdk.auth.refresh({ Authorization: `Bearer ${token}` });
 }
 
 export type Customer = HttpTypes.StoreCustomer;
@@ -120,6 +140,9 @@ export async function login(email: string, password: string): Promise<Customer> 
     } catch {
       // Couldn't repair — fall through to the original error.
     }
+    // The session above was minted before this customer existed. If the
+    // rebind fails, login throws and the retry works: the identity is linked.
+    if (customer) await rebindSessionToCustomer(result);
   }
   if (!customer) {
     throw new Error("Logged in, but customer profile could not be loaded.");
@@ -227,6 +250,9 @@ export async function completeGoogleCallback(
       email,
     });
     customer = created ?? null;
+    // Same as login's repair path: the callback's session predates the
+    // customer, so swap it for one that carries the new customer id.
+    if (customer) await rebindSessionToCustomer(token);
   }
 
   await attachStoredCartToCustomer();
