@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 const COOKIE = "dub_age_verified_18";
 const TTL_DAYS = 30;
 
-function isVerified(): boolean {
+export function isAgeVerified(): boolean {
   if (typeof document === "undefined") return false;
   return document.cookie
     .split(";")
@@ -13,7 +13,7 @@ function isVerified(): boolean {
     .some((c) => c === `${COOKIE}=1`);
 }
 
-function setVerified() {
+export function setAgeVerified() {
   if (typeof document === "undefined") return;
   const ttl = TTL_DAYS * 24 * 60 * 60;
   document.cookie = `${COOKIE}=1; path=/; max-age=${ttl}; SameSite=Lax`;
@@ -25,7 +25,7 @@ export function AgeGateModal() {
   const [open, setOpen] = useState(true);
 
   useEffect(() => {
-    if (isVerified()) setOpen(false);
+    if (isAgeVerified()) setOpen(false);
   }, []);
 
   useEffect(() => {
@@ -65,7 +65,7 @@ export function AgeGateModal() {
           <button
             type="button"
             onClick={() => {
-              setVerified();
+              setAgeVerified();
               setOpen(false);
             }}
             className="rounded-md bg-coral-500 px-6 py-3 font-sans text-[13px] font-semibold uppercase tracking-wider text-white transition hover:bg-coral-700"

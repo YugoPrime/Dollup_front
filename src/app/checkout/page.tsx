@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowLeft, LockKeyhole } from "lucide-react";
 import { CheckoutForm } from "./CheckoutForm";
 import { getStoreConfig } from "@/lib/store-config";
+import { adventNowMs } from "@/lib/advent";
 
 export const metadata: Metadata = {
   title: "Checkout",
@@ -44,7 +45,7 @@ export default async function CheckoutPage() {
           </p>
         </div>
       </div>
-      <CheckoutForm cutoffHour={cfg.shipping.next_day_cutoff_hour} />
+      <CheckoutForm cutoffHour={cfg.shipping.next_day_cutoff_hour} initialNow={adventNowMs()} />
     </div>
   );
 }

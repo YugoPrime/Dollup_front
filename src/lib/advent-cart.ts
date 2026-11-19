@@ -58,3 +58,8 @@ export function giftChoices(
     })
     .map((v) => ({ id: v.id, label: v.label }))
 }
+
+/** A line we added as a claimed door gift. Its quantity is fixed at 1: qty 2 would no longer be free. */
+export function isAdventGiftLine(line: { metadata?: Record<string, unknown> | null }): boolean {
+  return line.metadata?.auto_gift === ADVENT_GIFT
+}

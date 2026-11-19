@@ -13,11 +13,16 @@ import { getCartSdk } from "@/lib/cart-client";
 import { useCart } from "@/components/cart/CartProvider";
 import { cartTypeOf } from "@/lib/cart-type";
 import { PreorderTerms } from "@/components/preorder/PreorderTerms";
+import { AdventBagLine } from "@/components/advent/AdventBagLine";
+import { useAdventNow } from "@/components/advent/useAdventNow";
+import { shippingDoorFree } from "@/lib/advent";
 
 type Cart = HttpTypes.StoreCart;
 
 type Props = {
   cart: Cart;
+  /** Server render time, so the advent door matches on hydration. */
+  initialNow: number;
   submitting: boolean;
   onSubmit: () => void;
   loyaltySlot?: React.ReactNode;
@@ -155,6 +160,7 @@ function PromoCodeBox({ cart }: { cart: Cart }) {
 
 export function OrderSummary({
   cart,
+  initialNow,
   submitting,
   onSubmit,
   loyaltySlot,
@@ -162,13 +168,21 @@ export function OrderSummary({
   onTermsChange,
   termsAccepted = true,
 }: Props) {
+  const adventNow = useAdventNow(initialNow);
   const items = cart.items ?? [];
   const itemCount = items.reduce((sum, item) => sum + (item.quantity ?? 0), 0);
   const currency = cart.currency_code ?? "MUR";
   const itemSubtotal = cart.item_total ?? cart.subtotal ?? 0;
   const cartHasShippingMethod = (cart.shipping_methods?.length ?? 0) > 0;
   const fallbackShipping = selectedShippingOption?.amount ?? 0;
+  // Pre-order carts never get advent door messaging. The door only picks the
+  // fallback used before a shipping method is on the cart; once there is one,
+  // Medusa's shipping_total is what is shown.
+  const doorFree =
+    cartTypeOf(cart as unknown as { metadata?: Record<string, unknown> | null }) !== "preorder" &&
+    shippingDoorFree(selectedShippingOption?.name ?? "", adventNow);
   const fallbackShippingFree =
+    doorFree ||
     cartHasEssentialsBundle(items) ||
     qualifiesForFreeHomeDelivery(selectedShippingOption?.name ?? "", itemSubtotal) ||
     qualifiesForFreePostage(selectedShippingOption?.name ?? "");
@@ -279,6 +293,8 @@ export function OrderSummary({
         </ul>
 
         <PromoCodeBox cart={cart} />
+
+        <AdventBagLine initialNow={initialNow} compact />
 
         <dl className="space-y-1.5 font-sans text-sm">
           <div className="flex justify-between text-ink-soft">

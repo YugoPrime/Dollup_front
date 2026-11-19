@@ -49,6 +49,11 @@ type CartContextValue = {
   // Opt-in door gift: adds the gift line, then keeps it only if the promotion
   // made it free. "not-free" means it was pulled back out.
   claimDoorGift: (variantId: string) => Promise<"added" | "not-free" | "failed">;
+  // Last check before payment: re-reads the cart and pulls out any gift of
+  // ours that is no longer free (e.g. claimed before midnight, checked out
+  // after). True when a gift was found, so the caller must stop and show the
+  // bag again. False when nothing needed doing or the re-read failed.
+  settleGifts: () => Promise<boolean>;
   refreshCart: () => Promise<void>;
   clearCart: () => void;
 };
@@ -445,6 +450,28 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     [cart, reconcileGifts, refresh],
   );
 
+  const settleGifts = useCallback(async (): Promise<boolean> => {
+    const id = getStoredCartId();
+    if (!id) return false;
+    let fresh: Cart;
+    try {
+      const sdk = getCartSdk(cartTypeOf(cart) ?? getStoredCartType());
+      const res = await sdk.store.cart.retrieve(id, { fields: CART_FIELDS });
+      fresh = res.cart;
+    } catch {
+      // Could not re-read: let the normal flow continue.
+      return false;
+    }
+    if (giftsToRevert(fresh).length === 0) {
+      setCart(fresh);
+      return false;
+    }
+    // Best-effort revert. If it failed and a charged gift is still there, we
+    // still report true so the order is not placed with it.
+    setCart(await reconcileGifts(fresh));
+    return true;
+  }, [cart, reconcileGifts]);
+
   const clearCart = useCallback(() => {
     clearStoredCartId();
     setCart(null);
@@ -467,6 +494,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     updateItem,
     removeItem,
     claimDoorGift,
+    settleGifts,
     refreshCart: refresh,
     clearCart,
   };

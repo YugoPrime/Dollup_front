@@ -1,6 +1,6 @@
 // Pure cart readers for the advent doors. Plain script: `npx tsx src/lib/advent-cart.test.ts`.
 import { doorOfDay } from "./advent"
-import { doorGiftEligible, doorGiftLine, doorSavings, giftChoices } from "./advent-cart"
+import { doorGiftEligible, doorGiftLine, doorSavings, giftChoices, isAdventGiftLine } from "./advent-cart"
 
 let ok = true
 function check(label: string, got: unknown, exp: unknown): void {
@@ -27,6 +27,8 @@ check("choices in stock, lineup order", giftChoices(cuffs, [
   { id: "variant_01M5F22XWCZ1KS7D0CXTWSYH03", inventory_quantity: 4, manage_inventory: true } ]).map((c) => c.label), ["Black", "Purple"])
 check("none left", giftChoices(cuffs, cuffs.variants.map((v) => ({ id: v.id, inventory_quantity: 0, manage_inventory: true }))), [])
 check("unmanaged counts as stock", giftChoices(tape, [{ id: tape.variants[0].id, inventory_quantity: 0, manage_inventory: false }]).length, 1)
+
+check("gift line tag", [isAdventGiftLine({ metadata: { auto_gift: "advent-gift" } }), isAdventGiftLine({ metadata: { auto_gift: "gwp-cuff" } }), isAdventGiftLine({})], [true, false, false])
 
 if (ok) console.log("ALL PASS")
 else process.exit(1)

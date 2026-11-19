@@ -45,6 +45,8 @@ import {
   type PaymentMethod,
 } from "@/lib/checkout";
 import { cartHasEssentialsBundle } from "@/lib/essentials-bundle";
+import { shippingDoorFree, todaysDoor } from "@/lib/advent";
+import { useAdventNow } from "@/components/advent/useAdventNow";
 
 type MobileCheckoutStep = "delivery" | "details" | "review";
 
@@ -132,13 +134,20 @@ function Field({
   );
 }
 
-export function CheckoutForm({ cutoffHour }: { cutoffHour: number }) {
+export function CheckoutForm({ cutoffHour, initialNow }: { cutoffHour: number; initialNow: number }) {
   // Same wording the rest of the site uses, so the date picker's error text and
   // the shipping page can never describe different cutoffs.
   const cutoffLabel = cutoffHour === 12 ? "noon" : `${cutoffHour - 12}pm`;
   const router = useRouter();
-  const { cart, clearCart, refreshCart, ready: cartReady } = useCart();
+  const { cart, clearCart, refreshCart, settleGifts, ready: cartReady } = useCart();
   const { status: authStatus, customer } = useCustomer();
+  // Advent door days. Only decides copy and the "Free" label / fallback totals:
+  // the amount that is charged always comes from Medusa. Pre-order bags use
+  // their own checkout and never get door messaging.
+  const adventNow = useAdventNow(initialNow);
+  const adventDoorNo = todaysDoor(adventNow)?.day ?? null;
+  const doorOk = cart ? cartTypeOf(cart as unknown as { metadata?: Record<string, unknown> | null }) !== "preorder" : false;
+  const doorShippingFree = (name: string) => doorOk && shippingDoorFree(name, adventNow);
 
   // All cart-scoped Medusa calls must go through the SDK whose publishable key
   // has access to the cart's sales channel. Preorder carts → preorderClientSdk;
@@ -417,6 +426,17 @@ export function CheckoutForm({ cutoffHour }: { cutoffHour: number }) {
       });
       trackAddShippingInfo(cart, selectedMethod ?? selectedOption?.name ?? null);
 
+      // The two calls above refresh promotions. A door gift claimed before
+      // midnight is no longer free after it, and would be charged at
+      // complete. Pull it out and stop, so she sees the real total first.
+      if (await settleGifts()) {
+        setErrorBanner(
+          "Today's free gift has ended, so we took it out of your bag. Check your total and place your order again.",
+        );
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
+
       // Create the account BEFORE completing the cart so the resulting order's
       // customer_id is the new customer (Medusa copies cart.customer_id onto
       // the order at complete-time, then freezes it). If we registered after
@@ -562,6 +582,7 @@ export function CheckoutForm({ cutoffHour }: { cutoffHour: number }) {
     selectedOption &&
     (selectedOption.amount === 0 ||
       bundleFreeShipping ||
+      doorShippingFree(selectedOption.name ?? "") ||
       qualifiesForFreeHomeDelivery(selectedOption.name ?? "", itemSubtotal) ||
       qualifiesForFreePostage(selectedOption.name ?? ""));
   const ctaShipping = cartHasShippingMethod
@@ -685,21 +706,27 @@ export function CheckoutForm({ cutoffHour }: { cutoffHour: number }) {
                       ? Mail
                       : Truck;
                 const freePostage = qualifiesForFreePostage(label);
+                const doorFree = doorShippingFree(label);
                 const hint =
                   method === "Pick Up"
                     ? "Collect from Doll Up Boutique."
                     : method === "Postage"
-                      ? freePostage
+                      ? doorFree
+                        ? `Registered post across Mauritius. Free today (advent door ${adventDoorNo}).`
+                        : freePostage
                         ? `Registered post across Mauritius. Free until ${FREE_POSTAGE_UNTIL_LABEL}.`
                         : "Registered post across Mauritius."
                       : method === "Express Postage"
                         ? "Faster courier dispatch."
                         : method === "Rodrigues Postage"
                           ? "Postal delivery to Rodrigues."
-                          : "Door-to-door delivery in Mauritius.";
+                          : doorFree && method === "Home Delivery"
+                            ? `Door-to-door delivery in Mauritius. Free today (advent door ${adventDoorNo}).`
+                            : "Door-to-door delivery in Mauritius.";
                 const free =
                   opt.amount === 0 ||
                   bundleFreeShipping ||
+                  doorFree ||
                   freePostage ||
                   qualifiesForFreeHomeDelivery(
                     opt.name ?? "",
@@ -1258,6 +1285,7 @@ export function CheckoutForm({ cutoffHour }: { cutoffHour: number }) {
       <div className={`${mobileStep === "review" ? "block" : "hidden"} lg:block`}>
         <OrderSummary
           cart={cart}
+          initialNow={initialNow}
           submitting={submitting}
           onSubmit={handleSubmit}
           loyaltySlot={
