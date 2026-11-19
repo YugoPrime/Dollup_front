@@ -12,6 +12,7 @@ import { extractProductCode } from "@/lib/product-meta";
 import { PDP_FALLBACK_BLUR } from "@/lib/blur-data";
 import { ProductAccordion } from "@/components/product/ProductAccordion";
 import { MessageCircle } from "lucide-react";
+import { useAdventPdp } from "@/components/advent/AdventPrice";
 import { restockWhatsAppUrl } from "@/lib/restock";
 
 type Product = HttpTypes.StoreProduct;
@@ -58,12 +59,14 @@ export function MobilePdpHero({
   sizeChartHtml,
   preorderEtaCopy,
   freeShippingLabel,
+  initialNow,
 }: {
   product: Product;
   descriptionHtml: string;
   sizeChartHtml: string | null;
   preorderEtaCopy: string | null;
   freeShippingLabel: string;
+  initialNow: number;
 }) {
   const { addItem, loading: cartLoading } = useCart();
   const wished = useIsInWishlist(product.id);
@@ -111,6 +114,13 @@ export function MobilePdpHero({
     ? getDisplayPrice({ variants: [matchedVariant] })
     : getDisplayPrice(product);
   const inStock = !!(matchedVariant && isVariantBuyable(matchedVariant));
+  const doorHit = useAdventPdp({
+    amount: price.amount,
+    categoryHandles: (product.categories ?? []).map((c) => c.handle),
+    productId: product.id,
+    initialNow,
+    soldOut: matchedVariant ? !inStock : false,
+  });
 
   const images = useMemo(() => {
     const arr = (product.images ?? [])
@@ -382,13 +392,32 @@ export function MobilePdpHero({
             className="mt-1 flex items-baseline gap-2 font-sans text-[17px] font-semibold text-white"
             style={{ textShadow: "0 1px 6px rgba(0,0,0,0.5)" }}
           >
-            {formatPrice(price.amount, price.currency)}
-            {price.onSale ? (
-              <span className="text-[13px] font-normal text-white/80 line-through">
-                {formatPrice(price.original, price.currency)}
-              </span>
-            ) : null}
+            {doorHit ? (
+              <>
+                {formatPrice(doorHit.price, price.currency)}
+                <span className="text-[13px] font-normal text-white/80 line-through">
+                  {formatPrice(price.amount, price.currency)}
+                </span>
+              </>
+            ) : (
+              <>
+                {formatPrice(price.amount, price.currency)}
+                {price.onSale ? (
+                  <span className="text-[13px] font-normal text-white/80 line-through">
+                    {formatPrice(price.original, price.currency)}
+                  </span>
+                ) : null}
+              </>
+            )}
           </p>
+          {doorHit && (
+            <p
+              className="mt-0.5 font-sans text-[12px] font-semibold text-white"
+              style={{ textShadow: "0 1px 6px rgba(0,0,0,0.5)" }}
+            >
+              Door {doorHit.day} · today on the website
+            </p>
+          )}
         </div>
 
         {/* Vertical size rail on the right edge — just the size labels, no
@@ -601,7 +630,7 @@ export function MobilePdpHero({
             className="flex items-center justify-center rounded-full bg-blush-200 px-5 py-3 font-display text-[15px] font-semibold normal-case tracking-normal text-coral-700"
             style={{ boxShadow: "inset 0 1px 2px rgba(0,0,0,0.08)" }}
           >
-            {formatPrice(price.amount, price.currency)}
+            {formatPrice(doorHit ? doorHit.price : price.amount, price.currency)}
           </span>
           <span className="flex flex-1 items-center justify-center gap-2 pr-3">
             <svg

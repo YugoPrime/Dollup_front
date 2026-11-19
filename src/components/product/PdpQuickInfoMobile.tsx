@@ -1,6 +1,7 @@
 "use client";
 
 import { formatPrice, formatDiscountPercent } from "@/lib/format";
+import { useAdventPdp } from "@/components/advent/AdventPrice";
 import type { SizeAvailability } from "@/lib/product-meta";
 
 export const PDP_SELECT_SIZE_EVENT = "pdp:select-size";
@@ -14,6 +15,9 @@ type Props = {
   };
   sizes: SizeAvailability[];
   buyAnchorId: string;
+  categoryHandles?: string[];
+  productId?: string;
+  initialNow?: number;
 };
 
 /**
@@ -22,7 +26,13 @@ type Props = {
  * pill scrolls to the buy box and fires `pdp:select-size` so ProductBuy can
  * preselect that size.
  */
-export function PdpQuickInfoMobile({ price, sizes, buyAnchorId }: Props) {
+export function PdpQuickInfoMobile({ price, sizes, buyAnchorId, categoryHandles = [], productId = "", initialNow }: Props) {
+  const doorHit = useAdventPdp({
+    amount: initialNow == null ? null : price.amount,
+    categoryHandles,
+    productId,
+    initialNow: initialNow ?? 0,
+  });
   const discountPct = formatDiscountPercent(price.amount, price.original);
 
   const handlePick = (value: string, available: boolean) => {
@@ -40,9 +50,13 @@ export function PdpQuickInfoMobile({ price, sizes, buyAnchorId }: Props) {
     <div className="mx-4 mb-3 flex items-center gap-3 rounded-xl border border-blush-100 bg-cream px-3 py-2.5 md:hidden">
       <div className="flex min-w-0 flex-col">
         <span className="font-display text-[20px] leading-none text-coral-500">
-          {formatPrice(price.amount, price.currency)}
+          {formatPrice(doorHit ? doorHit.price : price.amount, price.currency)}
         </span>
-        {price.onSale && (
+        {doorHit ? (
+          <span className="mt-1 font-sans text-[12px] text-ink-muted line-through">
+            {formatPrice(price.amount, price.currency)}
+          </span>
+        ) : price.onSale && (
           <span className="mt-1 flex items-baseline gap-1.5">
             <span className="font-sans text-[12px] text-ink-muted line-through">
               {formatPrice(price.original, price.currency)}

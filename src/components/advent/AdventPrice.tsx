@@ -62,9 +62,9 @@ export function AdventCardPrice(
 }
 
 /** PDP: door price + struck current price + door line, or null when no door applies. */
-export function useAdventPdp(p: AdventPriceInput) {
+export function useAdventPdp(p: AdventPriceInput & { soldOut?: boolean }) {
   const now = useAdventNow(p.initialNow);
-  if (p.amount == null) return null;
+  if (p.amount == null || p.soldOut) return null;
   const hit = doorPrice({ amount: p.amount, categoryHandles: p.categoryHandles, productId: p.productId }, now);
   const door = todaysDoor(now);
   return hit && door ? { price: hit.price, day: door.day } : null;

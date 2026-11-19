@@ -77,6 +77,9 @@ export function ProductBuy({
     categoryHandles: (product.categories ?? []).map((c) => c.handle),
     productId: product.id,
     initialNow,
+    soldOut: matchedVariant
+      ? matchedVariant.manage_inventory === true && (matchedVariant.inventory_quantity ?? 0) <= 0
+      : false,
   });
 
   const colorOption = options.find((o) => (o.title ?? "").toLowerCase() === "color");
