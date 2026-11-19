@@ -20,7 +20,7 @@ import { getCartSdk } from "@/lib/cart-client";
 import { register, useCustomer } from "@/lib/auth-client";
 import { formatPrice } from "@/lib/format";
 import { readLoyaltyRedeemMetadata } from "@/lib/loyalty-client";
-import { OrderSummary } from "./OrderSummary";
+import { OrderSummary, shownShipping } from "./OrderSummary";
 import {
   trackAddPaymentInfo,
   trackAddShippingInfo,
@@ -47,7 +47,7 @@ import {
 import { cartHasEssentialsBundle } from "@/lib/essentials-bundle";
 import { shippingDoorFree, todaysDoor } from "@/lib/advent";
 import { useAdventNow } from "@/components/advent/useAdventNow";
-import { shippingFreeFromCart } from "@/lib/advent-cart";
+import { shippingFreeFromCart, totalWentUp } from "@/lib/advent-cart";
 
 type MobileCheckoutStep = "delivery" | "details" | "review";
 
@@ -414,6 +414,11 @@ export function CheckoutForm({ cutoffHour, initialNow }: { cutoffHour: number; i
     metadataPatch.payment_method = state.paymentMethod;
     setErrorBanner(null);
     setSubmitting(true);
+    // What she was shown, before the calls below refresh the promotions.
+    const shownAtClick = {
+      items: cart.item_total ?? cart.subtotal ?? 0,
+      shipping: shownShipping(cart, selectedOption, adventNow),
+    };
     try {
       await cartSdk.store.cart.update(cart.id, {
         email: state.email,
@@ -430,7 +435,7 @@ export function CheckoutForm({ cutoffHour, initialNow }: { cutoffHour: number; i
       // The two calls above refresh promotions. A door gift claimed before
       // midnight is no longer free after it, and would be charged at
       // complete. Pull it out and stop, so she sees the real total first.
-      const settled = await settleGifts();
+      const { outcome: settled, cart: settledCart } = await settleGifts();
       if (settled !== "clean") {
         setErrorBanner(
           settled === "removed-advent"
@@ -438,6 +443,19 @@ export function CheckoutForm({ cutoffHour, initialNow }: { cutoffHour: number; i
             : settled === "removed-other"
               ? "A free gift in your bag has ended, so we took it out. Check your total and place your order again."
               : "Couldn't place your order. Please try again.",
+        );
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
+
+      // A timed door (happy hour ends 22:00, category doors at midnight) can
+      // end between her seeing the total and this click, so the refresh above
+      // may have dropped it. Never complete at more than she was shown. Items
+      // and shipping are compared separately: the bag in state may not hold
+      // the chosen shipping method yet, so grand totals are not like for like.
+      if (totalWentUp(shownAtClick, settledCart)) {
+        setErrorBanner(
+          `Today's offer has ended, so your total is now ${formatPrice(settledCart?.total ?? 0, settledCart?.currency_code ?? "MUR")}. Check it and place your order again.`,
         );
         window.scrollTo({ top: 0, behavior: "smooth" });
         return;

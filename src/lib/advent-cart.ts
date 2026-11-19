@@ -103,3 +103,33 @@ export function shippingFreeFromCart(
   }
   return fallbackFree
 }
+
+export type ShownTotals = { items: number; shipping: number }
+
+/**
+ * Did the bag get dearer between what she was shown and what Medusa now says?
+ * Items are `item_total` (after item discounts), shipping is `shipping_total`.
+ * Missing figures on the settled cart never block the order.
+ */
+export function totalWentUp(
+  shown: ShownTotals,
+  settled: { item_total?: number | null; shipping_total?: number | null } | null | undefined,
+): boolean {
+  if (!settled) return false
+  const items = typeof settled.item_total === "number" && settled.item_total > shown.items
+  const shipping = typeof settled.shipping_total === "number" && settled.shipping_total > shown.shipping
+  return items || shipping
+}
+
+/**
+ * She bought the gift product herself and Medusa put today's door on her own
+ * (untagged) line, so that unit is already free and needs no claim.
+ */
+export function ownGiftHasDoor(cart: CartLike, gift: DoorGift, code: string): boolean {
+  return (cart?.items ?? []).some(
+    (i) =>
+      i.product_id === gift.productId &&
+      !autoTag(i) &&
+      (i.adjustments ?? []).some((a) => a.code === code && (a.amount ?? 0) > 0),
+  )
+}

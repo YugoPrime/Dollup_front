@@ -158,6 +158,30 @@ function PromoCodeBox({ cart }: { cart: Cart }) {
   );
 }
 
+/**
+ * The shipping figure the summary shows for the chosen option: Medusa's
+ * shipping_total once the cart holds a method, otherwise the door / threshold
+ * fallback. Checkout compares this at click time against the re-read cart.
+ */
+export function shownShipping(
+  cart: HttpTypes.StoreCart,
+  option: HttpTypes.StoreCartShippingOption | null | undefined,
+  adventNow: number,
+): number {
+  const items = cart.items ?? [];
+  const itemSubtotal = cart.item_total ?? cart.subtotal ?? 0;
+  if ((cart.shipping_methods?.length ?? 0) > 0) return cart.shipping_total ?? 0;
+  const doorFree =
+    cartTypeOf(cart as unknown as { metadata?: Record<string, unknown> | null }) === "instock" &&
+    shippingDoorFree(option?.name ?? "", adventNow);
+  const free =
+    doorFree ||
+    cartHasEssentialsBundle(items) ||
+    qualifiesForFreeHomeDelivery(option?.name ?? "", itemSubtotal) ||
+    qualifiesForFreePostage(option?.name ?? "");
+  return free ? 0 : (option?.amount ?? 0);
+}
+
 export function OrderSummary({
   cart,
   initialNow,

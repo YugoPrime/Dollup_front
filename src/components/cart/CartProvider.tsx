@@ -54,7 +54,7 @@ type CartContextValue = {
   // ours that is no longer free (e.g. claimed before midnight, checked out
   // after). Only "clean" may go on to payment; "unresolved" means the re-read
   // failed or an unfree gift is still in the bag.
-  settleGifts: () => Promise<SettleOutcome>;
+  settleGifts: () => Promise<{ outcome: SettleOutcome; cart: Cart | null }>;
   refreshCart: () => Promise<void>;
   clearCart: () => void;
 };
@@ -451,29 +451,29 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     [cart, reconcileGifts, refresh],
   );
 
-  const settleGifts = useCallback(async (): Promise<SettleOutcome> => {
+  const settleGifts = useCallback(async (): Promise<{ outcome: SettleOutcome; cart: Cart | null }> => {
     // Stored id first, then the in-memory cart. Without either we cannot
     // verify, so never let the order go on.
     const id = getStoredCartId() ?? cart?.id;
-    if (!id) return "unresolved";
+    if (!id) return { outcome: "unresolved", cart: null };
     let fresh: Cart;
     try {
       const sdk = getCartSdk(cartTypeOf(cart) ?? getStoredCartType());
       const res = await sdk.store.cart.retrieve(id, { fields: CART_FIELDS });
       fresh = res.cart;
     } catch {
-      return "unresolved";
+      return { outcome: "unresolved", cart: null };
     }
     const pending = giftsToRevert(fresh);
     if (pending.length === 0) {
       setCart(fresh);
-      return "clean";
+      return { outcome: "clean", cart: fresh };
     }
     // reconcileGifts is best-effort (it swallows failures and skips when a pass
     // is already running), so judge by what is still unfree afterwards.
     const settled = await reconcileGifts(fresh);
     setCart(settled);
-    return settleOutcome(pending, giftsToRevert(settled));
+    return { outcome: settleOutcome(pending, giftsToRevert(settled)), cart: settled };
   }, [cart, reconcileGifts]);
 
   const clearCart = useCallback(() => {

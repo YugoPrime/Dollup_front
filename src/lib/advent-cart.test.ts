@@ -1,6 +1,6 @@
 // Pure cart readers for the advent doors. Plain script: `npx tsx src/lib/advent-cart.test.ts`.
 import { doorOfDay } from "./advent"
-import { doorGiftEligible, doorGiftLine, doorSavings, giftChoices, isAdventGiftLine, settleOutcome, shippingFreeFromCart } from "./advent-cart"
+import { doorGiftEligible, doorGiftLine, doorSavings, giftChoices, isAdventGiftLine, ownGiftHasDoor, settleOutcome, shippingFreeFromCart, totalWentUp } from "./advent-cart"
 
 let ok = true
 function check(label: string, got: unknown, exp: unknown): void {
@@ -38,6 +38,16 @@ check("ship: method total 0 is free", shippingFreeFromCart([{ shipping_option_id
 check("ship: method charged beats flag", shippingFreeFromCart([{ shipping_option_id: "o1", total: 150 }], "o1", true), false)
 check("ship: amount less adjustments", shippingFreeFromCart([{ shipping_option_id: "o1", amount: 150, adjustments: [{ code: "X", amount: 150 }] }], "o1", false), true)
 check("ship: no method uses flag", [shippingFreeFromCart([{ shipping_option_id: "o2", total: 0 }], "o1", true), shippingFreeFromCart([], "o1", false)], [true, false])
+
+check("up: items dearer", totalWentUp({ items: 1000, shipping: 0 }, { item_total: 1200, shipping_total: 0 }), true)
+check("up: shipping dearer", totalWentUp({ items: 1000, shipping: 0 }, { item_total: 1000, shipping_total: 150 }), true)
+check("up: equal or lower", [totalWentUp({ items: 1000, shipping: 150 }, { item_total: 1000, shipping_total: 150 }), totalWentUp({ items: 1000, shipping: 150 }, { item_total: 900, shipping_total: 0 })], [false, false])
+check("up: missing fields / null never block", [totalWentUp({ items: 1000, shipping: 0 }, {}), totalWentUp({ items: 1000, shipping: 0 }, null)], [false, false])
+const own = { items: [{ id: "p", product_id: tape.productId, quantity: 1, total: 0, adjustments: [{ code: "ADVENT-01", amount: 150 }] }, { id: "d", product_id: "prod_dress", quantity: 1, adjustments: [] }] }
+check("own gift: door on her untagged line", ownGiftHasDoor(own, tape, "ADVENT-01"), true)
+check("own gift: other code / no adj", [ownGiftHasDoor(own, tape, "ADVENT-TEST-01"), ownGiftHasDoor({ items: [{ id: "p", product_id: tape.productId, quantity: 1, adjustments: [] }] }, tape, "ADVENT-01")], [false, false])
+check("own gift: tagged claim line does not count", ownGiftHasDoor({ items: [{ id: "g", product_id: tape.productId, quantity: 1, metadata: { auto_gift: "advent-gift" }, adjustments: [{ code: "ADVENT-01", amount: 150 }] }] }, tape, "ADVENT-01"), false)
+check("own gift: zero-amount adjustment does not count", ownGiftHasDoor({ items: [{ id: "p", product_id: tape.productId, quantity: 1, adjustments: [{ code: "ADVENT-01", amount: 0 }] }] }, tape, "ADVENT-01"), false)
 
 if (ok) console.log("ALL PASS")
 else process.exit(1)
