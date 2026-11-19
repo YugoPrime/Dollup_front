@@ -35,6 +35,28 @@ export default function EventsPage() {
         </div>
       </section>
 
+      {/* Advent calendar */}
+      <section className="px-6 py-12 md:px-10 md:py-16">
+        <div className="relative mx-auto max-w-[900px] overflow-hidden rounded-2xl bg-blush-200 px-6 py-8 pr-24 md:px-10 md:py-10 md:pr-32">
+          <span aria-hidden="true" className="absolute inset-y-0 right-10 w-3 bg-coral-500 md:right-16 md:w-4" />
+          <p className="relative font-sans text-[11px] font-bold uppercase tracking-[0.2em] text-ink-soft">
+            ★ 24 Days of Doll Up
+          </p>
+          <h2 className="relative mt-2 font-display text-[28px] leading-[1.05] text-ink md:text-[38px]">
+            Advent <em className="italic text-coral-700">calendar</em>
+          </h2>
+          <p className="relative mt-3 max-w-[440px] font-sans text-[14px] leading-[1.55] text-ink-soft">
+            1–24 December · a new treat behind every door, website orders only
+          </p>
+          <Link
+            href="/advent"
+            className="relative mt-5 inline-flex min-h-11 items-center rounded-full bg-coral-500 px-6 font-sans text-[11px] font-bold uppercase tracking-[0.14em] text-white transition-colors hover:bg-coral-700"
+          >
+            Open the calendar →
+          </Link>
+        </div>
+      </section>
+
       {/* Mystery Box */}
       <section className="bg-ink px-6 py-14 text-white md:px-10 md:py-20">
         <div className="mx-auto grid max-w-[1100px] gap-10 md:grid-cols-[1fr_1.1fr] md:items-center">
