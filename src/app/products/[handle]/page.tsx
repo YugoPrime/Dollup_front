@@ -173,6 +173,7 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
           buyAnchorId="pdp-buy-anchor"
           categoryHandles={(product.categories ?? []).map((c) => c.handle)}
           productId={product.id}
+          discountable={product.discountable}
           initialNow={adventNowMs()}
         />
       </div>

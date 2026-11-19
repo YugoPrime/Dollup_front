@@ -76,6 +76,7 @@ export function ProductBuy({
     amount: price.amount,
     categoryHandles: (product.categories ?? []).map((c) => c.handle),
     productId: product.id,
+    discountable: product.discountable,
     initialNow,
     soldOut: matchedVariant
       ? matchedVariant.manage_inventory === true && (matchedVariant.inventory_quantity ?? 0) <= 0
@@ -280,7 +281,7 @@ export function ProductBuy({
             </span>
           </div>
           <p className="font-sans text-[13px] font-semibold text-coral-500">
-            Door {doorHit.day} · today on the website
+            Door {doorHit.day} · {doorHit.tonight ? "tonight" : "today"} on the website
           </p>
         </div>
       ) : (

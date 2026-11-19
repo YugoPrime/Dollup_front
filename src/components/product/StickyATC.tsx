@@ -43,6 +43,7 @@ export function StickyATC({
     amount: price.amount,
     categoryHandles: (product.categories ?? []).map((c) => c.handle),
     productId: product.id,
+    discountable: product.discountable,
     initialNow,
   });
 

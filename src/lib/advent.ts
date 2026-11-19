@@ -172,9 +172,11 @@ export function doorCode(day: number, test = false): string {
 
 /** Today's door discount on a product, in rupees. null when no door applies. */
 export function doorPrice(
-  p: { amount: number; categoryHandles: readonly string[]; productId?: string },
+  p: { amount: number; categoryHandles: readonly string[]; productId?: string; discountable?: boolean },
   now: number,
 ): { price: number; tag: string } | null {
+  // Medusa skips products with discountable: false, so never show a door price on them.
+  if (p.discountable === false) return null
   const door = todaysDoor(now)
   if (!door) return null
   if (door.kind === "happy-hour") {

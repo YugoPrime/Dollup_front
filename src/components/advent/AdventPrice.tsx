@@ -8,13 +8,14 @@ type AdventPriceInput = {
   amount: number | null;
   categoryHandles: string[];
   productId: string;
+  discountable?: boolean;
   initialNow: number;
 };
 
 function useDoorPrice(p: AdventPriceInput, soldOut = false) {
   const now = useAdventNow(p.initialNow);
   if (soldOut || p.amount == null) return null;
-  return doorPrice({ amount: p.amount, categoryHandles: p.categoryHandles, productId: p.productId }, now);
+  return doorPrice({ amount: p.amount, categoryHandles: p.categoryHandles, productId: p.productId, discountable: p.discountable }, now);
 }
 
 export function AdventCardTag(p: AdventPriceInput & { soldOut?: boolean }) {
@@ -65,7 +66,7 @@ export function AdventCardPrice(
 export function useAdventPdp(p: AdventPriceInput & { soldOut?: boolean }) {
   const now = useAdventNow(p.initialNow);
   if (p.amount == null || p.soldOut) return null;
-  const hit = doorPrice({ amount: p.amount, categoryHandles: p.categoryHandles, productId: p.productId }, now);
+  const hit = doorPrice({ amount: p.amount, categoryHandles: p.categoryHandles, productId: p.productId, discountable: p.discountable }, now);
   const door = todaysDoor(now);
-  return hit && door ? { price: hit.price, day: door.day } : null;
+  return hit && door ? { price: hit.price, day: door.day, tonight: door.kind === "happy-hour" } : null;
 }

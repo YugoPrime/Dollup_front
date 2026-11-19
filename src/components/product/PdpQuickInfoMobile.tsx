@@ -17,6 +17,7 @@ type Props = {
   buyAnchorId: string;
   categoryHandles?: string[];
   productId?: string;
+  discountable?: boolean;
   initialNow?: number;
 };
 
@@ -26,11 +27,12 @@ type Props = {
  * pill scrolls to the buy box and fires `pdp:select-size` so ProductBuy can
  * preselect that size.
  */
-export function PdpQuickInfoMobile({ price, sizes, buyAnchorId, categoryHandles = [], productId = "", initialNow }: Props) {
+export function PdpQuickInfoMobile({ price, sizes, buyAnchorId, categoryHandles = [], productId = "", discountable, initialNow }: Props) {
   const doorHit = useAdventPdp({
     amount: initialNow == null ? null : price.amount,
     categoryHandles,
     productId,
+    discountable,
     initialNow: initialNow ?? 0,
   });
   const discountPct = formatDiscountPercent(price.amount, price.original);

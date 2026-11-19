@@ -118,6 +118,7 @@ export function MobilePdpHero({
     amount: price.amount,
     categoryHandles: (product.categories ?? []).map((c) => c.handle),
     productId: product.id,
+    discountable: product.discountable,
     initialNow,
     soldOut: matchedVariant ? !inStock : false,
   });
@@ -415,7 +416,7 @@ export function MobilePdpHero({
               className="mt-0.5 font-sans text-[12px] font-semibold text-white"
               style={{ textShadow: "0 1px 6px rgba(0,0,0,0.5)" }}
             >
-              Door {doorHit.day} · today on the website
+              Door {doorHit.day} · {doorHit.tonight ? "tonight" : "today"} on the website
             </p>
           )}
         </div>
