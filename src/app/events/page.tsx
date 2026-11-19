@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AdventEventsCard } from "@/components/advent/AdventEventsCard";
+import { adventNowMs } from "@/lib/advent";
 
 export const metadata: Metadata = {
   title: "Events & Giveaways",
@@ -34,6 +36,9 @@ export default function EventsPage() {
           </p>
         </div>
       </section>
+
+      {/* Advent calendar: switches itself off after 24 Dec */}
+      <AdventEventsCard initialNow={adventNowMs()} />
 
       {/* Mystery Box */}
       <section className="bg-ink px-6 py-14 text-white md:px-10 md:py-20">

@@ -47,6 +47,10 @@ export function pushEvent(
   dl.push({ event, ...(ecommerce !== null ? { ecommerce } : {}), ...extra });
 }
 
+export function trackAdventDoor(action: "open" | "cta", day: number): void {
+  pushEvent("advent_door", null, { advent_action: action, advent_door: day });
+}
+
 export function pushPageView(url: string, title?: string) {
   const dl = ensureDataLayer();
   if (!dl) return;

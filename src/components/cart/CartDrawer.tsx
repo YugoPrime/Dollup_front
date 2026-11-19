@@ -9,11 +9,24 @@ import { trackViewCart } from "@/lib/analytics";
 import { FREE_POSTAGE_UNTIL_LABEL, freePostageActive } from "@/lib/checkout";
 import { cartTypeOf } from "@/lib/cart-type";
 import { cartHasEssentialsBundle } from "@/lib/essentials-bundle";
+import { adventNowMs, shippingDoorFree, todaysDoor } from "@/lib/advent";
+import { isAdventGiftLine } from "@/lib/advent-cart";
+import { AdventBagLine } from "@/components/advent/AdventBagLine";
+import { useAdventNow } from "@/components/advent/useAdventNow";
 
 const FREE_SHIPPING_THRESHOLD = 1500;
 
 export function CartDrawer() {
   const { cart, open, setOpen, updateItem, removeItem, loading } = useCart();
+  // The drawer is loaded client-only (next/dynamic, ssr: false), so the clock
+  // is read here rather than threaded down from the layout.
+  const [initialNow] = useState(adventNowMs);
+  const now = useAdventNow(initialNow);
+  const doorNo = todaysDoor(now)?.day;
+  // Door messaging is for in-stock bags only (mystery-box bags carry no cart_type and get no door).
+  const doorOk = cartTypeOf(cart) === "instock";
+  const doorHomeFree = doorOk && shippingDoorFree("Home Delivery", now);
+  const doorPostageFree = doorOk && shippingDoorFree("Postage", now);
   const items = cart?.items ?? [];
   // Header count matches the badge: units, not lines.
   const unitCount = items.reduce((s, i) => s + (i.quantity ?? 0), 0);
@@ -187,6 +200,11 @@ export function CartDrawer() {
                       </div>
                     ) : null}
                     <div className="mt-1.5 flex items-center justify-between">
+                      {/* A claimed door gift stays at quantity 1: two would no
+                          longer be free. Removing it is still allowed. */}
+                      {isAdventGiftLine(item) ? (
+                        <span className="font-sans text-[12px] font-medium text-ink-soft">Qty 1</span>
+                      ) : (
                       <div className="flex items-center overflow-hidden rounded border border-blush-400">
                         <button
                           onClick={() =>
@@ -210,6 +228,7 @@ export function CartDrawer() {
                           +
                         </button>
                       </div>
+                      )}
                       {/* Show what the customer actually pays. `unit_price *
                           quantity` ignores promotions, so a free GWP cuff or a
                           BOGO tape rendered at full price and looked like a
@@ -252,8 +271,16 @@ export function CartDrawer() {
               ))}
             </div>
 
+            <div className="px-6 pt-3 empty:hidden">
+              <AdventBagLine initialNow={initialNow} />
+            </div>
+
             <div className="border-y border-blush-100 bg-cream px-6 py-3">
-              {remaining > 0 ? (
+              {doorHomeFree && doorNo ? (
+                <p className="text-center font-sans text-xs font-medium text-ink">
+                  Free home delivery today on any order (door {doorNo})
+                </p>
+              ) : remaining > 0 ? (
                 <>
                   <p className="mb-2 text-center font-sans text-xs text-ink-soft">
                     Add <strong>{formatPrice(remaining, currency)}</strong> more for free delivery
@@ -264,10 +291,16 @@ export function CartDrawer() {
                       style={{ width: `${progress}%` }}
                     />
                   </div>
-                  {freePostageActive() && (
+                  {doorPostageFree && doorNo ? (
                     <p className="mt-2 text-center font-sans text-[11px] text-ink-muted">
-                      Postage is free on every order until {FREE_POSTAGE_UNTIL_LABEL}
+                      Postage is free today (door {doorNo})
                     </p>
+                  ) : (
+                    freePostageActive() && (
+                      <p className="mt-2 text-center font-sans text-[11px] text-ink-muted">
+                        Postage is free on every order until {FREE_POSTAGE_UNTIL_LABEL}
+                      </p>
+                    )
                   )}
                 </>
               ) : (

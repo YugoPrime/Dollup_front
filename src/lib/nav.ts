@@ -1,3 +1,4 @@
+import { seasonalNavLink } from "./advent";
 import { SALE_PATH } from "./sale-campaign";
 
 export type NavLink = {
@@ -37,6 +38,22 @@ export const FOOTER_SHOP = [
   { label: "Accessories", href: "/shop?category=accessories" },
   { label: "Sale", href: SALE_PATH },
 ];
+
+// Swaps the "Sale" slot for the advent link while the calendar is live (or
+// about to open). The static constants above stay as the post-advent default.
+function withSeasonalSlot<T extends { label: string; href: string }>(links: T[], now: number): T[] {
+  const seasonal = seasonalNavLink(now);
+  if (!seasonal) return links;
+  return links.map((l) => (l.href === SALE_PATH ? ({ ...l, ...seasonal } as T) : l));
+}
+
+export function navLinks(now: number): NavLink[] {
+  return withSeasonalSlot(NAV_LINKS, now);
+}
+
+export function footerShopLinks(now: number): { label: string; href: string }[] {
+  return withSeasonalSlot(FOOTER_SHOP, now);
+}
 
 export const FOOTER_HELP = [
   { label: "Track Order", href: "/track-order" },

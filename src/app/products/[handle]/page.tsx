@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { getProductByHandle, listProducts, getLatestCollectionTag } from "@/lib/products";
 import { formatPrice, getDisplayPrice } from "@/lib/format";
 import { ProductGallery } from "@/components/product/ProductGallery";
+import { adventNowMs } from "@/lib/advent";
 import { ProductBuy } from "@/components/product/ProductBuy";
 import { ProductAccordion } from "@/components/product/ProductAccordion";
 import { YouMayAlsoLike } from "@/components/product/YouMayAlsoLike";
@@ -162,6 +163,7 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
         sizeChartHtml={sizeChartHtml}
         preorderEtaCopy={cfg.shipping.preorder_eta_copy}
         freeShippingLabel={freeShippingLabel}
+        initialNow={adventNowMs()}
       />
 
       <div className="hidden md:block">
@@ -169,6 +171,10 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
           price={quickInfoPrice}
           sizes={sizeAvailability}
           buyAnchorId="pdp-buy-anchor"
+          categoryHandles={(product.categories ?? []).map((c) => c.handle)}
+          productId={product.id}
+          discountable={product.discountable}
+          initialNow={adventNowMs()}
         />
       </div>
 
@@ -179,6 +185,7 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
             product={product}
             freeShippingThreshold={freeShippingThreshold}
             sizeChartHtml={sizeChartHtml}
+            initialNow={adventNowMs()}
           />
           <div className="mt-6">
             <ProductAccordion

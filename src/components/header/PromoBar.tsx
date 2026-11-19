@@ -1,77 +1,57 @@
 "use client";
 
 import Link from "next/link";
-import { useSyncExternalStore } from "react";
-import { FREE_POSTAGE_UNTIL_LABEL } from "@/lib/checkout";
-import {
-  SALE_CAMPAIGN,
-  SALE_ENDS_SHORT_LABEL,
-  SALE_PATH,
-  promoBarState,
-  type PromoBarState,
-} from "@/lib/sale-campaign";
+import { useAdventNow } from "@/components/advent/useAdventNow";
+import { AdventPreviewBadge } from "@/components/advent/AdventPreviewBadge";
+import { adventBarCopy, adventBarKey } from "@/lib/advent";
 
-const noSubscribe = () => () => {};
+const ARROW = " →";
+
+/** The trailing arrow is decoration: hide it from screen readers. */
+function Lead({ text }: { text: string }) {
+  if (!text.endsWith(ARROW)) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, -ARROW.length)}
+      <span aria-hidden="true">{ARROW}</span>
+    </>
+  );
+}
 
 /**
- * Coral bar above the header. While the sale runs it leads with a link to
- * /sale; the free-postage offer runs until 1 Nov; then evergreen copy.
- *
- * Date-gated in the browser, not on the server: the bar renders inside the
- * root layout, and a server-side check would freeze at build time on
- * statically-rendered pages. The server snapshot is the sale state (builds in
- * this window ship before the sale ends), so hydration matches; the browser
- * shows the free-postage copy before the sale starts and, from 2 Nov, the
- * evergreen copy by itself.
- *
- * One line on mobile in every state, so the swap never moves the page. Shown
- * on mobile too: most customers arrive from Instagram on a phone. It stays
- * visible there after the offer (evergreen copy, no layout shift).
- * Cleanup on the next deploy after 1 Nov: put the static evergreen bar back
- * in Header.tsx with `hidden ... md:flex` and delete this file.
+ * Coral bar above the header. Follows the advent calendar in Mauritius time,
+ * decided in the browser (useAdventNow) because the bar sits in the root
+ * layout and a server-side check would freeze on statically cached pages.
+ * One line on mobile in every state, so a swap never moves the page: below md
+ * the lead is a single truncating line with normal letter-spacing.
  */
-export function PromoBar() {
-  const state = useSyncExternalStore<PromoBarState>(
-    noSubscribe,
-    () => promoBarState(),
-    () => "sale-free-postage",
-  );
-  const sale = state === "sale-free-postage" || state === "sale";
-  const offer = state === "sale-free-postage" || state === "free-postage";
+export function PromoBar({ initialNow }: { initialNow: number }) {
+  const now = useAdventNow(initialNow);
+  const { lead, href, tail } = adventBarCopy(adventBarKey(now));
   return (
-    <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5 bg-coral-500 px-4 py-1.5 text-center text-[12px] font-medium tracking-wider text-white md:px-6">
-      {sale && (
-        <>
-          {/* -my/py stretch the tap target to the bar's full height. */}
+    <>
+      <div className="flex items-center justify-center gap-x-3 gap-y-0.5 bg-coral-500 px-4 py-1.5 text-center text-[12px] font-medium tracking-normal text-white md:flex-wrap md:px-6 md:tracking-wider">
+        {href ? (
+          // -my/py stretch the tap target to the bar's full height.
           <Link
-            href={SALE_PATH}
-            className="-my-1.5 py-1.5 font-bold underline-offset-2 hover:underline"
+            href={href}
+            className="-my-1.5 min-w-0 truncate py-1.5 font-bold underline-offset-2 hover:underline md:overflow-visible md:text-clip md:whitespace-normal"
           >
-            SALE · up to {SALE_CAMPAIGN.maxPercent}% off
-            {offer && <span className="md:hidden"> + free postage</span>}
-            {" "}· ends {SALE_ENDS_SHORT_LABEL}
-            <span aria-hidden> →</span>
+            <Lead text={lead} />
           </Link>
-          <span className="hidden opacity-50 md:inline">✦</span>
-        </>
-      )}
-      {offer && (
-        <>
-          <span className={sale ? "hidden md:inline" : undefined}>
-            Free postage on every order until {FREE_POSTAGE_UNTIL_LABEL}
+        ) : (
+          <span className="min-w-0 truncate md:overflow-visible md:text-clip md:whitespace-normal">
+            <Lead text={lead} />
           </span>
-          <span className="hidden opacity-50 md:inline">✦</span>
-        </>
-      )}
-      {!sale && (
-        <>
-          <span className={offer ? "hidden md:inline" : undefined}>
-            Free delivery on orders Rs.1500+
-          </span>
-          <span className="hidden opacity-50 md:inline">✦</span>
-        </>
-      )}
-      <span className="hidden md:inline">Cash on delivery available</span>
-    </div>
+        )}
+        {tail && (
+          <>
+            <span className="hidden opacity-50 md:inline">✦</span>
+            <span className="hidden md:inline">{tail}</span>
+          </>
+        )}
+      </div>
+      <AdventPreviewBadge />
+    </>
   );
 }

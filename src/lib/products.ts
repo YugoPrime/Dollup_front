@@ -22,7 +22,7 @@ export const PRODUCT_TAGS_CACHE_TAG = "product-tags";
 export const PRODUCT_CATEGORIES_CACHE_TAG = "product-categories";
 
 const PRODUCT_LIST_FIELDS =
-  "id,title,handle,thumbnail,metadata,created_at,updated_at," +
+  "id,title,discountable,handle,thumbnail,metadata,created_at,updated_at," +
   "variants.id,variants.title,variants.sku,variants.metadata,variants.manage_inventory,+variants.inventory_quantity," +
   "variants.calculated_price.calculated_amount,variants.calculated_price.original_amount,variants.calculated_price.currency_code," +
   "variants.options.value,variants.options.option.title," +
@@ -156,7 +156,7 @@ function getProductCreatedAt(p: HttpTypes.StoreProduct): number {
 // like title/handle/thumbnail. Omitting them breaks PDP h1, og:title, canonical,
 // JSON-LD, and the homepage Babe-essentials tiles (links resolve to /products/undefined).
 const PRODUCT_DETAIL_FIELDS =
-  "id,title,handle,thumbnail,description,subtitle,metadata,*variants,*variants.calculated_price,*variants.options,+variants.inventory_quantity,+variants.manage_inventory,*options,*options.values,*images,*tags,*collection,*categories";
+  "id,title,discountable,handle,thumbnail,description,subtitle,metadata,*variants,*variants.calculated_price,*variants.options,+variants.inventory_quantity,+variants.manage_inventory,*options,*options.values,*images,*tags,*collection,*categories";
 
 export type ListProductsArgs = {
   limit?: number;

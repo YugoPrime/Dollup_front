@@ -6,6 +6,8 @@ import {
   HeroBentoProducts,
   HeroBentoProductSkeleton,
 } from "@/components/home/HeroBento";
+import { AdventHero } from "@/components/advent/AdventHero";
+import { adventNowMs } from "@/lib/advent";
 import { TrendingRail } from "@/components/home/TrendingRail";
 import { CategoryIcons } from "@/components/home/CategoryIcons";
 import { SalesOfTheMonth } from "@/components/home/SalesOfTheMonth";
@@ -50,6 +52,7 @@ export default function HomePage() {
 
   return (
     <>
+      <AdventHero initialNow={adventNowMs()} />
       <HeroBento>
         <Suspense fallback={<HeroBentoProductSkeleton />}>
           <HeroProductMosaic />

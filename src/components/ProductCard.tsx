@@ -7,6 +7,8 @@ import {
   ProductCardQuickAdd,
   ProductCardWishlistButton,
 } from "@/components/ProductCardActions";
+import { AdventCardTag, AdventCardPrice } from "@/components/advent/AdventPrice";
+import { adventNowMs } from "@/lib/advent";
 import type { QuickAddProduct } from "@/components/ProductCardVariantSheet";
 
 type Product = HttpTypes.StoreProduct;
@@ -250,6 +252,13 @@ export function ProductCard({
   const colors = getColorOptions(product, selectedSizes);
   const thumb = pickImageForColor(product, selectedColor ?? colors[0] ?? null);
   const isMultiVariant = (product.variants?.length ?? 0) > 1;
+  const advent = {
+    amount: price.amount,
+    categoryHandles: (product.categories ?? []).map((c) => c.handle),
+    productId: product.id,
+    discountable: product.discountable,
+    initialNow: adventNowMs(),
+  };
 
   return (
     <div className="group relative block overflow-hidden rounded-xl bg-white shadow-[0_2px_8px_rgba(229,96,74,0.06)] transition-all duration-200 ease-out hover:-translate-y-[3px] hover:shadow-[0_10px_24px_rgba(229,96,74,0.16)]">
@@ -263,6 +272,7 @@ export function ProductCard({
         )}
 
         <div className="absolute left-2 top-2 z-[3] flex flex-col gap-1.5">
+          <AdventCardTag {...advent} soldOut={soldOut} />
           {isNewArrival(product, latestCollectionTag) && (
             <span className="rounded bg-coral-500 px-2 py-0.5 font-sans text-[11px] font-bold uppercase tracking-wider text-white">
               New
@@ -308,20 +318,13 @@ export function ProductCard({
         >
           {product.title}
         </Link>
-        <div className="mt-1.5 flex items-baseline gap-1.5">
-          <span
-            className={`font-sans text-[16px] font-semibold ${
-              soldOut ? "text-coral-300" : price.onSale ? "text-coral-500" : "text-ink"
-            }`}
-          >
-            {formatPrice(price.amount, price.currency)}
-          </span>
-          {price.onSale && (
-            <span className="font-sans text-[12px] text-ink-muted line-through">
-              {formatPrice(price.original, price.currency)}
-            </span>
-          )}
-        </div>
+        <AdventCardPrice
+          {...advent}
+          original={price.original}
+          currency={price.currency}
+          soldOut={soldOut}
+          onSale={price.onSale}
+        />
         <div className="mt-auto flex h-5 items-center gap-1 pt-1.5">
           {colors.length > 1 && (
             <>

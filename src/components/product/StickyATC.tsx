@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { HttpTypes } from "@medusajs/types";
 import { useCart } from "@/components/cart/CartProvider";
 import { formatPrice, getDisplayPrice } from "@/lib/format";
+import { useAdventPdp } from "@/components/advent/AdventPrice";
 
 type Product = HttpTypes.StoreProduct;
 
@@ -16,9 +17,11 @@ type Product = HttpTypes.StoreProduct;
 export function StickyATC({
   product,
   watchElementId,
+  initialNow,
 }: {
   product: Product;
   watchElementId: string;
+  initialNow: number;
 }) {
   const [visible, setVisible] = useState(false);
   const { addItem, loading, open } = useCart();
@@ -35,9 +38,16 @@ export function StickyATC({
     return () => observerRef.current?.disconnect();
   }, [watchElementId]);
 
-  if (!visible || open) return null;
-
   const price = getDisplayPrice(product);
+  const doorHit = useAdventPdp({
+    amount: price.amount,
+    categoryHandles: (product.categories ?? []).map((c) => c.handle),
+    productId: product.id,
+    discountable: product.discountable,
+    initialNow,
+  });
+
+  if (!visible || open) return null;
 
   const onAdd = async () => {
     const variant = product.variants?.find(
@@ -51,9 +61,13 @@ export function StickyATC({
     <div className="fixed inset-x-0 bottom-[64px] z-[40] flex animate-slide-up items-center gap-3 border-t border-blush-100 bg-white px-4 py-2.5 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] md:hidden">
       <div className="flex flex-col">
         <span className="font-sans text-[15px] font-bold leading-none text-coral-500">
-          {formatPrice(price.amount, price.currency)}
+          {formatPrice(doorHit ? doorHit.price : price.amount, price.currency)}
         </span>
-        {price.onSale && (
+        {doorHit ? (
+          <span className="mt-0.5 font-sans text-[11px] text-ink-muted line-through">
+            {formatPrice(price.amount, price.currency)}
+          </span>
+        ) : price.onSale && (
           <span className="mt-0.5 font-sans text-[11px] text-ink-muted line-through">
             {formatPrice(price.original, price.currency)}
           </span>
