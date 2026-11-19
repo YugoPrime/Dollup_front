@@ -20,9 +20,12 @@ export const metadata: Metadata = {
 
 type Thumb = { title: string; thumbnail: string; href: string };
 
-function toThumbs(products: Awaited<ReturnType<typeof listProducts>>["products"]): Thumb[] {
+function toThumbs(
+  products: Awaited<ReturnType<typeof listProducts>>["products"],
+  excludeIds: readonly string[] = [],
+): Thumb[] {
   return products
-    .filter((p) => p.thumbnail && p.handle && !isAgeRestricted(p))
+    .filter((p) => p.thumbnail && p.handle && !isAgeRestricted(p) && !excludeIds.includes(p.id))
     .slice(0, 3)
     .map((p) => ({ title: p.title, thumbnail: p.thumbnail as string, href: `/products/${p.handle}` }));
 }
@@ -40,7 +43,8 @@ async function loadThumbs(now: number): Promise<{ day: number; items: Thumb[] }>
       }
       if (ids.size === 0) return { day: door.day, items: [] };
       const { products } = await listProducts({ category: [...ids], limit: 12 });
-      return { day: door.day, items: toThumbs(products) };
+      // Products left out of the door must not be pictured under its offer.
+      return { day: door.day, items: toThumbs(products, door.excludeProductIds) };
     }
     if (door.kind === "happy-hour") {
       const tagId = await getTagIdByValue("trending");

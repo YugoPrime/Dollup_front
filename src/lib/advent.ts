@@ -79,7 +79,7 @@ const LINGERIE_EXCLUDED: readonly string[] = [
 const T = {
   boobTape: { kind: "gift", label: "Free boob tape with any order", detail: "Pick Nude or Black in your bag. Website orders only, while stocks last.", href: "/shop", gift: BOOB_TAPE },
   freePostage: { kind: "free-postage", label: "Free postage", detail: "Registered post anywhere in Mauritius, free on website orders today.", href: "/shop" },
-  lingerie75: { kind: "category", label: "Rs 75 off every lingerie piece", detail: "Every lingerie piece, on website orders today.", href: "/shop?category=lingerie", amountOff: 75, categoryHandles: ["lingerie", "pajamas"], excludeProductIds: LINGERIE_EXCLUDED },
+  lingerie75: { kind: "category", label: "Rs 75 off lingerie", detail: "Lingerie and pyjamas, on website orders today.", href: "/shop?category=lingerie", amountOff: 75, categoryHandles: ["lingerie", "pajamas"], excludeProductIds: LINGERIE_EXCLUDED },
   happyHour: { kind: "happy-hour", label: "Happy hour: 20% off everything", detail: "Tonight 8–10pm only, on website orders.", href: "/shop", percentOff: 20 },
   dress100: { kind: "category", label: "Rs 100 off every dress", detail: "Every dress, on website orders today.", href: "/shop?category=dresses", amountOff: 100, categoryHandles: ["dresses"] },
   beachwear100: { kind: "category", label: "Rs 100 off all beachwear", detail: "Bikinis, one-pieces and cover-ups, on website orders today.", href: "/shop?category=beachwear", amountOff: 100, categoryHandles: ["beachwear", "bikini-sets", "cover-ups", "one-pieces"] },
@@ -89,7 +89,7 @@ const T = {
   nippleCovers: { kind: "gift", label: "Free nipple covers with any order", detail: "Pick Nude or Brown in your bag. Website orders only, while stocks last.", href: "/shop", gift: NIPPLE_COVERS },
   handcuffs: { kind: "gift", label: "Free handcuffs with any order (18+)", detail: "Add them in your bag. 18+ only, website orders, while stocks last.", href: "/shop", gift: HANDCUFFS },
   dress150: { kind: "category", label: "Rs 150 off every dress", detail: "Bonus weekend: every dress, on website orders today.", href: "/shop?category=dresses", amountOff: 150, categoryHandles: ["dresses"] },
-  lingerie100: { kind: "category", label: "Rs 100 off every lingerie piece", detail: "Bonus weekend: every lingerie piece, on website orders today.", href: "/shop?category=lingerie", amountOff: 100, categoryHandles: ["lingerie", "pajamas"], excludeProductIds: LINGERIE_EXCLUDED },
+  lingerie100: { kind: "category", label: "Rs 100 off lingerie", detail: "Bonus weekend: lingerie and pyjamas, on website orders today.", href: "/shop?category=lingerie", amountOff: 100, categoryHandles: ["lingerie", "pajamas"], excludeProductIds: LINGERIE_EXCLUDED },
   beachDay: { kind: "category", label: "Rs 100 off all beachwear", detail: "Christmas Day is a beach day. On website orders today.", href: "/shop?category=beachwear", amountOff: 100, categoryHandles: ["beachwear", "bikini-sets", "cover-ups", "one-pieces"] },
 } satisfies Record<string, Template>
 
