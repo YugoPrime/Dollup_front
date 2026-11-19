@@ -47,7 +47,7 @@ import {
 import { cartHasEssentialsBundle } from "@/lib/essentials-bundle";
 import { shippingDoorFree, todaysDoor } from "@/lib/advent";
 import { useAdventNow } from "@/components/advent/useAdventNow";
-import { shippingFreeFromCart, totalWentUp } from "@/lib/advent-cart";
+import { checkoutTotal, shippingFreeFromCart, totalWentUp } from "@/lib/advent-cart";
 
 type MobileCheckoutStep = "delivery" | "details" | "review";
 
@@ -618,9 +618,7 @@ export function CheckoutForm({ cutoffHour, initialNow }: { cutoffHour: number; i
     : selectedShippingFree
       ? 0
       : (selectedOption?.amount ?? 0);
-  const ctaTotal = cartHasShippingMethod
-    ? (cart.total ?? 0)
-    : Math.max(0, itemSubtotal + ctaShipping - (cart.discount_total ?? 0));
+  const ctaTotal = checkoutTotal(cart, ctaShipping);
   const ctaTotalLabel = formatPrice(ctaTotal, currency);
   const mobileStepLabel =
     MOBILE_CHECKOUT_STEPS[mobileStepIndex]?.label ?? "Delivery";

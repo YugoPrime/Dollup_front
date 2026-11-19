@@ -104,6 +104,25 @@ export function shippingFreeFromCart(
   return fallbackFree
 }
 
+/**
+ * The grand total checkout shows. Once the cart holds a shipping method,
+ * Medusa's `total` decides. Before that it is items plus the fallback
+ * shipping. `item_total` is already after discounts, so `discount_total`
+ * must not be taken off again.
+ */
+export function checkoutTotal(
+  cart: {
+    total?: number | null
+    item_total?: number | null
+    subtotal?: number | null
+    shipping_methods?: readonly unknown[] | null
+  },
+  fallbackShipping: number,
+): number {
+  if ((cart.shipping_methods?.length ?? 0) > 0) return cart.total ?? 0
+  return Math.max(0, (cart.item_total ?? cart.subtotal ?? 0) + fallbackShipping)
+}
+
 export type ShownTotals = { items: number; shipping: number }
 
 /**

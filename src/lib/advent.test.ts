@@ -57,6 +57,14 @@ check("hh live price", doorPrice({ amount: 975, categoryHandles: ["dresses"] }, 
 check("hh not live yet", doorPrice({ amount: 975, categoryHandles: ["dresses"] }, D("2026-12-04T15:30:00Z")), null)
 check("hh live, non-discountable: no price", doorPrice({ amount: 975, categoryHandles: ["dresses"], discountable: false }, D("2026-12-04T16:30:00Z")), null)
 check("hh live, discountable true/unset still prices", [doorPrice({ amount: 975, categoryHandles: [], discountable: true }, D("2026-12-04T16:30:00Z"))?.price, doorPrice({ amount: 975, categoryHandles: [] }, D("2026-12-04T16:30:00Z"))?.price], [780, 780])
+const CHEAP_LINGERIE = ["prod_01KQPN2WDNABFQCAB38CGJCDNB", "prod_01KQPN2XHGX93C7TW51BV9673B"]
+check("door 3/20 exclusions set", [doorOfDay(3).excludeProductIds, doorOfDay(20).excludeProductIds], [CHEAP_LINGERIE, CHEAP_LINGERIE])
+check("excluded lingerie: no door price on 3 and 20", CHEAP_LINGERIE.flatMap((id) => [
+  doorPrice({ amount: 175, categoryHandles: ["lingerie"], productId: id }, D("2026-12-03T08:00:00Z")),
+  doorPrice({ amount: 175, categoryHandles: ["lingerie"], productId: id }, D("2026-12-20T08:00:00Z")) ]), [null, null, null, null])
+check("other lingerie still priced on 3 and 20", [
+  doorPrice({ amount: 875, categoryHandles: ["lingerie"], productId: "prod_other" }, D("2026-12-03T08:00:00Z"))?.price,
+  doorPrice({ amount: 875, categoryHandles: ["pajamas"], productId: "prod_other" }, D("2026-12-20T08:00:00Z"))?.price ], [800, 775])
 check("category door, non-discountable: no price", doorPrice({ amount: 1000, categoryHandles: ["bikini-sets"], discountable: false }, D("2026-12-06T08:00:00Z")), null)
 check("postage door", ["Registered Postage", "Home/Office Delivery", "Express Postage"].map((n) => shippingDoorFree(n, D("2026-12-02T08:00:00Z"))), [true, false, false])
 check("delivery door", shippingDoorFree("Home/Office Delivery", D("2026-12-08T08:00:00Z")), true)

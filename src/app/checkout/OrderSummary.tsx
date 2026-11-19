@@ -16,6 +16,7 @@ import { PreorderTerms } from "@/components/preorder/PreorderTerms";
 import { AdventBagLine } from "@/components/advent/AdventBagLine";
 import { useAdventNow } from "@/components/advent/useAdventNow";
 import { shippingDoorFree } from "@/lib/advent";
+import { checkoutTotal } from "@/lib/advent-cart";
 
 type Cart = HttpTypes.StoreCart;
 
@@ -215,10 +216,7 @@ export function OrderSummary({
     : fallbackShippingFree
       ? 0
       : fallbackShipping;
-  const fallbackDiscount = cart.discount_total ?? 0;
-  const total = cartHasShippingMethod
-    ? (cart.total ?? 0)
-    : Math.max(0, itemSubtotal + shipping - fallbackDiscount);
+  const total = checkoutTotal(cart, shipping);
   const isPreorder =
     cartTypeOf(cart as unknown as { metadata?: Record<string, unknown> | null }) === "preorder";
   const redeemMeta = readLoyaltyRedeemMetadata(

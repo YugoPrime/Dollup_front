@@ -1,6 +1,6 @@
 // Pure cart readers for the advent doors. Plain script: `npx tsx src/lib/advent-cart.test.ts`.
 import { doorOfDay } from "./advent"
-import { doorGiftEligible, doorGiftLine, doorSavings, giftChoices, isAdventGiftLine, ownGiftHasDoor, settleOutcome, shippingFreeFromCart, totalWentUp } from "./advent-cart"
+import { checkoutTotal, doorGiftEligible, doorGiftLine, doorSavings, giftChoices, isAdventGiftLine, ownGiftHasDoor, settleOutcome, shippingFreeFromCart, totalWentUp } from "./advent-cart"
 
 let ok = true
 function check(label: string, got: unknown, exp: unknown): void {
@@ -43,6 +43,13 @@ check("up: items dearer", totalWentUp({ items: 1000, shipping: 0 }, { item_total
 check("up: shipping dearer", totalWentUp({ items: 1000, shipping: 0 }, { item_total: 1000, shipping_total: 150 }), true)
 check("up: equal or lower", [totalWentUp({ items: 1000, shipping: 150 }, { item_total: 1000, shipping_total: 150 }), totalWentUp({ items: 1000, shipping: 150 }, { item_total: 900, shipping_total: 0 })], [false, false])
 check("up: missing fields / null never block", [totalWentUp({ items: 1000, shipping: 0 }, {}), totalWentUp({ items: 1000, shipping: 0 }, null)], [false, false])
+// item_total is already after discounts: discount_total must not come off again.
+const discounted = { total: 1050, item_total: 900, subtotal: 1000, discount_total: 100, shipping_methods: [] }
+check("total: no method = items + shipping, discount not taken twice", checkoutTotal(discounted, 150), 1050)
+check("total: method on cart = Medusa total", checkoutTotal({ ...discounted, total: 1200, shipping_methods: [{}] }, 0), 1200)
+check("total: item_total missing falls back to subtotal", checkoutTotal({ subtotal: 1000 }, 150), 1150)
+check("total: nothing known = shipping, never negative", [checkoutTotal({}, 150), checkoutTotal({ item_total: 0 }, -50)], [150, 0])
+
 const own = { items: [{ id: "p", product_id: tape.productId, quantity: 1, total: 0, adjustments: [{ code: "ADVENT-01", amount: 150 }] }, { id: "d", product_id: "prod_dress", quantity: 1, adjustments: [] }] }
 check("own gift: door on her untagged line", ownGiftHasDoor(own, tape, "ADVENT-01"), true)
 check("own gift: other code / no adj", [ownGiftHasDoor(own, tape, "ADVENT-TEST-01"), ownGiftHasDoor({ items: [{ id: "p", product_id: tape.productId, quantity: 1, adjustments: [] }] }, tape, "ADVENT-01")], [false, false])
