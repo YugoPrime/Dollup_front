@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { getProductByHandle, listProducts, getLatestCollectionTag } from "@/lib/products";
 import { formatPrice, getDisplayPrice } from "@/lib/format";
 import { ProductGallery } from "@/components/product/ProductGallery";
+import { adventNowMs } from "@/lib/advent";
 import { ProductBuy } from "@/components/product/ProductBuy";
 import { ProductAccordion } from "@/components/product/ProductAccordion";
 import { YouMayAlsoLike } from "@/components/product/YouMayAlsoLike";
@@ -179,6 +180,7 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
             product={product}
             freeShippingThreshold={freeShippingThreshold}
             sizeChartHtml={sizeChartHtml}
+            initialNow={adventNowMs()}
           />
           <div className="mt-6">
             <ProductAccordion

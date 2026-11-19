@@ -11,6 +11,7 @@ import { colorNameToHex } from "@/lib/colors";
 import { PDP_SELECT_SIZE_EVENT } from "@/components/product/PdpQuickInfoMobile";
 import { PDP_COLOR_CHANGE_EVENT } from "@/components/product/ProductGallery";
 import { MessageCircle } from "lucide-react";
+import { useAdventPdp } from "@/components/advent/AdventPrice";
 import { restockWhatsAppUrl } from "@/lib/restock";
 
 type Product = HttpTypes.StoreProduct;
@@ -20,10 +21,12 @@ export function ProductBuy({
   product,
   freeShippingThreshold,
   sizeChartHtml,
+  initialNow,
 }: {
   product: Product;
   freeShippingThreshold: number;
   sizeChartHtml?: string | null;
+  initialNow: number;
 }) {
   const { addItem, loading } = useCart();
   const wished = useIsInWishlist(product.id);
@@ -69,6 +72,12 @@ export function ProductBuy({
       ? matchedVariant.inventory_quantity
       : null;
   const discountPct = formatDiscountPercent(price.amount, price.original);
+  const doorHit = useAdventPdp({
+    amount: price.amount,
+    categoryHandles: (product.categories ?? []).map((c) => c.handle),
+    productId: product.id,
+    initialNow,
+  });
 
   const colorOption = options.find((o) => (o.title ?? "").toLowerCase() === "color");
   const sizeOption = options.find((o) => (o.title ?? "").toLowerCase() === "size");
@@ -257,6 +266,21 @@ export function ProductBuy({
         <h1 className="font-display text-[28px] leading-tight text-ink md:text-[36px]">{product.title}</h1>
       </header>
 
+      {doorHit ? (
+        <div className="flex flex-col gap-1">
+          <div className="flex items-baseline gap-3">
+            <span className="font-display text-[28px] leading-none text-coral-500 md:text-[36px]">
+              {formatPrice(doorHit.price, price.currency)}
+            </span>
+            <span className="font-sans text-[14px] text-ink-muted line-through md:text-[16px]">
+              {formatPrice(price.amount, price.currency)}
+            </span>
+          </div>
+          <p className="font-sans text-[13px] font-semibold text-coral-500">
+            Door {doorHit.day} · today on the website
+          </p>
+        </div>
+      ) : (
       <div className="flex items-baseline gap-3">
         <span className="font-display text-[28px] leading-none text-coral-500 md:text-[36px]">
           {formatPrice(price.amount, price.currency)}
@@ -272,6 +296,7 @@ export function ProductBuy({
           </span>
         )}
       </div>
+      )}
 
       <p
         className="-mt-3 font-sans text-[12px] font-bold uppercase tracking-wider text-emerald-700"
