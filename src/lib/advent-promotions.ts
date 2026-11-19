@@ -102,3 +102,13 @@ export function buildDoorPromotion(
     promotion: { code: doorCode(door.day, !!test), type: am.type, is_automatic: true, status: "active", rules, application_method: am.method },
   }
 }
+
+/** Test copies already in Medusa: ADVENT-TEST-* promotions and advent-2026-test-door-* campaigns. */
+export function existingTestCopies(
+  promoCodes: readonly unknown[],
+  campaignIdentifiers: readonly unknown[],
+): string[] {
+  const promos = promoCodes.filter((c): c is string => typeof c === "string" && c.startsWith("ADVENT-TEST-"))
+  const camps = campaignIdentifiers.filter((c): c is string => typeof c === "string" && c.startsWith("advent-2026-test-door-"))
+  return [...promos, ...camps]
+}

@@ -1,7 +1,7 @@
 // Covers the advent promotion payload builder in advent-promotions.ts.
 // Plain script, run with `npx tsx src/lib/advent-promotions.test.ts`.
 import { ADVENT, doorOfDay } from "./advent"
-import { buildDoorPromotion, type DoorPromotion, type PromotionRule } from "./advent-promotions"
+import { buildDoorPromotion, existingTestCopies, type DoorPromotion, type PromotionRule } from "./advent-promotions"
 
 let ok = true
 function check(label: string, got: unknown, exp: unknown): void {
@@ -38,6 +38,10 @@ check("test group rule", t6!.promotion.rules[1], { attribute: "customer.groups.i
 check("gift shape", [am(p12).value, am(p12).max_quantity, am(p12).apply_to_quantity, am(p12).buy_rules_min_quantity, am(p12).target_rules], [100, 1, 1, 1, [{ attribute: "items.product_id", operator: "in", values: ["prod_01KQPN975A65QJVMVFX47DEXBQ"] }]])
 check("postage shape", [am(buildDoorPromotion(doorOfDay(2), ids)).target_type, am(buildDoorPromotion(doorOfDay(2), ids)).value], ["shipping_methods", 100])
 check("fixed max_quantity", am(p6).max_quantity, 99)
+
+check("test copies: none", existingTestCopies(["ADVENT-06", null], ["advent-2026-door-06"]), [])
+check("test copies: promo + campaign found", existingTestCopies(["ADVENT-TEST-06", "ADVENT-01"], ["advent-2026-test-door-06", "advent-2026-door-01"]), ["ADVENT-TEST-06", "advent-2026-test-door-06"])
+check("test copies: campaign alone blocks", existingTestCopies([], ["advent-2026-test-door-11"]).length, 1)
 
 if (ok) console.log("ALL PASS")
 else process.exit(1)

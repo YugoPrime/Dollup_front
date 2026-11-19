@@ -10,7 +10,7 @@
 import { existsSync, readFileSync } from "node:fs"
 import { dirname, join, resolve } from "node:path"
 import { ADVENT, doorCode, doorWindow, type Door } from "../src/lib/advent"
-import { buildDoorPromotion, type DoorPromotion, type PromotionRule } from "../src/lib/advent-promotions"
+import { buildDoorPromotion, existingTestCopies, type DoorPromotion, type PromotionRule } from "../src/lib/advent-promotions"
 
 type Json = Record<string, unknown>
 type Mode = "dry" | "verify" | "apply" | "test" | "cleanup-test" | "delete"
@@ -108,7 +108,7 @@ const PROMO_FIELDS = [
 async function listAll(token: string, path: string, key: string, fields: string): Promise<Json[]> {
   const out: Json[] = []
   for (let offset = 0; ; offset += 100) {
-    const d = await http("GET", `${path}?limit=100&offset=${offset}&fields=${encodeURIComponent(fields)}`, { token })
+    const d = await http("GET", `${path}?limit=100&offset=${offset}&order=id&fields=${encodeURIComponent(fields)}`, { token })
     const rows = asArr(d[key]).map(asObj)
     out.push(...rows)
     if (rows.length < 100) return out
@@ -227,7 +227,7 @@ async function priceCheck(): Promise<void> {
   const products: Json[] = []
   const fields = "id,handle,*categories,*variants,+variants.inventory_quantity,*variants.calculated_price"
   for (let offset = 0; ; offset += 100) {
-    const d = await http("GET", `/store/products?limit=100&offset=${offset}&region_id=${String(region.id)}&fields=${encodeURIComponent(fields)}`, { store: true })
+    const d = await http("GET", `/store/products?limit=100&offset=${offset}&order=id&region_id=${String(region.id)}&fields=${encodeURIComponent(fields)}`, { store: true })
     const rows = asArr(d.products).map(asObj)
     products.push(...rows)
     if (rows.length < 100) break
@@ -331,6 +331,12 @@ async function main(): Promise<void> {
   }
 
   if (mode === "test") {
+    // Never reuse an old test campaign window: refuse before writing anything.
+    const leftovers = existingTestCopies((await listPromotions(token)).map((p) => p.code), (await listCampaigns(token)).map((c) => c.campaign_identifier))
+    if (leftovers.length) {
+      console.error("Test copies already exist. Run --cleanup-test first.")
+      process.exit(1)
+    }
     const email = opt("tester-email")
     if (!email) throw new Error("--test needs --tester-email <email>")
     const minutes = Number(opt("minutes") ?? 90)
