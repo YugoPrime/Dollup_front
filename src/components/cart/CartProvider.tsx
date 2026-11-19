@@ -366,22 +366,21 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         )) as { parent?: Cart };
         const serverCart = res.parent ?? null;
         if (serverCart) {
+          // Revert first: removing the last paid item un-frees an advent gift,
+          // and the revert deletes it. Judge "empty" on the reconciled cart,
+          // not on serverCart, where the gift still counts as an item.
+          const reconciled = await reconcileGifts(serverCart);
           // If the cart is now empty, clear cart_type so the customer can add
           // a different type next time (e.g. emptied a preorder cart, now
           // wants to add an in-stock item).
-          if ((serverCart.items?.length ?? 0) === 0 && cartTypeOf(serverCart) !== null) {
-            const cleared: Cart = {
-              ...serverCart,
-              metadata: { ...(serverCart.metadata ?? {}), cart_type: null },
-            };
-            setCart(cleared);
+          if ((reconciled.items?.length ?? 0) === 0 && cartTypeOf(reconciled) !== null) {
+            const clearedMeta = { ...(reconciled.metadata ?? {}), cart_type: null };
+            setCart({ ...reconciled, metadata: clearedMeta });
             sdk.store.cart
-              .update(serverCart.id, {
-                metadata: { ...(serverCart.metadata ?? {}), cart_type: null },
-              })
+              .update(reconciled.id, { metadata: clearedMeta })
               .catch(() => {/* best-effort */});
           } else {
-            setCart(await reconcileGifts(serverCart));
+            setCart(reconciled);
           }
         } else {
           await refresh();
@@ -423,18 +422,27 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             const { cart: c } = await sdk.store.cart.retrieve(settled.id, { fields: CART_FIELDS });
             settled = c;
           } catch {
-            /* best effort; the next mutation's revert pass tries again */
+            // Server state unknown: show it, and report failure honestly.
+            try {
+              await refresh();
+            } catch {
+              /* keep whatever is on screen */
+            }
+            return "failed";
           }
         }
         setCart(settled);
-        return (settled.items ?? []).some(isOurGift) ? "added" : "not-free";
+        // Decide from the final server cart. A charged gift must never be "added".
+        const final = (settled.items ?? []).find(isOurGift);
+        if (!final) return "not-free";
+        return (final.total ?? 0) === 0 ? "added" : "failed";
       } catch {
         return "failed";
       } finally {
         setLoading(false);
       }
     },
-    [cart, reconcileGifts],
+    [cart, reconcileGifts, refresh],
   );
 
   const clearCart = useCallback(() => {

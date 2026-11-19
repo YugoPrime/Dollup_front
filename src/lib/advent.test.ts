@@ -46,6 +46,7 @@ check("window door 11", doorWindow(doorOfDay(11)), { startsAt: "2026-12-11T20:00
 check("codes", [doorCode(7), doorCode(7, true)], ["ADVENT-07", "ADVENT-TEST-07"])
 check("days 1..24", ADVENT.doors.map((d) => d.day), Array.from({ length: 24 }, (_, i) => i + 1))
 check("happy hours", ADVENT.doors.filter((d) => d.kind === "happy-hour").map((d) => d.day), [4, 11, 18])
+// These dates must stay equal to DOUBLE_POINTS_MU_DATES in Backend/dollup-medusa/src/lib/loyalty-multiplier.ts
 check("double points", ADVENT.doors.filter((d) => d.kind === "double-points").map((d) => d.day), [7, 14, 21])
 check("never intimates", ADVENT.doors.some((d) => d.categoryHandles?.includes("intimates")), false)
 check("bikini on door 6", doorPrice({ amount: 1000, categoryHandles: ["bikini-sets"] }, D("2026-12-06T08:00:00Z")), { price: 900, tag: "−Rs 100 today" })
