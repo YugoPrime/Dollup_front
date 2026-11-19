@@ -7,10 +7,11 @@ import { isAgeVerified, setAgeVerified } from "@/components/product/AgeGateModal
 import { useCustomer } from "@/lib/auth-client";
 import { adventPhase, doorCode, shippingDoorFree, todaysDoor } from "@/lib/advent";
 import type { DoorGift } from "@/lib/advent";
-import { doorGiftEligible, doorGiftLine, doorSavings, giftChoices } from "@/lib/advent-cart";
+import { doorGiftEligible, doorGiftLine, doorSavings, giftChoices, ownGiftHasDoor } from "@/lib/advent-cart";
 import { getCartSdk } from "@/lib/cart-client";
 import { cartTypeOf } from "@/lib/cart-type";
 import { formatPrice } from "@/lib/format";
+import { isAdventPreview } from "./advent-preview-client";
 import { useAdventNow } from "./useAdventNow";
 
 type Stock = { id: string; inventory_quantity?: number | null; manage_inventory?: boolean | null }[];
@@ -136,10 +137,12 @@ export function AdventBagLine({ initialNow, compact = false }: { initialNow: num
   if (!door) return null;
 
   const currency = cart.currency_code ?? "MUR";
+  // While a preview is active the bag matches the owner's ADVENT-TEST-NN promotions.
+  const code = doorCode(door.day, isAdventPreview());
   let row: React.ReactNode = null;
 
   if (door.kind === "category" || door.kind === "happy-hour") {
-    const saved = doorSavings(cart, doorCode(door.day));
+    const saved = doorSavings(cart, code);
     if (saved > 0) {
       row = (
         <p className={ROW}>
@@ -156,6 +159,15 @@ export function AdventBagLine({ initialNow, compact = false }: { initialNow: num
         <p className={ROW}>
           <span className="font-semibold">
             Door {door.day} gift · Free {door.gift.name} · Free
+          </span>
+        </p>
+      );
+    } else if (!line && ownGiftHasDoor(cart, door.gift, code)) {
+      // She bought the gift product herself and Medusa put the free unit on her own line.
+      row = (
+        <p className={ROW}>
+          <span className="font-semibold">
+            Door {door.day} gift · one {door.gift.name} free
           </span>
         </p>
       );
