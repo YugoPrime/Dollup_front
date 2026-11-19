@@ -63,3 +63,43 @@ export function giftChoices(
 export function isAdventGiftLine(line: { metadata?: Record<string, unknown> | null }): boolean {
   return line.metadata?.auto_gift === ADVENT_GIFT
 }
+
+export type SettleOutcome = "clean" | "removed-advent" | "removed-other" | "unresolved"
+
+/**
+ * Result of the pre-payment gift check. `pending` is what needed reverting
+ * before, `remaining` what still needs reverting after the revert pass.
+ * Only "clean" may go on to payment.
+ */
+export function settleOutcome(pending: { rule: string }[], remaining: { rule: string }[]): SettleOutcome {
+  if (pending.length === 0) return "clean"
+  if (remaining.length > 0) return "unresolved"
+  return pending.every((p) => p.rule === ADVENT_GIFT) ? "removed-advent" : "removed-other"
+}
+
+type Method = {
+  shipping_option_id?: string | null
+  total?: number | null
+  amount?: number | null
+  adjustments?: Adj[] | null
+}
+
+/**
+ * Is this shipping option free? When the cart already holds a method for it,
+ * Medusa's figure decides (0 = free); `fallbackFree` (door / threshold flags)
+ * only applies before a method is on the cart.
+ */
+export function shippingFreeFromCart(
+  methods: Method[] | null | undefined,
+  optionId: string | null | undefined,
+  fallbackFree: boolean,
+): boolean {
+  const m = optionId ? (methods ?? []).find((x) => x.shipping_option_id === optionId) : undefined
+  if (!m) return fallbackFree
+  if (typeof m.total === "number") return m.total === 0
+  if (typeof m.amount === "number") {
+    const off = (m.adjustments ?? []).reduce((n, a) => n + (a.amount ?? 0), 0)
+    return m.amount - off <= 0
+  }
+  return fallbackFree
+}

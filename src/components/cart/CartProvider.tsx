@@ -23,6 +23,7 @@ import {
 import { trackAddToCart } from "@/lib/analytics";
 import { canAddItem, cartTypeOf, type CartType } from "@/lib/cart-type";
 import { ADVENT_GIFT, giftsToRevert } from "@/lib/cart-gifts";
+import { settleOutcome, type SettleOutcome } from "@/lib/advent-cart";
 
 const CartDrawer = dynamic(
   () => import("./CartDrawer").then((m) => m.CartDrawer),
@@ -51,9 +52,9 @@ type CartContextValue = {
   claimDoorGift: (variantId: string) => Promise<"added" | "not-free" | "failed">;
   // Last check before payment: re-reads the cart and pulls out any gift of
   // ours that is no longer free (e.g. claimed before midnight, checked out
-  // after). True when a gift was found, so the caller must stop and show the
-  // bag again. False when nothing needed doing or the re-read failed.
-  settleGifts: () => Promise<boolean>;
+  // after). Only "clean" may go on to payment; "unresolved" means the re-read
+  // failed or an unfree gift is still in the bag.
+  settleGifts: () => Promise<SettleOutcome>;
   refreshCart: () => Promise<void>;
   clearCart: () => void;
 };
@@ -450,26 +451,29 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     [cart, reconcileGifts, refresh],
   );
 
-  const settleGifts = useCallback(async (): Promise<boolean> => {
-    const id = getStoredCartId();
-    if (!id) return false;
+  const settleGifts = useCallback(async (): Promise<SettleOutcome> => {
+    // Stored id first, then the in-memory cart. Without either we cannot
+    // verify, so never let the order go on.
+    const id = getStoredCartId() ?? cart?.id;
+    if (!id) return "unresolved";
     let fresh: Cart;
     try {
       const sdk = getCartSdk(cartTypeOf(cart) ?? getStoredCartType());
       const res = await sdk.store.cart.retrieve(id, { fields: CART_FIELDS });
       fresh = res.cart;
     } catch {
-      // Could not re-read: let the normal flow continue.
-      return false;
+      return "unresolved";
     }
-    if (giftsToRevert(fresh).length === 0) {
+    const pending = giftsToRevert(fresh);
+    if (pending.length === 0) {
       setCart(fresh);
-      return false;
+      return "clean";
     }
-    // Best-effort revert. If it failed and a charged gift is still there, we
-    // still report true so the order is not placed with it.
-    setCart(await reconcileGifts(fresh));
-    return true;
+    // reconcileGifts is best-effort (it swallows failures and skips when a pass
+    // is already running), so judge by what is still unfree afterwards.
+    const settled = await reconcileGifts(fresh);
+    setCart(settled);
+    return settleOutcome(pending, giftsToRevert(settled));
   }, [cart, reconcileGifts]);
 
   const clearCart = useCallback(() => {

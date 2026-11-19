@@ -47,6 +47,7 @@ import {
 import { cartHasEssentialsBundle } from "@/lib/essentials-bundle";
 import { shippingDoorFree, todaysDoor } from "@/lib/advent";
 import { useAdventNow } from "@/components/advent/useAdventNow";
+import { shippingFreeFromCart } from "@/lib/advent-cart";
 
 type MobileCheckoutStep = "delivery" | "details" | "review";
 
@@ -429,9 +430,14 @@ export function CheckoutForm({ cutoffHour, initialNow }: { cutoffHour: number; i
       // The two calls above refresh promotions. A door gift claimed before
       // midnight is no longer free after it, and would be charged at
       // complete. Pull it out and stop, so she sees the real total first.
-      if (await settleGifts()) {
+      const settled = await settleGifts();
+      if (settled !== "clean") {
         setErrorBanner(
-          "Today's free gift has ended, so we took it out of your bag. Check your total and place your order again.",
+          settled === "removed-advent"
+            ? "Today's free gift has ended, so we took it out of your bag. Check your total and place your order again."
+            : settled === "removed-other"
+              ? "A free gift in your bag has ended, so we took it out. Check your total and place your order again."
+              : "Couldn't place your order. Please try again.",
         );
         window.scrollTo({ top: 0, behavior: "smooth" });
         return;
@@ -580,11 +586,15 @@ export function CheckoutForm({ cutoffHour, initialNow }: { cutoffHour: number; i
   const bundleFreeShipping = cartHasEssentialsBundle(cart.items);
   const selectedShippingFree =
     selectedOption &&
-    (selectedOption.amount === 0 ||
-      bundleFreeShipping ||
-      doorShippingFree(selectedOption.name ?? "") ||
-      qualifiesForFreeHomeDelivery(selectedOption.name ?? "", itemSubtotal) ||
-      qualifiesForFreePostage(selectedOption.name ?? ""));
+    shippingFreeFromCart(
+      cart.shipping_methods,
+      selectedOption.id,
+      selectedOption.amount === 0 ||
+        bundleFreeShipping ||
+        doorShippingFree(selectedOption.name ?? "") ||
+        qualifiesForFreeHomeDelivery(selectedOption.name ?? "", itemSubtotal) ||
+        qualifiesForFreePostage(selectedOption.name ?? ""),
+    );
   const ctaShipping = cartHasShippingMethod
     ? (cart.shipping_total ?? 0)
     : selectedShippingFree
@@ -705,8 +715,11 @@ export function CheckoutForm({ cutoffHour, initialNow }: { cutoffHour: number; i
                         method === "Rodrigues Postage"
                       ? Mail
                       : Truck;
-                const freePostage = qualifiesForFreePostage(label);
-                const doorFree = doorShippingFree(label);
+                // "Free" claims (hint and label) must not contradict a method
+                // Medusa already priced on the cart.
+                const medusaAllows = shippingFreeFromCart(cart.shipping_methods, opt.id, true);
+                const freePostage = qualifiesForFreePostage(label) && medusaAllows;
+                const doorFree = doorShippingFree(label) && medusaAllows;
                 const hint =
                   method === "Pick Up"
                     ? "Collect from Doll Up Boutique."
@@ -723,15 +736,20 @@ export function CheckoutForm({ cutoffHour, initialNow }: { cutoffHour: number; i
                           : doorFree && method === "Home Delivery"
                             ? `Door-to-door delivery in Mauritius. Free today (advent door ${adventDoorNo}).`
                             : "Door-to-door delivery in Mauritius.";
-                const free =
+                // Once a method for this option is on the cart, Medusa's figure
+                // decides; the flags only apply before that.
+                const free = shippingFreeFromCart(
+                  cart.shipping_methods,
+                  opt.id,
                   opt.amount === 0 ||
-                  bundleFreeShipping ||
-                  doorFree ||
-                  freePostage ||
-                  qualifiesForFreeHomeDelivery(
-                    opt.name ?? "",
-                    cart.item_total ?? cart.subtotal ?? 0,
-                  );
+                    bundleFreeShipping ||
+                    doorFree ||
+                    freePostage ||
+                    qualifiesForFreeHomeDelivery(
+                      opt.name ?? "",
+                      cart.item_total ?? cart.subtotal ?? 0,
+                    ),
+                );
                 return (
                   <label
                     key={opt.id}
