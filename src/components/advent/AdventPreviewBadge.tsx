@@ -27,7 +27,6 @@ export function AdventPreviewBadge() {
   return (
     <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] left-3 z-[95] flex items-center gap-2 rounded-full bg-ink px-3 py-1.5 font-sans text-[11px] font-semibold text-white shadow-lg md:bottom-4">
       <span>Advent preview · {previewLabel(now)}</span>
-      {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
       <a href={`/?${PREVIEW_PARAM}=off`} className="underline underline-offset-2">
         Exit
       </a>
