@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
-import { NAV_LINKS, filterNavLinksByStockedHandles, type NavLink } from "@/lib/nav";
+import { navLinks, filterNavLinksByStockedHandles, type NavLink } from "@/lib/nav";
+import { adventNowMs } from "@/lib/advent";
 import { getCategoryHandlesWithStock } from "@/lib/products";
 import { HeaderNavItem } from "@/components/header/HeaderNavItem";
 import { HeaderSearchDesktop } from "@/components/header/HeaderSearch";
@@ -15,19 +16,18 @@ export async function Header() {
   // Hide menu entries for categories that are completely out of stock. Falls
   // back to the full static list if Medusa is slow or errors so the header
   // never disappears.
-  let visibleNav: NavLink[] = NAV_LINKS;
+  const now = adventNowMs();
+  const allLinks = navLinks(now);
+  let visibleNav: NavLink[] = allLinks;
   try {
     const stocked = await getCategoryHandlesWithStock();
-    visibleNav = filterNavLinksByStockedHandles(NAV_LINKS, stocked);
+    visibleNav = filterNavLinksByStockedHandles(allLinks, stocked);
   } catch (err) {
     console.error("Header nav stock-filter failed; using full list:", err);
   }
   return (
     <HeaderShell className="sticky top-0 z-[100] border-b border-blush-400 bg-white">
-      {/* Promo bar — free postage until 1 Nov 2026, then evergreen copy.
-          Date-gated in the browser; see PromoBar for why and for the cleanup
-          to do on the next deploy after the offer. */}
-      <PromoBar />
+      <PromoBar initialNow={now} />
 
       <div className="flex min-h-[72px] items-center gap-3 px-4 md:min-h-[104px] md:gap-6 md:px-8">
         <Link href="/" aria-label="Doll Up Boutique" className="flex shrink-0 items-center">

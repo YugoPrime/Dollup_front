@@ -159,7 +159,7 @@ export function happyHourState(door: Door, now: number): HappyHourState | null {
 }
 
 export function doorWindow(door: Door): { startsAt: string; endsAt: string } {
-  const date = `2026-12-${pad2(door.day)}`
+  const date = `${ADVENT_YEAR}-${pad2(ADVENT_MONTH + 1)}-${pad2(door.day)}`
   if (door.kind === "happy-hour") {
     return { startsAt: `${date}T${HAPPY_HOUR_START}:00:00+04:00`, endsAt: `${date}T${HAPPY_HOUR_END - 1}:59:59+04:00` }
   }

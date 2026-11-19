@@ -18,6 +18,7 @@ import {
   shippingDoorFree,
   todaysDoor,
 } from "./advent"
+import { footerShopLinks, navLinks } from "./nav"
 
 const D = Date.parse
 
@@ -67,6 +68,18 @@ check("bar door 7", adventBarCopy("door-07").lead, "Door 7 · Double points toda
 check("bar door 12", adventBarCopy("door-12").lead, "Door 12 · Free handcuffs with any order (18+) today →")
 check("bar hh", ["door-11-later", "door-11-live", "door-11-over"].map((k) => adventBarCopy(k).lead), ["Tonight 8–10pm · 20% off everything →", "Happy hour · 20% off everything until 10pm →", "Door 12 opens at midnight"])
 check("bar teaser / evergreen", [adventBarCopy("teaser").lead, adventBarCopy("evergreen")], ["The advent calendar opens Tue 1 Dec →", { lead: "Free delivery on orders Rs.1500+", href: null, tail: "Cash on delivery available" }])
+
+check("nav slot during", navLinks(D("2026-12-06T08:00:00Z")).find((l) => l.href === "/advent")?.label, "Advent calendar")
+check("nav slot after", navLinks(D("2026-12-25T08:00:00Z")).some((l) => l.label === "Sale" && l.href === "/sale"), true)
+check("footer slot during", footerShopLinks(D("2026-11-28T08:00:00Z")).some((l) => l.href === "/advent"), true)
+check("nav slot replaces Sale", navLinks(D("2026-12-06T08:00:00Z")).some((l) => l.label === "Sale"), false)
+check("hh door 4 on 3 Dec", happyHourState(doorOfDay(4), D("2026-12-03T08:00:00Z")), "later")
+check("hh door 4 on 5 Dec", happyHourState(doorOfDay(4), D("2026-12-05T08:00:00Z")), "over")
+for (const bad of [0, 25]) {
+  let threw = false
+  try { doorOfDay(bad) } catch { threw = true }
+  check(`doorOfDay(${bad}) throws`, threw, true)
+}
 
 if (ok) console.log("ALL PASS")
 else process.exit(1)

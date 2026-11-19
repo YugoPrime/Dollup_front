@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
-import { FOOTER_SHOP, FOOTER_HELP, FOOTER_ABOUT, FOOTER_LEGAL } from "@/lib/nav";
+import { footerShopLinks, FOOTER_HELP, FOOTER_ABOUT, FOOTER_LEGAL } from "@/lib/nav";
+import { adventNowMs } from "@/lib/advent";
 import { getStoreConfig } from "@/lib/store-config";
 import { NewsletterForm } from "./NewsletterForm";
 import { FeedbackLink } from "@/components/feedback/FeedbackLink";
@@ -110,7 +111,7 @@ export async function Footer() {
           <InstallAppButton />
         </div>
 
-        <FooterCol title="Shop" links={FOOTER_SHOP} />
+        <FooterCol title="Shop" links={footerShopLinks(adventNowMs())} />
         <FooterCol title="Help" links={FOOTER_HELP} />
         <FooterCol title="About" links={FOOTER_ABOUT} />
       </div>
