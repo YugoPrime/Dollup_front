@@ -22,14 +22,7 @@ import {
 } from "@/lib/cart-client";
 import { trackAddToCart } from "@/lib/analytics";
 import { canAddItem, cartTypeOf, type CartType } from "@/lib/cart-type";
-import {
-  addDeclined,
-  giftTagOf,
-  giftsToAdd,
-  giftsToBump,
-  giftsToRevert,
-  readDeclined,
-} from "@/lib/cart-gifts";
+import { ADVENT_GIFT, giftsToRevert } from "@/lib/cart-gifts";
 
 const CartDrawer = dynamic(
   () => import("./CartDrawer").then((m) => m.CartDrawer),
@@ -53,6 +46,9 @@ type CartContextValue = {
   addItem: (variantId: string, quantity?: number, opts?: AddItemOpts) => Promise<void>;
   updateItem: (lineId: string, quantity: number) => Promise<void>;
   removeItem: (lineId: string) => Promise<void>;
+  // Opt-in door gift: adds the gift line, then keeps it only if the promotion
+  // made it free. "not-free" means it was pulled back out.
+  claimDoorGift: (variantId: string) => Promise<"added" | "not-free" | "failed">;
   refreshCart: () => Promise<void>;
   clearCart: () => void;
 };
@@ -64,7 +60,10 @@ const CART_FIELDS =
   // totals are required by src/lib/cart-gifts.ts: it identifies lingerie lines
   // by category, recognises its own auto-added lines by metadata, and verifies
   // a gift is genuinely free before leaving it in the cart. Don't trim them.
-  "*items,*items.variant,*items.variant.product,*items.variant.product.categories,*items.variant.options,*items.metadata,*items.thumbnail,*region,*shipping_methods,*promotions,metadata,+subtotal,+total,+item_total,+shipping_total,+tax_total,+discount_total,+items.total,+items.original_total";
+  // `*items.adjustments` and `*shipping_methods.adjustments` carry the
+  // promotion codes Medusa applied, which src/lib/advent-cart.ts reads to show
+  // the daily door savings. Don't trim them either.
+  "*items,*items.variant,*items.variant.product,*items.variant.product.categories,*items.variant.options,*items.metadata,*items.thumbnail,*region,*shipping_methods,*promotions,metadata,+subtotal,+total,+item_total,+shipping_total,+tax_total,+discount_total,+items.total,+items.original_total,*items.adjustments,*shipping_methods.adjustments";
 
 async function ensureCart(
   regionId: string | undefined,
@@ -209,10 +208,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setCart(refreshed);
   }, [cart]);
 
-  // Applies the anniversary gift rules after any cart mutation: puts the free
-  // cuff / second tape in the cart, and — critically — pulls back anything that
-  // did not end up actually free. See src/lib/cart-gifts.ts for why the
-  // "verify it's free" step is the gate rather than a date check.
+  // Safety net after any cart mutation: pulls back any gift line of ours (the
+  // opt-in advent gifts, or a leftover July gift) that did not end up actually
+  // free. Gifts are never added here; the shopper claims them in the bag. See
+  // src/lib/cart-gifts.ts for why the "verify it's free" step is the gate
+  // rather than a date check.
   //
   // Guarded by a ref rather than state: this runs inside other mutations, and a
   // re-entrant pass would fight itself. The rules are idempotent, so a second
@@ -224,27 +224,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       reconciling.current = true;
       try {
         const sdk = getCartSdk(cartTypeOf(current) ?? getStoredCartType());
-        const declined = readDeclined(current.id);
         let next = current;
-
-        for (const add of giftsToAdd(next, declined)) {
-          const { cart: c } = await sdk.store.cart.createLineItem(
-            next.id,
-            { variant_id: add.variantId, quantity: add.quantity, metadata: { auto_gift: add.rule } },
-            { fields: CART_FIELDS },
-          );
-          next = c;
-        }
-
-        for (const bump of giftsToBump(next, declined)) {
-          const { cart: c } = await sdk.store.cart.updateLineItem(
-            next.id,
-            bump.lineId,
-            { quantity: bump.quantity, metadata: { auto_gift: bump.rule } },
-            { fields: CART_FIELDS },
-          );
-          next = c;
-        }
 
         // Safety net: undo anything of ours that is not actually free.
         for (const undo of giftsToRevert(next)) {
@@ -300,9 +280,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         const currentType = cartTypeOf(current) ?? intendedType;
         const sdk = getCartSdk(currentType);
         if (cartTypeOf(current) === null) {
-          sdk.store.cart.update(current.id, {
-            metadata: { ...(current.metadata ?? {}), cart_type: intendedType },
-          }).catch(() => {/* best-effort */});
+          // Awaited: Medusa refreshes automatic promotions on the line-item add,
+          // and the instock-only promotion rules read `cart_type`, so it must
+          // be saved first. A failure must not block the add.
+          try {
+            await sdk.store.cart.update(current.id, {
+              metadata: { ...(current.metadata ?? {}), cart_type: intendedType },
+            });
+          } catch (e) {
+            console.warn("cart_type stamp failed; adding anyway", e);
+          }
           setStoredCartType(intendedType);
         }
 
@@ -367,11 +354,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       // updated parent cart (Medusa v2), so we avoid a second refresh round
       // trip in the happy path.
       const previousCart = cart;
-      // If they're deleting a gift we added, record it — otherwise the
-      // reconcile pass below would re-add it and they could never remove it.
-      const removedLine = cart.items?.find((i) => i.id === lineId);
-      const removedGift = removedLine ? giftTagOf(removedLine) : null;
-      if (removedGift) addDeclined(cart.id, removedGift);
       setCart({
         ...cart,
         items: cart.items?.filter((i) => i.id !== lineId) ?? [],
@@ -416,6 +398,45 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     [cart, refresh, reconcileGifts],
   );
 
+  const claimDoorGift = useCallback(
+    async (variantId: string): Promise<"added" | "not-free" | "failed"> => {
+      if (!cart) return "failed";
+      const sdk = getCartSdk(cartTypeOf(cart) ?? getStoredCartType());
+      setLoading(true);
+      try {
+        const { cart: updated } = await sdk.store.cart.createLineItem(
+          cart.id,
+          { variant_id: variantId, quantity: 1, metadata: { auto_gift: ADVENT_GIFT } },
+          { fields: CART_FIELDS },
+        );
+        // Pulls the gift straight back out if the promotion did not zero it.
+        let settled = await reconcileGifts(updated);
+        const isOurGift = (i: NonNullable<Cart["items"]>[number]) =>
+          i.variant_id === variantId &&
+          (i.metadata as Record<string, unknown> | null | undefined)?.auto_gift === ADVENT_GIFT;
+        const left = (settled.items ?? []).find(isOurGift);
+        if (left && (left.total ?? 0) !== 0) {
+          // reconcileGifts swallows its own errors, so a failed revert would
+          // leave a charged gift behind. Never leave one: retry the removal.
+          try {
+            await sdk.store.cart.deleteLineItem(settled.id, left.id);
+            const { cart: c } = await sdk.store.cart.retrieve(settled.id, { fields: CART_FIELDS });
+            settled = c;
+          } catch {
+            /* best effort; the next mutation's revert pass tries again */
+          }
+        }
+        setCart(settled);
+        return (settled.items ?? []).some(isOurGift) ? "added" : "not-free";
+      } catch {
+        return "failed";
+      } finally {
+        setLoading(false);
+      }
+    },
+    [cart, reconcileGifts],
+  );
+
   const clearCart = useCallback(() => {
     clearStoredCartId();
     setCart(null);
@@ -437,6 +458,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     addItem,
     updateItem,
     removeItem,
+    claimDoorGift,
     refreshCart: refresh,
     clearCart,
   };
