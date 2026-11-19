@@ -147,7 +147,7 @@ export function CheckoutForm({ cutoffHour, initialNow }: { cutoffHour: number; i
   // their own checkout and never get door messaging.
   const adventNow = useAdventNow(initialNow);
   const adventDoorNo = todaysDoor(adventNow)?.day ?? null;
-  const doorOk = cart ? cartTypeOf(cart as unknown as { metadata?: Record<string, unknown> | null }) !== "preorder" : false;
+  const doorOk = cart ? cartTypeOf(cart as unknown as { metadata?: Record<string, unknown> | null }) === "instock" : false;
   const doorShippingFree = (name: string) => doorOk && shippingDoorFree(name, adventNow);
 
   // All cart-scoped Medusa calls must go through the SDK whose publishable key

@@ -23,8 +23,8 @@ export function CartDrawer() {
   const [initialNow] = useState(adventNowMs);
   const now = useAdventNow(initialNow);
   const doorNo = todaysDoor(now)?.day;
-  // Door messaging is for in-stock bags: pre-order has its own checkout.
-  const doorOk = cartTypeOf(cart) !== "preorder";
+  // Door messaging is for in-stock bags only (mystery-box bags carry no cart_type and get no door).
+  const doorOk = cartTypeOf(cart) === "instock";
   const doorHomeFree = doorOk && shippingDoorFree("Home Delivery", now);
   const doorPostageFree = doorOk && shippingDoorFree("Postage", now);
   const items = cart?.items ?? [];

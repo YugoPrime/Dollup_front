@@ -179,7 +179,7 @@ export function OrderSummary({
   // fallback used before a shipping method is on the cart; once there is one,
   // Medusa's shipping_total is what is shown.
   const doorFree =
-    cartTypeOf(cart as unknown as { metadata?: Record<string, unknown> | null }) !== "preorder" &&
+    cartTypeOf(cart as unknown as { metadata?: Record<string, unknown> | null }) === "instock" &&
     shippingDoorFree(selectedShippingOption?.name ?? "", adventNow);
   const fallbackShippingFree =
     doorFree ||

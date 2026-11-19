@@ -131,7 +131,7 @@ export function AdventBagLine({ initialNow, compact = false }: { initialNow: num
   const { status, customer } = useCustomer();
 
   if (adventPhase(now) !== "running") return null;
-  if (!cart || cartTypeOf(cart) === "preorder") return null;
+  if (!cart || cartTypeOf(cart) !== "instock") return null;
   const door = todaysDoor(now);
   if (!door) return null;
 
