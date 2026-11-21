@@ -9,6 +9,8 @@ export type SalesOfMonthConfig = {
   ctaUrl: string;
   ctaLabel: string;
   description: string;
+  /** A day inside the window with its own copy and countdown (deeper prices). */
+  peak: { startsAt: string; endsAt: string; label: string; description: string };
 };
 
 /**
@@ -29,6 +31,12 @@ export const salesOfMonthConfig: SalesOfMonthConfig = {
   ctaUrl: SALE_PATH,
   ctaLabel: "Shop the sale",
   description: SALE_CAMPAIGN.bannerDescription,
+  peak: {
+    startsAt: SALE_CAMPAIGN.peak.startsAt,
+    endsAt: SALE_CAMPAIGN.peak.endsAt,
+    label: SALE_CAMPAIGN.peak.label,
+    description: SALE_CAMPAIGN.peak.bannerDescription,
+  },
 };
 
 /**
