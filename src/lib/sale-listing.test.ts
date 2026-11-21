@@ -199,15 +199,23 @@ const CATALOG = [
   item("is2265", "dresses", 50),
   item("is2344", "dresses", 50),
 ]
+// The ordering rules are checked against a fixed pin list (the October Sale's
+// carousel), so a new campaign's picks only change the config check below.
+const FIXTURE_CAMPAIGN = {
+  featuredHandles: [
+    "is2138", "is2296", "is2344", "is2358", "is2265", "is2281", "is2297", "is2364", "is1906", "is2446",
+  ],
+  categoryOrder: SALE_CAMPAIGN.categoryOrder,
+}
 const catalogPercents = new Map(CATALOG.map((p) => [p.id, productSalePercent(p) ?? 0]))
-const ordered = orderSaleProducts(CATALOG, catalogPercents, ORDER_CATS, SALE_CAMPAIGN)
+const ordered = orderSaleProducts(CATALOG, catalogPercents, ORDER_CATS, FIXTURE_CAMPAIGN)
 const ids = (list: { id: string }[]) => list.map((p) => p.id)
 
-check("pinned config", SALE_CAMPAIGN.featuredHandles, [
-  "is2138", "is2296", "is2344", "is2358", "is2265", "is2281", "is2297", "is2364", "is1906", "is2446",
+check("pinned config (Black Friday carousel)", SALE_CAMPAIGN.featuredHandles, [
+  "is2281", "is2364", "is2297", "is2340", "is2358", "is2342", "is2292", "is1977", "is2446", "is2337",
 ])
 check("fixture tiers", [catalogPercents.get("is2446"), catalogPercents.get("is2281"), catalogPercents.get("st7")], [15, 30, 50])
-check("All: pinned first in config order, whatever their tier", ids(ordered.slice(0, 10)), [...SALE_CAMPAIGN.featuredHandles])
+check("All: pinned first in config order, whatever their tier", ids(ordered.slice(0, 10)), [...FIXTURE_CAMPAIGN.featuredHandles])
 check("All: then deepest tier, category rank, IS number desc, non-IS last", ids(ordered.slice(10)), [
   // 50%: dresses (IS desc, then non-IS by newest created_at), two-piece,
   // swim, knits, tops/bottoms (Sports Leggings via Bottoms), accessories
@@ -244,7 +252,7 @@ check(
 
 check(
   "missing pinned handles are skipped",
-  ids(orderSaleProducts([item("is1016", "dresses", 50), item("is2446", "bikini-sets", 15)], catalogPercents, ORDER_CATS, SALE_CAMPAIGN)),
+  ids(orderSaleProducts([item("is1016", "dresses", 50), item("is2446", "bikini-sets", 15)], catalogPercents, ORDER_CATS, FIXTURE_CAMPAIGN)),
   ["is2446", "is1016"],
 )
 check(

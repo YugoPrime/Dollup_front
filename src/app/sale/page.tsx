@@ -16,6 +16,7 @@ import {
   SALE_STARTS_LABEL,
   hasSaleEnded,
   isSaleActive,
+  salePeakPhase,
 } from "@/lib/sale-campaign";
 import { splitHeadline } from "@/lib/sales-of-month";
 import { getStoreConfig } from "@/lib/store-config";
@@ -68,6 +69,7 @@ export default async function SalePage({
   const sp = await searchParams;
   const page = Math.max(1, parseInt(first(sp.page) ?? "1", 10) || 1);
   const postage = freePostageActive(now);
+  const peak = salePeakPhase(now);
 
   const [listing, latestCollection, cfg] = await Promise.all([
     // Cumulative pages like /shop: ?page=3 renders products 1..72.
@@ -106,14 +108,24 @@ export default async function SalePage({
             + free postage on every order
           </p>
         )}
+        {peak !== "ended" && (
+          <p className="mt-2 font-sans text-[14px] font-medium text-[#E0CFCB] md:text-[17px]">
+            {peak === "active" ? SALE_CAMPAIGN.peak.label : SALE_CAMPAIGN.peak.teaser}
+          </p>
+        )}
         <div className="mt-4 md:mt-6">
+          {/* On the peak day the clock runs to midnight, when its prices end. */}
           <SaleCountdown
-            endsAt={SALE_CAMPAIGN.endsAt}
-            endedLabel={`The ${SALE_CAMPAIGN.name} has ended`}
+            endsAt={peak === "active" ? SALE_CAMPAIGN.peak.endsAt : SALE_CAMPAIGN.endsAt}
+            endedLabel={
+              peak === "active"
+                ? `Today's prices have ended. The sale runs until ${SALE_ENDS_LABEL}`
+                : `${SALE_CAMPAIGN.name} has ended`
+            }
           />
         </div>
         <p className="mt-3 font-sans text-[11px] font-bold uppercase tracking-[0.2em] text-coral-300">
-          Ends {SALE_ENDS_LABEL}
+          {peak === "active" ? "Today's prices end tonight at midnight" : `Ends ${SALE_ENDS_LABEL}`}
         </p>
       </SaleHero>
 
@@ -406,7 +418,7 @@ function SaleTeaser() {
         Starts {SALE_STARTS_LABEL}
       </p>
       <p className="mx-auto mt-3 max-w-[420px] text-balance font-sans text-[14px] leading-[1.5] text-[#E0CFCB] md:text-[16px]">
-        {SALE_CAMPAIGN.headline}, until {SALE_ENDS_LABEL}.
+        {SALE_CAMPAIGN.headline}, until {SALE_ENDS_LABEL}. {SALE_CAMPAIGN.peak.teaser}.
       </p>
       <Link
         href="/shop"
@@ -422,7 +434,7 @@ function SaleEnded() {
   return (
     <SaleHero>
       <h1 className="text-balance font-display text-[36px] leading-[1] md:text-[56px]">
-        The {SALE_CAMPAIGN.name} has ended
+        {SALE_CAMPAIGN.name} has ended
       </h1>
       <p className="mx-auto mt-4 max-w-[420px] text-balance font-sans text-[14px] leading-[1.5] text-[#E0CFCB] md:text-[16px]">
         Thank you for shopping the sale. New pieces land every week.

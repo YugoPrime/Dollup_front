@@ -70,7 +70,9 @@ export default function HomePage() {
       </Suspense>
       <SalesOfTheMonth
         descriptionHtml={sanitizeRichText(salesOfMonthConfig.description)}
+        peakDescriptionHtml={sanitizeRichText(salesOfMonthConfig.peak.description)}
         initialActive={salePhase(new Date(), salesOfMonthConfig) === "active"}
+        initialPeak={salePhase(new Date(), salesOfMonthConfig.peak) === "active"}
       />
       <Suspense fallback={<EssentialsSkeleton />}>
         <BabeEssentialsSection />
