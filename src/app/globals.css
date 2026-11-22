@@ -216,6 +216,23 @@ html[data-consent-known] [data-consent-banner] {
   display: none;
 }
 
+/* Black ticker bar (src/components/sale/SaleTickerBar.tsx). The track holds
+   two identical halves, so sliding it by half its width loops seamlessly.
+   Slow on purpose (about 28px/s): it should be read, not flash. Hover or
+   keyboard focus pauses it; with reduced motion a static line replaces it. */
+.sale-ticker-track { animation: sale-ticker 110s linear infinite; }
+.sale-ticker:hover .sale-ticker-track,
+.sale-ticker:focus-visible .sale-ticker-track { animation-play-state: paused; }
+.sale-ticker-static { display: none; }
+@keyframes sale-ticker {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sale-ticker-track { display: none; }
+  .sale-ticker-static { display: block; }
+}
+
 @keyframes drawDrift {
   0%, 100% { transform: translateY(0) scale(1); }
   50% { transform: translateY(-8px) scale(1.03); }

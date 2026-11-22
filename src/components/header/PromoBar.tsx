@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { useAdventNow } from "@/components/advent/useAdventNow";
 import { AdventPreviewBadge } from "@/components/advent/AdventPreviewBadge";
+import { SaleTickerBar } from "@/components/sale/SaleTickerBar";
 import { adventBarCopy, adventBarKey } from "@/lib/advent";
 import { saleBarCopy } from "@/lib/sale-campaign";
+import { spotlightCopy } from "@/lib/sale-spotlight";
 
 const ARROW = " →";
 
@@ -26,9 +28,20 @@ function Lead({ text }: { text: string }) {
  * server-side check would freeze on statically cached pages.
  * One line on mobile in every state, so a swap never moves the page: below md
  * the lead is a single truncating line with normal letter-spacing.
+ * A "mono" sale (SALE_CAMPAIGN.look) swaps the coral bar for the black
+ * ticker, same height.
  */
 export function PromoBar({ initialNow }: { initialNow: number }) {
   const now = useAdventNow(initialNow);
+  const spotlight = spotlightCopy(now);
+  if (spotlight) {
+    return (
+      <>
+        <SaleTickerBar copy={spotlight} />
+        <AdventPreviewBadge />
+      </>
+    );
+  }
   const { lead, href, tail } = saleBarCopy(now) ?? adventBarCopy(adventBarKey(now));
   return (
     <>
