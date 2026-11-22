@@ -38,13 +38,14 @@ export const SALE_CAMPAIGN = {
   endsAt: "2026-11-29T23:59:59+04:00",
   /** Homepage banner copy. HTML, sanitised before render. */
   bannerDescription:
-    "Up to 50% off more than 300 pieces: dresses, swimwear, lingerie &amp; essentials. Friday 27 Nov only: prices drop again. Ends Sunday 29 Nov.",
+    "Up to 50% off more than 300 pieces: dresses, swimwear, lingerie &amp; essentials. Ends Sunday 29 Nov.",
   /** Search and social description for /sale. */
   description:
-    "Black Friday at Doll Up: up to 50% off more than 300 dresses, swimwear, lingerie and essentials, and prices drop again on Friday 27 Nov. 23–29 Nov, Mauritius only.",
+    "Black Friday at Doll Up: up to 50% off more than 300 dresses, swimwear, lingerie and essentials, until Sunday 29 Nov. Mauritius only.",
   /**
    * One day inside the sale with deeper prices: a second Medusa price list,
-   * Fri 27 Nov. Most pieces are another 10% lower that day.
+   * Fri 27 Nov. Most pieces are another 10% lower that day. It is a
+   * surprise (owner, 23 Nov): no copy mentions it before the day itself.
    */
   peak: {
     startsAt: "2026-11-27T00:00:00+04:00",
@@ -58,8 +59,6 @@ export const SALE_CAMPAIGN = {
     barLead: "Black Friday · today only, prices drop again →",
     /** Mono hero and popup sentence on the day. */
     spotlightLine: "Today only, most pieces are another 10% lower. Ends at midnight.",
-    /** /sale hero line before the day. */
-    teaser: "Friday 27 Nov: prices drop again",
   },
   /**
    * Pinned to the top of /sale in this order (the carousel-ad cards). Any
@@ -174,8 +173,8 @@ export type SaleBarCopy = { lead: string; href: string; tail: string | null };
 
 /**
  * The coral bar's line while the sale runs, or null outside it (the advent
- * calendar's bar takes over). The tail, desktop only, points at what comes
- * next: Friday's deeper prices, then the last day.
+ * calendar's bar takes over). The tail, desktop only, gives the end date;
+ * Friday's deeper prices are a surprise, so nothing announces them early.
  */
 export function saleBarCopy(now: Date | number = Date.now()): SaleBarCopy | null {
   if (!isSaleActive(now)) return null;
@@ -184,6 +183,6 @@ export function saleBarCopy(now: Date | number = Date.now()): SaleBarCopy | null
   return {
     lead: `${SALE_CAMPAIGN.name} · ${SALE_CAMPAIGN.headline.toLowerCase()} →`,
     href: SALE_PATH,
-    tail: peak === "upcoming" ? SALE_CAMPAIGN.peak.teaser : `Ends ${SALE_ENDS_LABEL}`,
+    tail: `Ends ${SALE_ENDS_LABEL}`,
   };
 }

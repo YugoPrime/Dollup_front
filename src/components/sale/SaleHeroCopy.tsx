@@ -6,7 +6,7 @@ import { splitHeadline } from "@/lib/sales-of-month";
 
 /**
  * A short paragraph whose lines break between sentences when they can, so
- * "Friday 27 Nov" never splits across two lines. A sentence longer than the
+ * "Sunday 29 Nov" never splits across two lines. A sentence longer than the
  * line still wraps normally.
  */
 export function Sentences({ text }: { text: string }) {

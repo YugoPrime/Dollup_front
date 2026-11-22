@@ -108,9 +108,10 @@ export default async function SalePage({
             + free postage on every order
           </p>
         )}
-        {peak !== "ended" && (
+        {/* Friday's deeper prices are a surprise: only shown on the day. */}
+        {peak === "active" && (
           <p className="mt-2 font-sans text-[14px] font-medium text-[#E0CFCB] md:text-[17px]">
-            {peak === "active" ? SALE_CAMPAIGN.peak.label : SALE_CAMPAIGN.peak.teaser}
+            {SALE_CAMPAIGN.peak.label}
           </p>
         )}
         <div className="mt-4 md:mt-6">
@@ -418,7 +419,7 @@ function SaleTeaser() {
         Starts {SALE_STARTS_LABEL}
       </p>
       <p className="mx-auto mt-3 max-w-[420px] text-balance font-sans text-[14px] leading-[1.5] text-[#E0CFCB] md:text-[16px]">
-        {SALE_CAMPAIGN.headline}, until {SALE_ENDS_LABEL}. {SALE_CAMPAIGN.peak.teaser}.
+        {SALE_CAMPAIGN.headline}, until {SALE_ENDS_LABEL}.
       </p>
       <Link
         href="/shop"

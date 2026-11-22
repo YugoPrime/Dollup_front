@@ -12,10 +12,13 @@ import {
   salePeakPhase,
 } from "./sale-campaign";
 
-export type SpotlightPhase = "week" | "peak" | "weekend" | "last-day";
+export type SpotlightPhase = "week" | "peak" | "last-day";
 
 export type SpotlightCopy = {
-  /** week = before the peak day, weekend = after it, last-day = the final MU day. */
+  /**
+   * peak = the deeper-price day, last-day = the final MU day, week = any other
+   * day. The peak is a surprise: week copy never hints at it.
+   */
   phase: SpotlightPhase;
   /** Small caps line above the hero and popup titles. */
   kicker: string;
@@ -34,16 +37,10 @@ export const POPUP_STORAGE_KEY = "dub_sale_popup_seen_v1";
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const COD = "Cash on delivery";
-const DROP = "prices drop again";
 
 /** "Sunday 29 Nov" */
 function dayLabel(iso: string): string {
   return `${WEEKDAYS[muDateParts(new Date(iso)).dow]} ${muShortDate(iso)}`;
-}
-
-/** "Fri 27 Nov" */
-function shortDayLabel(iso: string): string {
-  return `${WEEKDAYS[muDateParts(new Date(iso)).dow].slice(0, 3)} ${muShortDate(iso)}`;
 }
 
 function muDateKey(d: Date): string {
@@ -70,16 +67,6 @@ export function spotlightCopy(now: number | Date): SpotlightCopy | null {
       seenValue,
     };
   }
-  if (peak === "upcoming") {
-    return {
-      phase: "week",
-      kicker: `${c.name} · ends ${ends}`,
-      line: `${c.rangeLabel}. ${dayLabel(c.peak.startsAt)}: ${DROP}.`,
-      ticker: [c.name, c.headline, c.piecesLabel, `${shortDayLabel(c.peak.startsAt)}: ${DROP}`, `Ends ${ends}`, COD],
-      countdownTo: c.endsAt,
-      seenValue,
-    };
-  }
   if (seenValue === muDateKey(new Date(c.endsAt))) {
     return {
       phase: "last-day",
@@ -91,7 +78,7 @@ export function spotlightCopy(now: number | Date): SpotlightCopy | null {
     };
   }
   return {
-    phase: "weekend",
+    phase: "week",
     kicker: `${c.name} · ends ${ends}`,
     line: `${c.rangeLabel}. Ends ${ends}.`,
     ticker: [c.name, c.headline, c.piecesLabel, `Ends ${ends}`, COD],

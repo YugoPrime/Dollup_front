@@ -91,8 +91,13 @@ check("bar state after", promoBarState(nextDay), "evergreen")
 // outside it), with Friday's own line on the day.
 const week = { lead: "Black Friday · up to 50% off →", href: "/sale" }
 check("bar copy before the sale", saleBarCopy(lastPreSaleSecond), null)
-check("bar copy when the sale opens", saleBarCopy(saleOpens), { ...week, tail: "Friday 27 Nov: prices drop again" })
-check("bar copy Thu 23:59:59", saleBarCopy(lastPrePeakSecond), { ...week, tail: "Friday 27 Nov: prices drop again" })
+// Friday's deeper prices are a surprise: nothing announces them before the day.
+check("bar copy when the sale opens", saleBarCopy(saleOpens), { ...week, tail: "Ends Sunday 29 November" })
+check("bar copy Thu 23:59:59", saleBarCopy(lastPrePeakSecond), { ...week, tail: "Ends Sunday 29 November" })
+const FRIDAY_TEASE = /drop again|27 Nov|Fri(day)? 27/i
+check("banner copy keeps Friday a surprise", FRIDAY_TEASE.test(SALE_CAMPAIGN.bannerDescription), false)
+check("search description keeps Friday a surprise", FRIDAY_TEASE.test(SALE_CAMPAIGN.description), false)
+check("no Friday teaser copy left", "teaser" in SALE_CAMPAIGN.peak, false)
 check("bar copy on Friday", saleBarCopy(peakOpens), { lead: "Black Friday · today only, prices drop again →", href: "/sale", tail: "Cash on delivery available" })
 check("bar copy Fri 23:59:59", saleBarCopy(peakLastSecond)?.lead, "Black Friday · today only, prices drop again →")
 check("bar copy at the weekend", saleBarCopy(afterPeak), { ...week, tail: "Ends Sunday 29 November" })

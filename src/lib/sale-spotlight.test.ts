@@ -39,12 +39,17 @@ check("week ticker", week?.ticker, [
   "Black Friday",
   "Up to 50% off",
   "300+ pieces",
-  "Fri 27 Nov: prices drop again",
   "Ends Sunday 29 Nov",
   "Cash on delivery",
 ])
 check("week kicker", week?.kicker, "Black Friday · ends Sunday 29 Nov")
-check("week line", week?.line, "300+ dresses, swimwear, lingerie & essentials. Friday 27 Nov: prices drop again.")
+check("week line", week?.line, "300+ dresses, swimwear, lingerie & essentials. Ends Sunday 29 Nov.")
+// Friday's deeper prices are a surprise: no copy hints at them before the day.
+const FRIDAY_TEASE = /drop again|27 Nov|Fri(day)? 27|10%/i
+for (const [label, t] of [["Mon 00:00", saleOpens], ["Thu 23:59:59", lastPrePeakSecond]] as const) {
+  const c = spotlightCopy(t)
+  check(`no Friday hint at ${label}`, [c?.kicker, c?.line, ...(c?.ticker ?? [])].some((x) => FRIDAY_TEASE.test(x ?? "")), false)
+}
 check("week seen value = MU date", week?.seenValue, "2026-11-23")
 check("accepts epoch ms", spotlightCopy(saleOpens.getTime())?.phase, "week")
 
@@ -64,13 +69,10 @@ check("peak kicker", peak?.kicker, "Black Friday · today only")
 check("peak line", peak?.line, "Today only, most pieces are another 10% lower. Ends at midnight.")
 check("peak seen value", peak?.seenValue, "2026-11-27")
 
-// Sat 28: after Friday, before the last day.
-const weekend = spotlightCopy(afterPeak)
-check("weekend phase", weekend?.phase, "weekend")
-check("weekend ticker drops the Friday item", weekend?.ticker.includes("Fri 27 Nov: prices drop again"), false)
-check("weekend ticker keeps the end date", weekend?.ticker.includes("Ends Sunday 29 Nov"), true)
-check("weekend line", weekend?.line, "300+ dresses, swimwear, lingerie & essentials. Ends Sunday 29 Nov.")
-check("weekend counts down to the sale end", weekend?.countdownTo, SALE_CAMPAIGN.endsAt)
+// Sat 28: after Friday, back to the week copy.
+const sat = spotlightCopy(afterPeak)
+check("Saturday is week copy", [sat?.phase, sat?.ticker, sat?.line], [week?.phase, week?.ticker, week?.line])
+check("Saturday counts down to the sale end", sat?.countdownTo, SALE_CAMPAIGN.endsAt)
 
 // Sun 29: the last day, to the last second.
 for (const [label, t] of [["00:00", lastDayOpens], ["23:59:59", lastSaleSecond]] as const) {
