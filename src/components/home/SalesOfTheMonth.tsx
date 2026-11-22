@@ -49,11 +49,17 @@ function Unit({ n, label }: { n: number; label: string }) {
 
 export function SalesOfTheMonth({
   descriptionHtml,
+  peakDescriptionHtml,
   initialActive,
+  initialPeak,
 }: {
   descriptionHtml: string;
+  /** Copy for the peak day (cfg.peak), sanitised on the server like the other. */
+  peakDescriptionHtml: string;
   /** Whether the sale window was open when the server rendered the page. */
   initialActive: boolean;
+  /** Whether the peak day was on when the server rendered the page. */
+  initialPeak: boolean;
 }) {
   const cfg = salesOfMonthConfig;
   // Window check (start AND end). The server snapshot is the server's own
@@ -65,11 +71,18 @@ export function SalesOfTheMonth({
     () => salePhase(Date.now(), cfg) === "active",
     () => initialActive,
   );
+  // Same check for the peak day: its own copy, and the clock counts down to
+  // the end of the day instead of the end of the sale.
+  const peak = useSyncExternalStore(
+    subscribe,
+    () => salePhase(Date.now(), cfg.peak) === "active",
+    () => initialPeak,
+  );
   // useSyncExternalStore returns ZERO during SSR + first client render (avoiding
   // the time-based hydration mismatch), then updates every 1s once subscribed.
   const r = useSyncExternalStore(
     subscribe,
-    () => getSnapshot(cfg.endsAt),
+    () => getSnapshot(peak ? cfg.peak.endsAt : cfg.endsAt),
     () => ZERO,
   );
 
@@ -82,7 +95,9 @@ export function SalesOfTheMonth({
       <div className="absolute -bottom-12 -left-12 h-[140px] w-[140px] rounded-full bg-coral-300/15" aria-hidden />
       <div className="relative mx-auto max-w-[680px] px-6 text-center">
         <p className="mb-3 font-sans text-[11px] font-bold uppercase tracking-[0.3em] text-coral-300">
-          — Limited time · ends {new Date(cfg.endsAt).toLocaleDateString("en-MU", { weekday: "long" })} —
+          {peak
+            ? `— ${cfg.peak.label} —`
+            : `— Limited time · ends ${new Date(cfg.endsAt).toLocaleDateString("en-MU", { weekday: "long" })} —`}
         </p>
         <h2 className="font-display text-[36px] leading-[0.95] md:text-[60px]">
           {lead}{" "}
@@ -99,7 +114,7 @@ export function SalesOfTheMonth({
         </div>
         <p
           className="mx-auto mb-5 max-w-[420px] font-sans text-[13px] leading-[1.5] text-[#E0CFCB] md:text-[16px]"
-          dangerouslySetInnerHTML={{ __html: descriptionHtml }}
+          dangerouslySetInnerHTML={{ __html: peak ? peakDescriptionHtml : descriptionHtml }}
         />
         <div className="mb-6 flex justify-center gap-2">
           <Unit n={r.d} label="Days" />

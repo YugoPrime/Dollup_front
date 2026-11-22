@@ -1,5 +1,5 @@
 import { seasonalNavLink } from "./advent";
-import { SALE_PATH } from "./sale-campaign";
+import { SALE_PATH, isSaleActive } from "./sale-campaign";
 
 export type NavLink = {
   label: string;
@@ -40,8 +40,10 @@ export const FOOTER_SHOP = [
 ];
 
 // Swaps the "Sale" slot for the advent link while the calendar is live (or
-// about to open). The static constants above stay as the post-advent default.
+// about to open). A running sale keeps its slot. The static constants above
+// stay as the post-advent default.
 function withSeasonalSlot<T extends { label: string; href: string }>(links: T[], now: number): T[] {
+  if (isSaleActive(now)) return links;
   const seasonal = seasonalNavLink(now);
   if (!seasonal) return links;
   return links.map((l) => (l.href === SALE_PATH ? ({ ...l, ...seasonal } as T) : l));

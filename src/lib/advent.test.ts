@@ -83,7 +83,8 @@ check("bar teaser / evergreen", [adventBarCopy("teaser").lead, adventBarCopy("ev
 
 check("nav slot during", navLinks(D("2026-12-06T08:00:00Z")).find((l) => l.href === "/advent")?.label, "Advent calendar")
 check("nav slot after", navLinks(D("2026-12-25T08:00:00Z")).some((l) => l.label === "Sale" && l.href === "/sale"), true)
-check("footer slot during", footerShopLinks(D("2026-11-28T08:00:00Z")).some((l) => l.href === "/advent"), true)
+// Teaser day after Black Friday (23–29 Nov keeps the Sale slot: sale-campaign.test.ts).
+check("footer slot during", footerShopLinks(D("2026-11-30T08:00:00Z")).some((l) => l.href === "/advent"), true)
 check("nav slot replaces Sale", navLinks(D("2026-12-06T08:00:00Z")).some((l) => l.label === "Sale"), false)
 check("hh door 4 on 3 Dec", happyHourState(doorOfDay(4), D("2026-12-03T08:00:00Z")), "later")
 check("hh door 4 on 5 Dec", happyHourState(doorOfDay(4), D("2026-12-05T08:00:00Z")), "over")
