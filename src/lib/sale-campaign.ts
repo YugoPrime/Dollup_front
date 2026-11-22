@@ -16,9 +16,21 @@ import { freePostageActive, muDateParts } from "./checkout";
 /** Shown at the end of the promo bar on desktop, as on the advent bar. */
 const COD = "Cash on delivery available";
 
+/**
+ * How loud the site is about the sale. "mono" is the Black Friday look: a
+ * black ticker bar on every page, the sale hero on the homepage, a
+ * once-a-day popup and a black homepage banner (copy in sale-spotlight.ts).
+ * "coral" is the October Sale look: coral bar and the homepage banner only.
+ */
+export type SaleLook = "mono" | "coral";
+
 export const SALE_CAMPAIGN = {
   name: "Black Friday",
   headline: "Up to 50% off",
+  look: "mono" as SaleLook,
+  /** Short and long "what's on sale", for the mono ticker, hero and popup. */
+  piecesLabel: "300+ pieces",
+  rangeLabel: "300+ dresses, swimwear, lingerie & essentials",
   /** Deepest tier in the price list, for "up to X%" copy. */
   maxPercent: 50,
   // Mauritius time (+04:00). The end second is included: still on at 23:59:59.
@@ -44,6 +56,8 @@ export const SALE_CAMPAIGN = {
       "Today only, most pieces are another 10% lower than this week: up to 50% off dresses, swimwear, lingerie &amp; essentials. Ends tonight at midnight.",
     /** Coral promo bar lead on the day. */
     barLead: "Black Friday · today only, prices drop again →",
+    /** Mono hero and popup sentence on the day. */
+    spotlightLine: "Today only, most pieces are another 10% lower. Ends at midnight.",
     /** /sale hero line before the day. */
     teaser: "Friday 27 Nov: prices drop again",
   },
