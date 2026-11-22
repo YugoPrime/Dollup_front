@@ -77,8 +77,10 @@ export function ConsentBanner() {
         </div>
       )}
 
-      {/* Full card — always on desktop; on mobile only after tapping "Manage". */}
+      {/* Full card — always on desktop; on mobile only after tapping "Manage".
+          data-consent-card: the sale popup waits while this is on screen. */}
       <div
+        data-consent-card
         className={`${
           expanded ? "block" : "hidden"
         } fixed inset-x-0 bottom-0 z-[100] mx-auto w-full max-w-3xl rounded-t-2xl border border-blush-300 bg-white p-4 shadow-2xl md:block md:bottom-4 md:rounded-2xl`}

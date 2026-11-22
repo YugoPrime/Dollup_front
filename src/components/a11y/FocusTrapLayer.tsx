@@ -7,11 +7,14 @@ export function FocusTrapLayer({
   ariaLabel,
   children,
   className,
+  initialFocus,
   onDeactivate,
 }: {
   ariaLabel: string;
   children: ReactNode;
   className: string;
+  /** Element to focus on open. Default: the first tabbable element inside. */
+  initialFocus?: () => HTMLElement | false;
   onDeactivate: () => void;
 }) {
   // focus-trap-react calls `onDeactivate` from componentWillUnmount. Under
@@ -33,6 +36,7 @@ export function FocusTrapLayer({
       focusTrapOptions={{
         clickOutsideDeactivates: true,
         escapeDeactivates: true,
+        initialFocus,
         fallbackFocus: () =>
           document.querySelector<HTMLElement>("[data-focus-trap-fallback]") ??
           document.body,
