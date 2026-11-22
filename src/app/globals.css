@@ -233,6 +233,16 @@ html[data-consent-known] [data-consent-banner] {
   .sale-ticker-static { display: block; }
 }
 
+/* Sale hero (src/components/sale/SaleHeroCopy.tsx): the thin rule under the
+   title draws itself once, left to right. */
+@media (prefers-reduced-motion: no-preference) {
+  .sale-hero-rule { animation: sale-rule-draw 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both; }
+  @keyframes sale-rule-draw {
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
+  }
+}
+
 @keyframes drawDrift {
   0%, 100% { transform: translateY(0) scale(1); }
   50% { transform: translateY(-8px) scale(1.03); }

@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import type { ReactNode } from "react";
 import type { HttpTypes } from "@medusajs/types";
+import { HeroShell } from "@/components/home/HeroShell";
 import {
   HERO_TILE_1_BLUR,
   HERO_TILE_2_BLUR,
@@ -9,6 +10,7 @@ import {
   HERO_TILE_4_BLUR,
   HERO_TILE_5_BLUR,
 } from "@/lib/blur-data";
+import { productSalePercent } from "@/lib/sale-listing";
 
 type Product = HttpTypes.StoreProduct;
 
@@ -26,20 +28,23 @@ function tileBlur(key: string) {
   return HERO_TILE_BLURS[index + 1] ?? HERO_TILE_1_BLUR;
 }
 
-export function HeroBento({ children }: { children: ReactNode }) {
+/**
+ * The homepage hero. HeroShell swaps this blush copy for the black-on-white
+ * sale copy while a "mono" sale runs (sale-spotlight.ts); the frame, the
+ * decorations and the switch live there.
+ */
+export function HeroBento({
+  children,
+  initialNow,
+}: {
+  children: ReactNode;
+  /** Server render time, the clock's first snapshot (see useAdventNow). */
+  initialNow: number;
+}) {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-[#FCE9E4] via-[#F8D5CD] to-[#F8B0A0]">
-      <div className="absolute -right-20 -top-20 h-[220px] w-[220px] rounded-full bg-white/45" aria-hidden />
-      <div className="absolute -bottom-8 -left-8 h-[120px] w-[120px] rounded-full bg-coral-500/15" aria-hidden />
-      <span
-        className="absolute right-20 top-12 font-display text-[22px] text-coral-450"
-        style={{ transform: "rotate(15deg)" }}
-        aria-hidden
-      >
-        ✦
-      </span>
-
-      <div className="relative mx-auto grid max-w-[1200px] gap-10 px-6 py-12 md:grid-cols-[1fr_1.4fr] md:items-center md:px-10 md:py-16">
+    <HeroShell
+      initialNow={initialNow}
+      defaultCopy={
         <div>
           <p className="mb-3.5 font-sans text-[11px] font-bold uppercase tracking-[0.22em] text-ink-soft">
             Find your next favorite fit.
@@ -74,14 +79,32 @@ export function HeroBento({ children }: { children: ReactNode }) {
             </Link>
           </div>
         </div>
-
-        {children}
-      </div>
-    </section>
+      }
+    >
+      {children}
+    </HeroShell>
   );
 }
 
-export function HeroBentoProducts({ products }: { products: Product[] }) {
+/** "-50%" on a sale pick, same wording as the product cards. Null when not reduced. */
+function SaleChip({ product }: { product: Product }) {
+  const pct = productSalePercent(product);
+  if (pct == null) return null;
+  return (
+    <span className="absolute left-1.5 top-1.5 z-[1] rounded-full bg-ink px-2 py-0.5 font-sans text-[10px] font-bold leading-[1.4] text-white md:left-2.5 md:top-2.5 md:text-[11px]">
+      -{pct}%
+    </span>
+  );
+}
+
+export function HeroBentoProducts({
+  products,
+  saleChips = false,
+}: {
+  products: Product[];
+  /** Badge each tile with its % off (the sale picks while a mono sale runs). */
+  saleChips?: boolean;
+}) {
   if (products.length < 3) return <div className="hidden md:block" aria-hidden />;
 
   const [feature, ...rest] = products;
@@ -115,6 +138,7 @@ export function HeroBentoProducts({ products }: { products: Product[] }) {
             blurDataURL={tileBlur(key)}
           />
         )}
+        {saleChips && <SaleChip product={p} />}
       </Link>
     );
   };
@@ -157,6 +181,7 @@ export function HeroBentoProducts({ products }: { products: Product[] }) {
                   fetchPriority={i === 0 ? "high" : undefined}
                 />
               )}
+              {saleChips && <SaleChip product={p} />}
             </Link>
           );
         })}
