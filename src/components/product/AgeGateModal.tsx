@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { lockBodyScroll } from "@/lib/scroll-lock";
 
 const COOKIE = "dub_age_verified_18";
 const TTL_DAYS = 30;
@@ -30,11 +31,7 @@ export function AgeGateModal() {
 
   useEffect(() => {
     if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
+    return lockBodyScroll();
   }, [open]);
 
   if (!open) return null;

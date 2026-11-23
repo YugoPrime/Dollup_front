@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { FocusTrapLayer } from "@/components/a11y/FocusTrapLayer";
+import { lockBodyScroll } from "@/lib/scroll-lock";
 
 export type SheetCategory = { id: string; name: string; handle: string; parent_category_id: string | null };
 export type SheetFacets = { sizes: string[]; colors: string[]; priceMin: number; priceMax: number };
@@ -42,11 +43,7 @@ export function ShopFilterSheet({
 
   useEffect(() => {
     if (!open) return;
-    const original = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = original;
-    };
+    return lockBodyScroll();
   }, [open]);
 
   const setParam = (key: string, value: string | null, pendingId?: string) => {

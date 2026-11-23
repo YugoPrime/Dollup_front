@@ -10,6 +10,7 @@ import { readPreviewNow } from "@/components/advent/advent-preview-client";
 import { Sentences } from "@/components/sale/SaleHeroCopy";
 import { isPreorderHost } from "@/lib/host";
 import { SALE_CAMPAIGN, SALE_PATH } from "@/lib/sale-campaign";
+import { lockBodyScroll } from "@/lib/scroll-lock";
 import {
   POPUP_STORAGE_KEY,
   isPopupPath,
@@ -89,11 +90,7 @@ export function SalePopup() {
   // Lock the page behind the popup while it is open.
   useEffect(() => {
     if (!copy) return;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previous;
-    };
+    return lockBodyScroll();
   }, [copy]);
 
   if (!copy) return null;

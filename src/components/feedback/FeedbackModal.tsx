@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { lockBodyScroll } from "@/lib/scroll-lock";
 
 type Status = "idle" | "submitting" | "success" | "error";
 
@@ -26,12 +27,11 @@ export function FeedbackModal({ onClose }: Props) {
     };
     document.addEventListener("keydown", onKey);
 
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const unlockScroll = lockBodyScroll();
 
     return () => {
       document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = previousOverflow;
+      unlockScroll();
     };
   }, [onClose]);
 

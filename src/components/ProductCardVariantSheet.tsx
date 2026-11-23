@@ -8,6 +8,7 @@ import { X } from "lucide-react";
 import { FocusTrapLayer } from "@/components/a11y/FocusTrapLayer";
 import { useCart } from "@/components/cart/CartProvider";
 import { colorNameToHex } from "@/lib/colors";
+import { lockBodyScroll } from "@/lib/scroll-lock";
 
 // Serialisable slice of a product that the grid card hands to the quick-add
 // sheet. Built server-side in ProductCard so the client bundle never needs
@@ -87,13 +88,7 @@ export function ProductCardVariantSheet({
     return init;
   });
 
-  useEffect(() => {
-    const original = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = original;
-    };
-  }, []);
+  useEffect(() => lockBodyScroll(), []);
 
   // A value is available when at least one buyable variant carries it AND
   // matches every OTHER currently-selected option.

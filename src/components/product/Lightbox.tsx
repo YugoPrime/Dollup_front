@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { FocusTrapLayer } from "@/components/a11y/FocusTrapLayer";
+import { lockBodyScroll } from "@/lib/scroll-lock";
 
 type Img = { url: string; alt?: string };
 
@@ -31,13 +32,7 @@ export function Lightbox({
   }, [next, prev]);
 
   // Lock body scroll while open.
-  useEffect(() => {
-    const original = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = original;
-    };
-  }, []);
+  useEffect(() => lockBodyScroll(), []);
 
   if (!images.length) return null;
   const current = images[index];
