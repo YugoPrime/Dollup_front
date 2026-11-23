@@ -1,6 +1,13 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { listFeatured, listProducts, listEssentials, getLatestCollectionTag } from "@/lib/products";
+import {
+  listFeatured,
+  listProducts,
+  listEssentials,
+  listSaleProducts,
+  getLatestCollectionTag,
+} from "@/lib/products";
+import { spotlightCopy } from "@/lib/sale-spotlight";
 import {
   HeroBento,
   HeroBentoProducts,
@@ -53,7 +60,7 @@ export default function HomePage() {
   return (
     <>
       <AdventHero initialNow={adventNowMs()} />
-      <HeroBento>
+      <HeroBento initialNow={adventNowMs()}>
         <Suspense fallback={<HeroBentoProductSkeleton />}>
           <HeroProductMosaic />
         </Suspense>
@@ -87,6 +94,20 @@ export default function HomePage() {
 }
 
 async function HeroProductMosaic() {
+  // While a "mono" sale runs, the tiles are the sale's pinned picks (the ad
+  // carousel cards, in /sale order, sold-out ones skipped) with their % off,
+  // so the hero never shows full-price new stock under "up to 50% off".
+  // Decided at render time: at the very end of the sale the ISR page may keep
+  // the picks a few minutes longer; their chips vanish with the prices.
+  if (spotlightCopy(adventNowMs())) {
+    const picks = await listSaleProducts({ chipHandles: [], limit: 5 })
+      .then((listing) => listing.products)
+      .catch((err) => {
+        console.error("listSaleProducts (hero) failed:", err);
+        return [];
+      });
+    if (picks.length >= 3) return <HeroBentoProducts products={picks} saleChips />;
+  }
   const featured = await listFeatured().catch((err) => {
     console.error("listFeatured failed:", err);
     return [];

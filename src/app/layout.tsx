@@ -12,6 +12,7 @@ import { RouteChangeTracker } from "@/components/analytics/RouteChangeTracker";
 import { ConsentBanner } from "@/components/analytics/ConsentBanner";
 import { CONSENT_BOOTSTRAP_SCRIPT } from "@/lib/analytics";
 import { PwaSetup } from "@/components/pwa/PwaSetup";
+import { SalePopup } from "@/components/sale/SalePopup";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -168,6 +169,9 @@ export default function RootLayout({
           <RouteChangeTracker />
         </Suspense>
         <ConsentBanner />
+        <Suspense fallback={null}>
+          <SalePopup />
+        </Suspense>
         <PwaSetup />
       </body>
     </html>

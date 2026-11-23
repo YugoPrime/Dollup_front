@@ -16,9 +16,21 @@ import { freePostageActive, muDateParts } from "./checkout";
 /** Shown at the end of the promo bar on desktop, as on the advent bar. */
 const COD = "Cash on delivery available";
 
+/**
+ * How loud the site is about the sale. "mono" is the Black Friday look: a
+ * black ticker bar on every page, the sale hero on the homepage, a
+ * once-a-day popup and a black homepage banner (copy in sale-spotlight.ts).
+ * "coral" is the October Sale look: coral bar and the homepage banner only.
+ */
+export type SaleLook = "mono" | "coral";
+
 export const SALE_CAMPAIGN = {
   name: "Black Friday",
   headline: "Up to 50% off",
+  look: "mono" as SaleLook,
+  /** Short and long "what's on sale", for the mono ticker, hero and popup. */
+  piecesLabel: "300+ pieces",
+  rangeLabel: "300+ dresses, swimwear, lingerie & essentials",
   /** Deepest tier in the price list, for "up to X%" copy. */
   maxPercent: 50,
   // Mauritius time (+04:00). The end second is included: still on at 23:59:59.
@@ -26,13 +38,14 @@ export const SALE_CAMPAIGN = {
   endsAt: "2026-11-29T23:59:59+04:00",
   /** Homepage banner copy. HTML, sanitised before render. */
   bannerDescription:
-    "Up to 50% off more than 300 pieces: dresses, swimwear, lingerie &amp; essentials. Friday 27 Nov only: prices drop again. Ends Sunday 29 Nov.",
+    "Up to 50% off more than 300 pieces: dresses, swimwear, lingerie &amp; essentials. Ends Sunday 29 Nov.",
   /** Search and social description for /sale. */
   description:
-    "Black Friday at Doll Up: up to 50% off more than 300 dresses, swimwear, lingerie and essentials, and prices drop again on Friday 27 Nov. 23–29 Nov, Mauritius only.",
+    "Black Friday at Doll Up: up to 50% off more than 300 dresses, swimwear, lingerie and essentials, until Sunday 29 Nov. Mauritius only.",
   /**
    * One day inside the sale with deeper prices: a second Medusa price list,
-   * Fri 27 Nov. Most pieces are another 10% lower that day.
+   * Fri 27 Nov. Most pieces are another 10% lower that day. It is a
+   * surprise (owner, 23 Nov): no copy mentions it before the day itself.
    */
   peak: {
     startsAt: "2026-11-27T00:00:00+04:00",
@@ -44,8 +57,8 @@ export const SALE_CAMPAIGN = {
       "Today only, most pieces are another 10% lower than this week: up to 50% off dresses, swimwear, lingerie &amp; essentials. Ends tonight at midnight.",
     /** Coral promo bar lead on the day. */
     barLead: "Black Friday · today only, prices drop again →",
-    /** /sale hero line before the day. */
-    teaser: "Friday 27 Nov: prices drop again",
+    /** Mono hero and popup sentence on the day. */
+    spotlightLine: "Today only, most pieces are another 10% lower. Ends at midnight.",
   },
   /**
    * Pinned to the top of /sale in this order (the carousel-ad cards). Any
@@ -160,8 +173,8 @@ export type SaleBarCopy = { lead: string; href: string; tail: string | null };
 
 /**
  * The coral bar's line while the sale runs, or null outside it (the advent
- * calendar's bar takes over). The tail, desktop only, points at what comes
- * next: Friday's deeper prices, then the last day.
+ * calendar's bar takes over). The tail, desktop only, gives the end date;
+ * Friday's deeper prices are a surprise, so nothing announces them early.
  */
 export function saleBarCopy(now: Date | number = Date.now()): SaleBarCopy | null {
   if (!isSaleActive(now)) return null;
@@ -170,6 +183,6 @@ export function saleBarCopy(now: Date | number = Date.now()): SaleBarCopy | null
   return {
     lead: `${SALE_CAMPAIGN.name} · ${SALE_CAMPAIGN.headline.toLowerCase()} →`,
     href: SALE_PATH,
-    tail: peak === "upcoming" ? SALE_CAMPAIGN.peak.teaser : `Ends ${SALE_ENDS_LABEL}`,
+    tail: `Ends ${SALE_ENDS_LABEL}`,
   };
 }

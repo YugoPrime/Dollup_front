@@ -216,6 +216,44 @@ html[data-consent-known] [data-consent-banner] {
   display: none;
 }
 
+/* Black ticker bar (src/components/sale/SaleTickerBar.tsx). The track holds
+   two identical halves, so sliding it by half its width loops seamlessly.
+   Slow on purpose (about 28px/s): it should be read, not flash. Hover or
+   keyboard focus pauses it; with reduced motion a static line replaces it. */
+.sale-ticker-track { animation: sale-ticker 110s linear infinite; }
+.sale-ticker:hover .sale-ticker-track,
+.sale-ticker:focus-visible .sale-ticker-track { animation-play-state: paused; }
+.sale-ticker-static { display: none; }
+@keyframes sale-ticker {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sale-ticker-track { display: none; }
+  .sale-ticker-static { display: block; }
+}
+
+/* Sale hero (src/components/sale/SaleHeroCopy.tsx): the thin rule under the
+   title draws itself once, left to right. Sale popup (SalePopup.tsx): the
+   backdrop fades in and the card rises 12px, slowly. */
+@media (prefers-reduced-motion: no-preference) {
+  .sale-hero-rule { animation: sale-rule-draw 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both; }
+  @keyframes sale-rule-draw {
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
+  }
+  .sale-pop { animation: sale-pop-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+  @keyframes sale-pop-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+}
+.sale-pop-backdrop { animation: sale-fade-in 300ms ease-out both; }
+@keyframes sale-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 @keyframes drawDrift {
   0%, 100% { transform: translateY(0) scale(1); }
   50% { transform: translateY(-8px) scale(1.03); }
