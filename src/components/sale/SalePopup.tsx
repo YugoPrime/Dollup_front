@@ -23,12 +23,15 @@ const DELAY_MS = 3000;
 const RETRY_MS = 1000;
 
 /**
- * Another window is open (bag, age gate, advent door, feedback), or the full
- * cookie card is on screen (desktop, or mobile after "Manage"). The mobile
- * cookie pill sits in the header and doesn't count.
+ * Another window is open, or the full cookie card is on screen (desktop, or
+ * mobile after "Manage"). Windows are anything with aria-modal (bag, age
+ * gate, advent door, feedback) or a FocusTrapLayer, which carries
+ * data-focus-trap-fallback and is only mounted while open (mobile menu and
+ * search, filter and quick-add sheets, image zoom). The mobile cookie pill
+ * sits in the header and doesn't count.
  */
 function blocked(): boolean {
-  if (document.querySelector('[aria-modal="true"]')) return true;
+  if (document.querySelector('[aria-modal="true"], [data-focus-trap-fallback]')) return true;
   const card = document.querySelector("[data-consent-card]");
   return card !== null && card.getClientRects().length > 0;
 }
@@ -96,14 +99,29 @@ export function SalePopup() {
   if (!copy) return null;
   const close = () => setCopy(null);
 
+  // Same layout as CartDrawer: the trap covers the whole screen and the
+  // backdrop is a button inside it, so a tap on the dimmed page closes the
+  // popup and lands on that button, never on a link or Add to Bag beneath.
   return createPortal(
-    <div className="fixed inset-0 z-[120] flex items-center justify-center p-5">
-      <div aria-hidden className="sale-pop-backdrop absolute inset-0 bg-ink/55" />
-      <FocusTrapLayer
-        ariaLabel={SALE_CAMPAIGN.name}
-        onDeactivate={close}
-        // Focus the card itself, so no button opens with a focus ring.
-        initialFocus={() => document.querySelector<HTMLElement>(".sale-pop") ?? false}
+    <FocusTrapLayer
+      ariaLabel={SALE_CAMPAIGN.name}
+      onDeactivate={close}
+      // Focus the card itself, so no button opens with a focus ring.
+      initialFocus={() => document.querySelector<HTMLElement>(".sale-pop") ?? false}
+      className="fixed inset-0 z-[120] flex items-center justify-center p-5"
+    >
+      <button
+        type="button"
+        aria-hidden="true"
+        tabIndex={-1}
+        onClick={close}
+        className="sale-pop-backdrop fixed inset-0 cursor-default bg-ink/55"
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="sale-pop-title"
+        tabIndex={-1}
         className="sale-pop relative w-full max-w-[380px] rounded-2xl bg-white px-7 pb-6 pt-9 text-center text-ink shadow-2xl focus:outline-none md:px-9"
       >
         {/* Thin black inner frame. */}
@@ -120,9 +138,9 @@ export function SalePopup() {
         <p className="font-sans text-[11px] font-bold uppercase tracking-[0.22em]">
           {copy.kicker}
         </p>
-        <p className="mt-3 font-display text-[40px] leading-none md:text-[46px]">
+        <h2 id="sale-pop-title" className="mt-3 font-display text-[40px] font-normal leading-none md:text-[46px]">
           Up to <span className="font-bold">{SALE_CAMPAIGN.maxPercent}%</span> off
-        </p>
+        </h2>
         <span aria-hidden className="mx-auto mt-4 block h-px w-16 bg-ink" />
         <p className="mt-4 font-sans text-[14px] leading-[1.5] text-ink-soft">
           <Sentences text={copy.line} />
@@ -130,7 +148,7 @@ export function SalePopup() {
         <div className="mt-5 flex justify-center">
           <SaleCountdown
             endsAt={copy.countdownTo}
-            endedLabel={`${SALE_CAMPAIGN.name} is over`}
+            endedLabel={copy.endedLabel}
             tone="mono"
           />
         </div>
@@ -148,8 +166,8 @@ export function SalePopup() {
         >
           Maybe later
         </button>
-      </FocusTrapLayer>
-    </div>,
+      </div>
+    </FocusTrapLayer>,
     document.body,
   );
 }

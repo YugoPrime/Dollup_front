@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { SaleCountdown } from "@/app/sale/SaleCountdown";
 import { SALE_CAMPAIGN, SALE_PATH } from "@/lib/sale-campaign";
-import type { SpotlightCopy } from "@/lib/sale-spotlight";
+import { splitSentences, type SpotlightCopy } from "@/lib/sale-spotlight";
 import { splitHeadline } from "@/lib/sales-of-month";
 
 /**
@@ -10,7 +10,7 @@ import { splitHeadline } from "@/lib/sales-of-month";
  * line still wraps normally.
  */
 export function Sentences({ text }: { text: string }) {
-  const parts = text.split(/(?<=\.)\s+/);
+  const parts = splitSentences(text);
   return (
     <>
       {parts.map((s, i) => (
@@ -59,7 +59,7 @@ export function SaleHeroCopy({ copy }: { copy: SpotlightCopy }) {
       <div className="mt-5">
         <SaleCountdown
           endsAt={copy.countdownTo}
-          endedLabel={`${SALE_CAMPAIGN.name} is over`}
+          endedLabel={copy.endedLabel}
           tone="mono"
         />
       </div>

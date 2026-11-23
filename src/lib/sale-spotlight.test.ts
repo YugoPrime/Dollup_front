@@ -5,7 +5,7 @@
 //
 // Fixtures are UTC instants; the sale runs on Mauritius time (UTC+4).
 import { SALE_CAMPAIGN } from "./sale-campaign"
-import { POPUP_STORAGE_KEY, isPopupPath, spotlightCopy } from "./sale-spotlight"
+import { POPUP_STORAGE_KEY, isPopupPath, splitSentences, spotlightCopy } from "./sale-spotlight"
 
 const lastPreSaleSecond = new Date("2026-11-22T19:59:59Z") // Sun 22 Nov, 23:59:59 MU
 const saleOpens = new Date("2026-11-22T20:00:00Z")         // Mon 23 Nov, 00:00 MU
@@ -68,6 +68,9 @@ check("peak ticker", peak?.ticker, [
 check("peak kicker", peak?.kicker, "Black Friday · today only")
 check("peak line", peak?.line, "Today only, most pieces are another 10% lower. Ends at midnight.")
 check("peak seen value", peak?.seenValue, "2026-11-27")
+// At Friday midnight the countdown runs out but the sale goes on to Sunday.
+check("peak ended label", peak?.endedLabel, "Black Friday continues until Sunday 29 Nov")
+check("week ended label", week?.endedLabel, "Black Friday is over")
 
 // Sat 28: after Friday, back to the week copy.
 const sat = spotlightCopy(afterPeak)
@@ -87,6 +90,7 @@ for (const [label, t] of [["00:00", lastDayOpens], ["23:59:59", lastSaleSecond]]
 // account or sign-in pages. Segment-exact, so /saletest is not /sale.
 const allowed = ["/", "/shop", "/products/is2364", "/advent", "/saletest"]
 const blocked = [
+  "/preorder", "/preorder/checkout",
   "/sale", "/sale/", "/checkout", "/checkout/success", "/account", "/account/orders",
   "/login", "/register", "/forgot-password", "/reset-password", "/auth/callback",
   "/track-order", "/private/x",
@@ -94,6 +98,13 @@ const blocked = [
 check("popup allowed paths", allowed.map(isPopupPath), allowed.map(() => true))
 check("popup blocked paths", blocked.map(isPopupPath), blocked.map(() => false))
 check("popup storage key", POPUP_STORAGE_KEY, "dub_sale_popup_seen_v1")
+
+// Hero/popup lines break between sentences. No regex lookbehind: Safari < 16.4
+// (in browserslist) cannot parse it, which would break every page's script.
+check("split two sentences", splitSentences("300+ pieces. Ends Sunday 29 Nov."), ["300+ pieces.", "Ends Sunday 29 Nov."])
+check("split one sentence", splitSentences("Ends at midnight."), ["Ends at midnight."])
+check("split keeps inner dots", splitSentences("Rs 1.5k off. Today."), ["Rs 1.5k off.", "Today."])
+check("split has no lookbehind", /\(\?<[=!]/.test(splitSentences.toString()), false)
 
 console.log(ok ? "ALL PASS" : "FAILURES ABOVE")
 if (!ok) process.exit(1)

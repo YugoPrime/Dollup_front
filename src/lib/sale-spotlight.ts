@@ -28,6 +28,8 @@ export type SpotlightCopy = {
   ticker: string[];
   /** ISO instant the countdowns run to: midnight on the peak day, else the sale end. */
   countdownTo: string;
+  /** What a countdown says at zero: on the peak day the sale still runs to Sunday. */
+  endedLabel: string;
   /** Mauritius date (YYYY-MM-DD). The popup shows once per value, so once a day. */
   seenValue: string;
 };
@@ -64,6 +66,7 @@ export function spotlightCopy(now: number | Date): SpotlightCopy | null {
       line: c.peak.spotlightLine,
       ticker: [c.name, c.peak.label, c.headline, "Ends at midnight", COD],
       countdownTo: c.peak.endsAt,
+      endedLabel: `${c.name} continues until ${ends}`,
       seenValue,
     };
   }
@@ -74,6 +77,7 @@ export function spotlightCopy(now: number | Date): SpotlightCopy | null {
       line: `Last day: ${c.piecesLabel} ${c.headline.toLowerCase()}. Ends at midnight.`,
       ticker: [c.name, "Last day: ends at midnight", c.headline, c.piecesLabel, COD],
       countdownTo: c.endsAt,
+      endedLabel: `${c.name} is over`,
       seenValue,
     };
   }
@@ -83,13 +87,18 @@ export function spotlightCopy(now: number | Date): SpotlightCopy | null {
     line: `${c.rangeLabel}. Ends ${ends}.`,
     ticker: [c.name, c.headline, c.piecesLabel, `Ends ${ends}`, COD],
     countdownTo: c.endsAt,
+    endedLabel: `${c.name} is over`,
     seenValue,
   };
 }
 
-/** Pages the popup never opens on: the sale itself, checkout, account and sign-in. */
+/**
+ * Pages the popup never opens on: the sale itself, checkout (the store's and
+ * the pre-order one), account and sign-in.
+ */
 const POPUP_BLOCKED_PATHS = [
   SALE_PATH,
+  "/preorder",
   "/checkout",
   "/account",
   "/login",
@@ -104,4 +113,14 @@ const POPUP_BLOCKED_PATHS = [
 /** Whether the popup may open on `pathname` (segment-exact: /saletest is not /sale). */
 export function isPopupPath(pathname: string): boolean {
   return !POPUP_BLOCKED_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
+
+/**
+ * A short paragraph split after each ". ", so lines can break between
+ * sentences. No regex lookbehind here: Safari < 16.4 (in the browserslist)
+ * cannot parse it, and one unparsable chunk stops every page's script.
+ */
+export function splitSentences(text: string): string[] {
+  const parts = text.split(/\.\s+/);
+  return parts.map((part, i) => (i < parts.length - 1 ? `${part}.` : part));
 }
