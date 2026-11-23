@@ -11,6 +11,7 @@ import { cartTypeOf } from "@/lib/cart-type";
 import { cartHasEssentialsBundle } from "@/lib/essentials-bundle";
 import { adventNowMs, shippingDoorFree, todaysDoor } from "@/lib/advent";
 import { isAdventGiftLine } from "@/lib/advent-cart";
+import { lockBodyScroll } from "@/lib/scroll-lock";
 import { AdventBagLine } from "@/components/advent/AdventBagLine";
 import { useAdventNow } from "@/components/advent/useAdventNow";
 
@@ -63,12 +64,8 @@ export function CartDrawer() {
 
   useEffect(() => {
     if (!open) return;
-    const original = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     trackViewCart(cart);
-    return () => {
-      document.body.style.overflow = original;
-    };
+    return lockBodyScroll();
     // intentionally only re-runs when the drawer opens — `cart` is read at that
     // moment, we don't want a re-fire on every line update inside the drawer.
     // eslint-disable-next-line react-hooks/exhaustive-deps

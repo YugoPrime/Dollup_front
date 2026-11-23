@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import type { NavLink } from "@/lib/nav";
+import { lockBodyScroll } from "@/lib/scroll-lock";
 
 const FocusTrapLayer = dynamic(
   () => import("@/components/a11y/FocusTrapLayer").then((m) => m.FocusTrapLayer),
@@ -179,11 +180,7 @@ export function HeaderMobileMenu({ navLinks }: { navLinks: NavLink[] }) {
   // Lock page scroll when drawer is open
   useEffect(() => {
     if (!menuOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
+    return lockBodyScroll();
   }, [menuOpen]);
 
   const close = () => setMenuOpen(false);

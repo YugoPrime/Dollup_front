@@ -6,6 +6,7 @@ import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import type { Door } from "@/lib/advent";
 import { trackAdventDoor } from "@/lib/analytics";
+import { lockBodyScroll } from "@/lib/scroll-lock";
 
 type Thumb = { title: string; thumbnail: string; href: string };
 
@@ -45,8 +46,7 @@ export function DoorSheet({
 
   useEffect(() => {
     const opener = document.activeElement as HTMLElement | null;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const unlockScroll = lockBodyScroll();
     panelRef.current?.focus();
 
     const onKey = (e: KeyboardEvent) => {
@@ -72,7 +72,7 @@ export function DoorSheet({
     document.addEventListener("keydown", onKey);
     return () => {
       document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prevOverflow;
+      unlockScroll();
       opener?.focus();
     };
   }, []);
