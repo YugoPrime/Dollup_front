@@ -62,6 +62,20 @@ export function parseGroupParam(v: string | null | undefined): AfterDarkGroup | 
   return AFTER_DARK_GROUPS.find((g) => g.key === key)?.key ?? null
 }
 
+// Groups that at least one item carries, in AFTER_DARK_GROUPS order (the chip row).
+export function availableGroups(items: Array<{ groups: AfterDarkGroup[] }>): AfterDarkGroup[] {
+  const present = new Set(items.flatMap((i) => i.groups))
+  return AFTER_DARK_GROUPS.filter((g) => present.has(g.key)).map((g) => g.key)
+}
+
+// Items in `group`; `null` (the "All" chip) keeps everything. Order is preserved.
+export function filterByGroup<T extends { groups: AfterDarkGroup[] }>(
+  items: T[],
+  group: AfterDarkGroup | null,
+): T[] {
+  return group ? items.filter((i) => i.groups.includes(group)) : items
+}
+
 const waUrl = (text: string) => `${WHATSAPP_BASE}?text=${encodeURIComponent(text)}`
 
 export function askPrivatelyUrl(code?: string): string {

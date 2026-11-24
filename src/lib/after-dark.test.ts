@@ -5,6 +5,8 @@ import {
   afterDarkRedirect,
   applyAfterDarkScope,
   askPrivatelyUrl,
+  availableGroups,
+  filterByGroup,
   isAfterDark,
   isAfterDarkLine,
   newPiecesCount,
@@ -13,6 +15,7 @@ import {
   visibleToyOptions,
   withoutAfterDarkLines,
 } from "./after-dark"
+import type { AfterDarkGroup } from "./after-dark"
 import { WHATSAPP_BASE } from "./restock"
 
 let ok = true
@@ -97,6 +100,19 @@ check("choose", visibleToyOptions([{ id: "o2", title: "Color", values: vals("Lic
 check("mixed is choose", visibleToyOptions([{ title: "X", values: vals("Red", "Licking") }])[0]?.label, "Choose")
 check("dedupe + empty + id", visibleToyOptions([{ title: "Mode", values: vals("A", "A", "", null, "B") }]),
   [{ id: "mode", title: "Mode", label: "Choose", values: ["A", "B"] }])
+
+// availableGroups / filterByGroup
+const gi = [
+  { id: "a", groups: ["her"] as AfterDarkGroup[] },
+  { id: "b", groups: ["couples", "her"] as AfterDarkGroup[] },
+  { id: "c", groups: [] as AfterDarkGroup[] },
+]
+check("available groups", availableGroups(gi), ["her", "couples"])
+check("available groups empty", availableGroups([]), [])
+check("filter her", ids(filterByGroup(gi, "her")), ["a", "b"])
+check("filter couples", ids(filterByGroup(gi, "couples")), ["b"])
+check("filter games", ids(filterByGroup(gi, "games")), [])
+check("filter null", ids(filterByGroup(gi, null)), ["a", "b", "c"])
 
 console.log(ok ? "ALL PASS" : "FAILURES ABOVE")
 if (!ok) process.exit(1)
