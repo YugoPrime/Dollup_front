@@ -1,7 +1,7 @@
 // Client-safe: imported by MobilePdpHero / ProductBuy ("use client"), so it
 // must not pull in store-config (server-only). Keep this number in sync with
 // FALLBACK_STORE_CONFIG.store.whatsapp_url in src/lib/store-config.ts.
-const WHATSAPP_BASE = "https://wa.me/23059416359";
+export const WHATSAPP_BASE = "https://wa.me/23059416359";
 
 /**
  * Restock request = a pre-filled WhatsApp message. Medusa has no restock
