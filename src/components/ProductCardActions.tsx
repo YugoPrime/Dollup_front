@@ -34,12 +34,15 @@ export function ProductCardQuickAdd({
   isMultiVariant,
   variantId,
   label,
+  addLabel = "Quick add",
   quickAdd,
   tone = "default",
 }: {
   isMultiVariant: boolean;
   variantId?: string | null;
   label: string;
+  // Single-variant button text (the Plus icon sits before it).
+  addLabel?: string;
   quickAdd: QuickAddProduct;
   tone?: "default" | "wine";
 }) {
@@ -73,7 +76,7 @@ export function ProductCardQuickAdd({
           className={`inline-flex min-h-11 items-center gap-1.5 rounded-full px-4 font-sans text-[12px] font-bold uppercase tracking-wider shadow-[0_2px_8px_rgba(0,0,0,0.12)] backdrop-blur transition-colors disabled:opacity-60 md:w-full md:justify-center md:rounded-md ${QUICK_ADD_TONE[tone]}`}
         >
           {!isMultiVariant && !busy ? <Plus size={14} aria-hidden="true" /> : null}
-          {busy ? "Adding…" : isMultiVariant ? label : "Quick add"}
+          {busy ? "Adding…" : isMultiVariant ? label : addLabel}
         </button>
       </div>
       {sheetOpen ? (

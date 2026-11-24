@@ -13,6 +13,7 @@ import {
   parseGroupParam,
   rankRelatedToys,
   toyNotifyMeUrl,
+  toyQuickAddOptions,
   visibleToyOptions,
   withoutAfterDarkLines,
 } from "./after-dark"
@@ -111,6 +112,36 @@ check("choose", visibleToyOptions([{ id: "o2", title: "Color", values: vals("Lic
 check("mixed is choose", visibleToyOptions([{ title: "X", values: vals("Red", "Licking") }])[0]?.label, "Choose")
 check("dedupe + empty + id", visibleToyOptions([{ title: "Mode", values: vals("A", "A", "", null, "B") }]),
   [{ id: "mode", title: "Mode", label: "Choose", values: ["A", "B"] }])
+check("size S/M/L", visibleToyOptions([{ id: "o3", title: "Size", values: vals("S", "M", "L") }]),
+  [{ id: "o3", title: "Size", label: "Size", values: ["S", "M", "L"] }])
+check("size title trimmed + any case", visibleToyOptions([{ title: " SIZE ", values: vals("S", "M") }])[0]?.label, "Size")
+check("size OS still hidden", visibleToyOptions([{ title: "Size", values: vals("OS", " OS ") }]), [])
+check("size next to a hidden one", visibleToyOptions([
+  { title: "Size", values: vals("OS") },
+  { title: "Color", values: vals("Red", "Pink") },
+]).map((o) => o.label), ["Colour"])
+
+// toyQuickAddOptions: sheet titles follow the label, keys = lowercased title
+const qaVar = (id: string, values: Record<string, string>) => ({ id, values, buyable: true })
+const is2555 = toyQuickAddOptions(
+  [{ title: "Color", values: vals("Licking", "Sucking") }, { title: "Size", values: vals("OS") }],
+  [qaVar("v1", { color: "Licking", size: "OS" }), qaVar("v2", { color: " Sucking ", size: "OS" })],
+)
+check("qa licking/sucking is Choose", is2555.options, [{ id: "color", title: "Choose", values: ["Licking", "Sucking"] }])
+check("qa variant values trimmed", is2555.variants.map((v) => v.values.color), ["Licking", "Sucking"])
+check("qa variant keeps id + buyable", is2555.variants[1], { id: "v2", values: { color: "Sucking", size: "OS" }, buyable: true })
+check("qa card game deck is Choose", toyQuickAddOptions(
+  [{ title: "Color", values: vals("Drunk Desires", "Bedroom", "50") }], [],
+).options.map((o) => o.title), ["Choose"])
+check("qa red/pink is Colour", toyQuickAddOptions(
+  [{ id: "opt_1", title: "Color", values: vals("Red", "Pink") }], [],
+).options, [{ id: "color", title: "Colour", values: ["Red", "Pink"] }])
+check("qa size is Size", toyQuickAddOptions(
+  [{ title: " Size ", values: vals("S", "M", "L") }], [],
+).options, [{ id: "size", title: "Size", values: ["S", "M", "L"] }])
+check("qa single-variant toy has no options", toyQuickAddOptions(
+  [{ title: "Size", values: vals("OS") }], [qaVar("v1", { size: "OS" })],
+).options, [])
 
 // availableGroups / filterByGroup
 const gi = [

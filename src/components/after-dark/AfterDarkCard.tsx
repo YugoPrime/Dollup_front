@@ -3,15 +3,9 @@ import Link from "next/link";
 import type { HttpTypes } from "@medusajs/types";
 import { toQuickAddProduct } from "@/components/ProductCard";
 import { ProductCardQuickAdd } from "@/components/ProductCardActions";
-import { visibleToyOptions } from "@/lib/after-dark";
+import { toyQuickAddOptions } from "@/lib/after-dark";
 import { formatPrice, getDisplayPrice } from "@/lib/format";
 import type { ToyFacts } from "@/lib/toy-facts";
-
-// Label for the quick-add button when a toy has a real choice to make.
-function pickerLabel(product: HttpTypes.StoreProduct): string {
-  const opts = visibleToyOptions(product.options ?? []);
-  return opts.length > 0 && opts.every((o) => o.label === "Colour") ? "Select colour" : "Select options";
-}
 
 // Toy card for the After Dark grid and the toy page's "More from After Dark".
 // No advent tags, low-stock badge or wishlist heart.
@@ -33,14 +27,16 @@ export function AfterDarkCard({
   );
   const soldOut = product.variants?.length ? !inStockVariant : false;
   const isMultiVariant = (product.variants?.length ?? 0) > 1;
-  // The variant sheet makes its last option the tap-to-add row, so a
-  // single-value option ("Size: OS") would become the add button. Drop those;
-  // variants keep their values (the sheet only matches on listed options).
+  // Only the toy page's visible options reach the sheet (a single-value
+  // "Size: OS" would become its tap-to-add row), retitled Colour / Size /
+  // Choose so Licking / Sucking are text chips, not grey colour dots.
+  // Variants keep every value: the sheet only matches on listed options.
   const qa = toQuickAddProduct(product, thumb, price);
-  const quickAdd = {
-    ...qa,
-    options: qa.options.filter((o) => new Set(o.values.map((v) => v.trim()).filter(Boolean)).size >= 2),
-  };
+  const quickAdd = { ...qa, ...toyQuickAddOptions(product.options ?? [], qa.variants) };
+  const pickerLabel =
+    quickAdd.options.length > 0 && quickAdd.options.every((o) => o.title === "Colour")
+      ? "Select colour"
+      : "Select options";
 
   return (
     <div className="group relative flex flex-col overflow-hidden rounded-xl border border-blush-200 bg-white">
@@ -62,7 +58,8 @@ export function AfterDarkCard({
             tone="wine"
             isMultiVariant={isMultiVariant}
             variantId={isMultiVariant ? null : inStockVariant?.id}
-            label={pickerLabel(product)}
+            label={pickerLabel}
+            addLabel="Add"
             quickAdd={quickAdd}
           />
         )}

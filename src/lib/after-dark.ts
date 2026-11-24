@@ -127,7 +127,14 @@ export function afterDarkRedirect(
   return query ? `${AFTER_DARK_PATH}?q=${encodeURIComponent(query)}` : AFTER_DARK_PATH
 }
 
-export type ToyOptionView = { id: string; title: string; label: "Colour" | "Choose"; values: string[] }
+export type ToyOptionView = { id: string; title: string; label: "Colour" | "Size" | "Choose"; values: string[] }
+
+// "Size" when the option is titled Size, "Colour" when every value is a colour
+// name, otherwise "Choose" (e.g. Licking / Sucking under a "Color" title).
+function toyOptionLabel(title: string, values: string[]): ToyOptionView["label"] {
+  if (title.trim().toLowerCase() === "size") return "Size"
+  return values.every(isColorName) ? "Colour" : "Choose"
+}
 
 export function visibleToyOptions(
   options: Array<{
@@ -146,9 +153,33 @@ export function visibleToyOptions(
     out.push({
       id: o.id || title.toLowerCase(),
       title,
-      label: values.every(isColorName) ? "Colour" : "Choose",
+      label: toyOptionLabel(title, values),
       values,
     })
   }
   return out
+}
+
+// Options for a toy card's quick-add sheet (ProductCardVariantSheet): the same
+// visible options as the toy page, retitled with their label so the sheet picks
+// the right renderer. Its colour check (title Color/Colour) would otherwise draw
+// Licking / Sucking as grey dots: only "Colour" gets swatches, "Size" keeps the
+// size row, "Choose" is text chips. Keyed like toQuickAddProduct, by the
+// lowercased option title (list fetches carry no option ids); variant values are
+// trimmed because visibleToyOptions trims the option values.
+export function toyQuickAddOptions<V extends { values: Record<string, string> }>(
+  options: Parameters<typeof visibleToyOptions>[0],
+  variants: V[],
+): { options: Array<{ id: string; title: ToyOptionView["label"]; values: string[] }>; variants: V[] } {
+  return {
+    options: visibleToyOptions(options).map((o) => ({
+      id: o.title.trim().toLowerCase(),
+      title: o.label,
+      values: o.values,
+    })),
+    variants: variants.map((v) => ({
+      ...v,
+      values: Object.fromEntries(Object.entries(v.values).map(([k, val]) => [k, val.trim()])),
+    })),
+  }
 }
