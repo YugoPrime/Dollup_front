@@ -187,15 +187,15 @@ export type ListProductsArgs = {
   unlocked?: boolean;
 };
 
+// Not wrapped in unstable_cache: the data cache keeps one entry per argument
+// set, so /shop page 1 (limit 24) and page 2 (limit 48) aged separately. A page
+// size nobody had opened since a new collection went live answered its first
+// visit with the old catalog, and "Load more" swapped the whole grid for it.
+// Every call now filters the shared in-memory snapshot (milliseconds), so all
+// pages of a listing see the same catalog, as /sale already does.
 export async function listProducts(args: ListProductsArgs = {}) {
-  return cachedListProducts(normalizeListProductArgs(args));
+  return listProductsUncached(normalizeListProductArgs(args));
 }
-
-const cachedListProducts = unstable_cache(
-  async (args: ListProductsArgs) => listProductsUncached(args),
-  ["store-products-v2"],
-  { tags: [PRODUCTS_CACHE_TAG], revalidate: 60 },
-);
 
 async function listProductsUncached(args: ListProductsArgs = {}) {
   const region = await getRegion();
