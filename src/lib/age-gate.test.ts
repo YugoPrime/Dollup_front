@@ -1,6 +1,6 @@
 // Covers the 18+ cookie check and the no-flash bootstrap script.
 // Run with `npx tsx src/lib/age-gate.test.ts`.
-import { AGE_BOOTSTRAP_SCRIPT, AGE_OK_CLASS, hasAgeCookie } from "./age-gate"
+import { AGE_BOOTSTRAP_SCRIPT, AGE_COOKIE, AGE_OK_CLASS, hasAgeCookie } from "./age-gate"
 
 let ok = true
 function check(label: string, got: unknown, exp: unknown): void {
@@ -12,6 +12,11 @@ check("cookie present", hasAgeCookie("a=1; dub_age_verified_18=1"), true)
 check("cookie zero", hasAgeCookie("dub_age_verified_18=0"), false)
 check("cookie empty", hasAgeCookie(""), false)
 check("cookie prefixed name", hasAgeCookie("xdub_age_verified_18=1"), false)
+
+check("script embeds cookie check", AGE_BOOTSTRAP_SCRIPT.includes('"' + AGE_COOKIE + '=1"'), true)
+check("script embeds ok class", AGE_BOOTSTRAP_SCRIPT.includes('"' + AGE_OK_CLASS + '"'), true)
+check("no template interpolation left", AGE_BOOTSTRAP_SCRIPT.includes("${"), false)
+check("no backtick left", AGE_BOOTSTRAP_SCRIPT.includes("`"), false)
 
 function runBootstrap(doc: unknown): void {
   new Function("document", AGE_BOOTSTRAP_SCRIPT)(doc)

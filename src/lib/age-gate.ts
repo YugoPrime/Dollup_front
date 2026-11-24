@@ -18,7 +18,8 @@ export function setAgeVerifiedCookie(): void {
 }
 
 // ES5-safe and self-contained: same exact-part match as hasAgeCookie.
+// Deliberately ONE plain string literal (no template literals, no `+`): the
+// production minifier mangled the string + template concatenation and dropped
+// part of the script. src/lib/age-gate.test.ts pins it to AGE_COOKIE / AGE_OK_CLASS.
 export const AGE_BOOTSTRAP_SCRIPT =
-  '(function(){try{var p=document.cookie.split(";");for(var i=0;i<p.length;i++){' +
-  `if(p[i].trim()==="${AGE_COOKIE}=1"){` +
-  `document.documentElement.classList.add("${AGE_OK_CLASS}");break}}}catch(e){}})();`
+  '(function(){try{var p=document.cookie.split(";");for(var i=0;i<p.length;i++){if(p[i].trim()==="dub_age_verified_18=1"){document.documentElement.classList.add("dub-age-ok");break}}}catch(e){}})();'
