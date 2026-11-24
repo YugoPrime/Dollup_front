@@ -1,6 +1,15 @@
 @import "tailwindcss";
 
 @theme {
+  --color-wine-950: #260B14;
+  --color-wine-900: #36121D;
+  --color-wine-800: #4A1C2B;
+  --color-wine-700: #56202F;
+  --color-champagne-50: #F6EBDD;
+  --color-champagne-100: #F3E6D3;
+  --color-champagne-200: #E7D3C4;
+  --color-champagne-gold: #D4B47A;
+  --color-champagne-gold-soft: #D9B97E;
   --color-cream: #FDF8F7;
   --color-cream-50: #FFFCFB;
   --color-cream-100: #FAF1EE;
@@ -43,6 +52,9 @@
 
   --radius-pill: 9999px;
 }
+
+/* After Dark 18+ gate: hidden before paint for returning visitors (see age-gate.ts) */
+.dub-age-ok [data-age-gate] { display: none !important; }
 
 :root {
   --coral: var(--color-coral-500);

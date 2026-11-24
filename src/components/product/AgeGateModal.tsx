@@ -1,23 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { hasAgeCookie, setAgeVerifiedCookie } from "@/lib/age-gate";
 import { lockBodyScroll } from "@/lib/scroll-lock";
-
-const COOKIE = "dub_age_verified_18";
-const TTL_DAYS = 30;
 
 export function isAgeVerified(): boolean {
   if (typeof document === "undefined") return false;
-  return document.cookie
-    .split(";")
-    .map((c) => c.trim())
-    .some((c) => c === `${COOKIE}=1`);
+  return hasAgeCookie(document.cookie);
 }
 
 export function setAgeVerified() {
-  if (typeof document === "undefined") return;
-  const ttl = TTL_DAYS * 24 * 60 * 60;
-  document.cookie = `${COOKIE}=1; path=/; max-age=${ttl}; SameSite=Lax`;
+  setAgeVerifiedCookie();
 }
 
 export function AgeGateModal() {
