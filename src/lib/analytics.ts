@@ -4,6 +4,7 @@
 // provisioned GA4/GTM/Pixel accounts.
 
 import type { HttpTypes } from "@medusajs/types";
+import { withoutAfterDarkLines } from "./after-dark";
 
 declare global {
   interface Window {
@@ -158,7 +159,7 @@ export function trackViewCart(cart: HttpTypes.StoreCart | null) {
   pushEvent("view_cart", {
     currency,
     value: cart.subtotal ?? cart.item_total ?? 0,
-    items: (cart.items ?? []).map((i) => lineItemToAnalytics(i, currency)),
+    items: withoutAfterDarkLines(cart.items ?? []).map((i) => lineItemToAnalytics(i, currency)),
   });
 }
 
@@ -168,7 +169,7 @@ export function trackBeginCheckout(cart: HttpTypes.StoreCart | null) {
   pushEvent("begin_checkout", {
     currency,
     value: cart.subtotal ?? cart.item_total ?? 0,
-    items: (cart.items ?? []).map((i) => lineItemToAnalytics(i, currency)),
+    items: withoutAfterDarkLines(cart.items ?? []).map((i) => lineItemToAnalytics(i, currency)),
   });
 }
 
@@ -182,7 +183,7 @@ export function trackAddShippingInfo(
     currency,
     value: cart.subtotal ?? cart.item_total ?? 0,
     shipping_tier: shippingTier ?? undefined,
-    items: (cart.items ?? []).map((i) => lineItemToAnalytics(i, currency)),
+    items: withoutAfterDarkLines(cart.items ?? []).map((i) => lineItemToAnalytics(i, currency)),
   });
 }
 
@@ -196,7 +197,7 @@ export function trackAddPaymentInfo(
     currency,
     value: cart.subtotal ?? cart.item_total ?? 0,
     payment_type: paymentType ?? undefined,
-    items: (cart.items ?? []).map((i) => lineItemToAnalytics(i, currency)),
+    items: withoutAfterDarkLines(cart.items ?? []).map((i) => lineItemToAnalytics(i, currency)),
   });
 }
 
@@ -211,7 +212,7 @@ export function trackPurchase(order: HttpTypes.StoreOrder): string {
     value: order.total ?? 0,
     tax: order.tax_total ?? 0,
     shipping: order.shipping_total ?? 0,
-    items: (order.items ?? []).map((i) => orderItemToAnalytics(i, currency)),
+    items: withoutAfterDarkLines(order.items ?? []).map((i) => orderItemToAnalytics(i, currency)),
     // event_id matches what /api/meta-capi forwards to Meta so the pixel
     // and CAPI events dedupe. The GTM Meta Pixel "Purchase" tag should pass
     // this through as fbq's `eventID`.
@@ -235,7 +236,8 @@ export async function sendCapiPurchase(
   if (typeof window === "undefined") return;
   if (readConsent() !== "accepted") return;
   const currency = order.currency_code ?? CURRENCY_FALLBACK;
-  const items = order.items ?? [];
+  // Toy lines never reach Meta; `value` below stays the full order total.
+  const items = withoutAfterDarkLines(order.items ?? []);
   const ship = order.shipping_address ?? null;
   const body = {
     event_id: eventId,

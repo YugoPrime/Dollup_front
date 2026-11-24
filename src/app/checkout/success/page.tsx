@@ -23,7 +23,7 @@ import {
 // promo. Customers expect "Subtotal" to mean items only — that's `item_total`.
 // We fetch both so the page can display item_total under "Subtotal".
 const ORDER_FIELDS =
-  "*items,*items.variant,*shipping_address,*billing_address,*shipping_methods,+display_id,+item_total,+subtotal,+total,+shipping_total,+discount_total,+tax_total,metadata";
+  "*items,*items.variant,*items.variant.product,*items.variant.product.categories,*shipping_address,*billing_address,*shipping_methods,+display_id,+item_total,+subtotal,+total,+shipping_total,+discount_total,+tax_total,metadata";
 
 function readPaymentMethod(meta: Record<string, unknown> | null | undefined): PaymentMethod {
   const v = meta?.payment_method;

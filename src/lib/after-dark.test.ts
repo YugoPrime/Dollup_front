@@ -53,6 +53,16 @@ check("toy line", isAfterDarkLine(toyLine), true)
 check("no variant", isAfterDarkLine(bareLine), false)
 check("without lines", withoutAfterDarkLines([toyLine, dressLine, bareLine]).map((l) => l.id), [2, 3])
 
+// mixed bag (cart-like): toys never reach tracking
+const bagLines = [
+  { id: "d", variant: { product: cat("dresses") } },
+  { id: "t", variant: { product: cat("toys") } },
+  { id: "b", variant: { product: cat("lingerie") } },
+]
+check("mixed bag keeps dress + bra", withoutAfterDarkLines(bagLines), [bagLines[0], bagLines[2]])
+check("mixed bag ids", withoutAfterDarkLines(bagLines).map((l) => l.id), ["d", "b"])
+check("toy-only bag is empty", withoutAfterDarkLines([bagLines[1]]), [])
+
 // afterDarkCode / title
 check("code handle", afterDarkCode({ handle: "is2526" }), "IS2526")
 check("code ref", afterDarkCode({ handle: "x", metadata: { ref: " is2174 " } }), "IS2174")
