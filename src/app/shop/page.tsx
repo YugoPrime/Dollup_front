@@ -269,7 +269,8 @@ export default async function ShopPage({
             {title} <em className="not-italic text-coral-450" style={{ fontStyle: "italic" }}>collection</em>
           </h1>
           <p className="mt-1.5 font-sans text-[12px] text-ink-muted md:text-[13px]">{total} {total === 1 ? "style" : "styles"}</p>
-          {adPointer}
+          {/* With no results the pointer sits in EmptyState instead: one line only. */}
+          {products.length > 0 ? adPointer : null}
         </div>
         <div className="mt-3 md:mt-0">
           <ShopSortDropdown />
