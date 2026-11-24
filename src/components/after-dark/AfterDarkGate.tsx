@@ -17,14 +17,21 @@ export function AfterDarkGate() {
   const [open, setOpen] = useState(true);
   const yesRef = useRef<HTMLButtonElement>(null);
 
+  // Returning visitor: close. Otherwise focus the Yes button.
   useEffect(() => {
     if (hasAgeCookie(document.cookie)) {
       setOpen(false);
       return;
     }
     yesRef.current?.focus();
-    return lockBodyScroll();
   }, []);
+
+  // Separate effect so the lock is released as soon as `open` turns false
+  // (a cleanup in a mount-only effect would only run on unmount).
+  useEffect(() => {
+    if (!open) return;
+    return lockBodyScroll();
+  }, [open]);
 
   if (!open) return null;
 
