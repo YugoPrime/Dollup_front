@@ -85,6 +85,29 @@
     transparent
   );
 }
+/* Floor shadow under the hero toy: a soft radial fade, never a hard bar. */
+.after-dark-toy-shadow {
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--color-wine-950) 55%, transparent),
+    color-mix(in srgb, var(--color-wine-950) 18%, transparent) 60%,
+    transparent
+  );
+}
+
+/* After Dark focus rings. The global coral ring (`button:focus-visible,
+   a:focus-visible` below) is unlayered, so it beats Tailwind's
+   focus-visible:outline-* utilities. Wine on the light After Dark pages, gold
+   on the wine surfaces (hero band, toy page bar) and the 18+ check. Same
+   specificity: the wine/gate rule comes last so it wins where they nest. */
+[data-after-dark-surface="light"] :is(a, button):focus-visible {
+  outline-color: var(--color-wine-800);
+}
+[data-after-dark-surface="wine"] :is(a, button):focus-visible,
+[data-age-gate] :is(a, button):focus-visible {
+  outline-color: var(--color-champagne-gold);
+}
 
 :root {
   --coral: var(--color-coral-500);

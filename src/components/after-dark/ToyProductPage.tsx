@@ -52,10 +52,10 @@ export function ToyProductPage({ product }: { product: HttpTypes.StoreProduct })
   if (images.length === 0 && product.thumbnail) images.push(product.thumbnail);
 
   return (
-    <div>
+    <div data-after-dark-surface="light">
       <AfterDarkGate />
 
-      <nav aria-label="After Dark" className="after-dark-hero-bg">
+      <nav aria-label="After Dark" data-after-dark-surface="wine" className="after-dark-hero-bg">
         <div className="mx-auto flex max-w-[1280px] items-center justify-between gap-3 px-4 md:px-8">
           <Link
             href={AFTER_DARK_PATH}

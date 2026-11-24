@@ -7,6 +7,7 @@ import { AfterDarkHero } from "@/components/after-dark/AfterDarkHero";
 import { AfterDarkSort } from "@/components/after-dark/AfterDarkSort";
 import {
   AFTER_DARK_DESCRIPTION,
+  AFTER_DARK_HERO,
   AFTER_DARK_PATH,
   availableGroups,
   filterByGroup,
@@ -63,9 +64,14 @@ export default async function AfterDarkPage({ searchParams }: { searchParams: Se
       console.error("After Dark load failed:", err);
       return EMPTY;
     });
-  // The "new pieces" pill counts all of After Dark, not just the search results.
+  // The "new pieces" pill and the hero link use all of After Dark, not just
+  // the search results.
   const [res, all] = await Promise.all([load(q), q ? load() : null]);
   const products = res.products;
+  const everything = (all ?? res).products;
+  // listProducts drops unlisted and sold-out pieces, so the hero only links
+  // to a product page that won't 404.
+  const featuredListed = everything.some((p) => p.handle === AFTER_DARK_HERO.handle);
 
   const items = products.map((product) => {
     const facts = parseToyFacts(product.metadata);
@@ -73,14 +79,16 @@ export default async function AfterDarkPage({ searchParams }: { searchParams: Se
   });
   const shown = filterByGroup(items, group);
   const n = shown.length;
+  const groups = availableGroups(items);
 
   return (
-    <div>
+    <div data-after-dark-surface="light">
       <AfterDarkGate />
-      <AfterDarkHero newCount={countNewPieces((all ?? res).products)} />
+      <AfterDarkHero newCount={countNewPieces(everything)} featuredListed={featuredListed} />
 
       <div className="mx-auto max-w-[1280px] px-4 pb-10 pt-4 md:px-8 md:pb-14 md:pt-6">
-        <AfterDarkChips active={group} groups={availableGroups(items)} sort={sort} q={q} />
+        {/* No toy carries toy_facts groups yet: skip a row holding only "All". */}
+        {groups.length > 0 && <AfterDarkChips active={group} groups={groups} sort={sort} q={q} />}
 
         {q && (
           <div className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
