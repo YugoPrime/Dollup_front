@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 import { verifyTokenAgainstBackend } from "@/lib/private-unlock";
 import { PRIVATE_UNLOCK_COOKIE } from "@/lib/visibility";
+import { AFTER_DARK_PATH } from "@/lib/after-dark";
 
 const TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
 
@@ -43,7 +44,7 @@ export async function GET(
   const origin = forwardedHost
     ? `${forwardedProto}://${forwardedHost}`
     : req.nextUrl.origin;
-  // 303 so a refresh of /private doesn't re-run this token-setting GET.
-  const url = new URL("/private", origin);
+  // 303 so a refresh of /after-dark doesn't re-run this token-setting GET.
+  const url = new URL(AFTER_DARK_PATH, origin);
   return NextResponse.redirect(url, { status: 303 });
 }

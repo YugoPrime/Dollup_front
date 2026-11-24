@@ -4,6 +4,7 @@
 // cached pages (useAdventNow) and everything switches off by itself at the
 // end of the window. Dates come from SALE_CAMPAIGN, in Mauritius time.
 import { muDateParts } from "./checkout";
+import { AFTER_DARK_PATH } from "./after-dark";
 import {
   SALE_CAMPAIGN,
   SALE_PATH,
@@ -108,6 +109,7 @@ const POPUP_BLOCKED_PATHS = [
   "/auth",
   "/track-order",
   "/private",
+  AFTER_DARK_PATH,
 ];
 
 /** Whether the popup may open on `pathname` (segment-exact: /saletest is not /sale). */

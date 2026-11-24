@@ -146,7 +146,6 @@ check("nav chip handles", NAV_CATEGORY_HANDLES, [
   "bottoms",
   "winter",
   "lingerie",
-  "intimates",
   "beachwear",
   "accessories",
 ])

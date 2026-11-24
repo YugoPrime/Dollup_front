@@ -1,9 +1,9 @@
 import type { MetadataRoute } from "next";
 import { listCategories, listProducts } from "@/lib/products";
 import {
-  INTIMATES_CATEGORY_HANDLE,
   isPubliclyListedStoreProduct,
 } from "@/lib/visibility";
+import { AFTER_DARK_CATEGORY_HANDLES } from "@/lib/products-order";
 
 const SITE_URL = "https://dollupboutique.com";
 
@@ -60,7 +60,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const categoryEntries = categories
     .filter((category) => category.handle)
-    .filter((category) => category.handle !== INTIMATES_CATEGORY_HANDLE)
+    .filter((category) => !AFTER_DARK_CATEGORY_HANDLES.includes(category.handle))
     .map((category) => ({
       url: `${SITE_URL}/shop?category=${encodeURIComponent(category.handle)}`,
       changeFrequency: "weekly" as const,

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
+import { AFTER_DARK_PATH } from "@/lib/after-dark";
 
 const FocusTrapLayer = dynamic(
   () => import("@/components/a11y/FocusTrapLayer").then((m) => m.FocusTrapLayer),
@@ -70,7 +71,7 @@ const QUICK_LINKS = [
   { label: "Dresses", href: "/shop?category=dresses" },
   { label: "Lingerie", href: "/shop?category=lingerie" },
   { label: "Beachwear", href: "/shop?category=beachwear" },
-  { label: "After Dark", href: "/shop?category=intimates" },
+  { label: "After Dark", href: AFTER_DARK_PATH },
   { label: "Sale", href: "/shop?on_sale=1" },
 ];
 
