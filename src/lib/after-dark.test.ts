@@ -11,6 +11,7 @@ import {
   isAfterDarkLine,
   newPiecesCount,
   parseGroupParam,
+  rankRelatedToys,
   toyNotifyMeUrl,
   visibleToyOptions,
   withoutAfterDarkLines,
@@ -113,6 +114,16 @@ check("filter her", ids(filterByGroup(gi, "her")), ["a", "b"])
 check("filter couples", ids(filterByGroup(gi, "couples")), ["b"])
 check("filter games", ids(filterByGroup(gi, "games")), [])
 check("filter null", ids(filterByGroup(gi, null)), ["a", "b", "c"])
+
+// rankRelatedToys
+const rt = (id: string, ...groups: AfterDarkGroup[]) => ({ id, groups })
+const pool = [rt("b", "him"), rt("a", "her"), rt("c", "her", "couples"), rt("d", "games"), rt("e", "her")]
+check("related same group first", ids(rankRelatedToys("a", ["her"], pool, 3)), ["c", "e", "b"])
+check("related default n", ids(rankRelatedToys("a", ["her"], pool)), ["c", "e", "b", "d"])
+check("related no groups keeps order", ids(rankRelatedToys("a", [], pool, 4)), ["b", "c", "d", "e"])
+check("related empty", rankRelatedToys("a", ["her"], []), [])
+check("related only self", rankRelatedToys("a", ["her"], [rt("a", "her")]), [])
+check("related input untouched", ids(pool), ["b", "a", "c", "d", "e"])
 
 console.log(ok ? "ALL PASS" : "FAILURES ABOVE")
 if (!ok) process.exit(1)

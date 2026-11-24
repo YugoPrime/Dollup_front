@@ -76,6 +76,19 @@ export function filterByGroup<T extends { groups: AfterDarkGroup[] }>(
   return group ? items.filter((i) => i.groups.includes(group)) : items
 }
 
+// "More from After Dark": drops the current toy, puts toys sharing a group
+// with it first (stable, so the incoming order breaks ties), takes `n`.
+export function rankRelatedToys<T extends { id: string; groups: AfterDarkGroup[] }>(
+  currentId: string,
+  currentGroups: AfterDarkGroup[],
+  items: T[],
+  n = 4,
+): T[] {
+  const others = items.filter((i) => i.id !== currentId)
+  const shares = (i: T) => i.groups.some((g) => currentGroups.includes(g))
+  return [...others.filter(shares), ...others.filter((i) => !shares(i))].slice(0, n)
+}
+
 const waUrl = (text: string) => `${WHATSAPP_BASE}?text=${encodeURIComponent(text)}`
 
 export function askPrivatelyUrl(code?: string): string {

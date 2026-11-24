@@ -21,6 +21,13 @@ import {
   isUnlisted,
 } from "@/lib/visibility";
 import { AgeGateModal } from "@/components/product/AgeGateModal";
+import { ToyProductPage } from "@/components/after-dark/ToyProductPage";
+import {
+  AFTER_DARK_DESCRIPTION,
+  afterDarkCode,
+  afterDarkPageTitle,
+  isAfterDark,
+} from "@/lib/after-dark";
 
 export const revalidate = 60;
 const SITE_URL = "https://dollupboutique.com";
@@ -35,9 +42,25 @@ export async function generateMetadata({
   const { handle } = await params;
   const { product } = await getProductByHandle(handle);
   if (!product) return { title: "Product not found" };
+  const canonical = `/products/${product.handle}`;
+
+  // After Dark: a plain title with the code only, a neutral description, and
+  // explicit openGraph/twitter blocks. Leaving them undefined would inherit
+  // the root layout's (shallow merge), which carry the default og image.
+  if (isAfterDark(product)) {
+    const title = afterDarkPageTitle(afterDarkCode(product));
+    return {
+      title,
+      description: AFTER_DARK_DESCRIPTION,
+      robots: { index: false, follow: false, nocache: true },
+      alternates: { canonical },
+      openGraph: { title, description: AFTER_DARK_DESCRIPTION },
+      twitter: { card: "summary", title, description: AFTER_DARK_DESCRIPTION },
+    };
+  }
+
   const description = plainText(product.description ?? product.subtitle ?? "").slice(0, 155);
   const image = product.thumbnail ?? product.images?.[0]?.url ?? "/og-default.jpg";
-  const canonical = `/products/${product.handle}`;
 
   const ageRestricted = isAgeRestricted(product as unknown as {
     metadata?: unknown;
@@ -98,6 +121,11 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
   // Intimates products always reach the PDP — the age gate handles the rest.
   if (!isPubliclyListedStoreProduct(product, { unlocked })) {
     notFound();
+  }
+  // After Dark toys get their own page: gate, facts, plain title. No JSON-LD,
+  // breadcrumb, dress components, AgeGateModal or fashion related rail.
+  if (isAfterDark(productLike)) {
+    return <ToyProductPage product={product} />;
   }
   const ageRestricted = isAgeRestricted(productLike);
   const freeShippingThreshold = cfg.shipping.free_shipping_threshold_mur;
