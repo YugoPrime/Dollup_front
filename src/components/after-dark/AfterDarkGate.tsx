@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef } from "react";
 import {
   AGE_OK_CLASS,
   hasAgeCookie,
@@ -11,33 +11,42 @@ import { lockBodyScroll } from "@/lib/scroll-lock";
 
 // Full-screen 18+ check. Rendered on the server so a first visit with JS off
 // is covered; the `.dub-age-ok [data-age-gate]` rule (globals.css) hides it
-// for returning visitors before paint. z-[130]: above Header/MobileBottomNav
-// (100) and SalePopup (120), below CartDrawer (200).
+// for returning visitors before paint. It stays in the DOM, hidden, once
+// confirmed: its `data-after-dark` marker keeps SalePopup off After Dark
+// pages. z-[130]: above Header/MobileBottomNav (100) and SalePopup (120),
+// below CartDrawer (200).
 export function AfterDarkGate() {
-  const [open, setOpen] = useState(true);
   const yesRef = useRef<HTMLButtonElement>(null);
+  const releaseRef = useRef<(() => void) | null>(null);
 
-  // Returning visitor: close. Otherwise focus the Yes button.
-  useEffect(() => {
+  // Releasing twice is a no-op (scroll-lock.ts); nulling the ref keeps the
+  // Yes handler and the unmount cleanup from both trying.
+  const release = () => {
+    releaseRef.current?.();
+    releaseRef.current = null;
+  };
+
+  // Returning visitor (or one who confirmed in AgeGateModal this session,
+  // after the head script ran): put the class on <html> so the gate stays
+  // hidden. Layout effect, so a client navigation never paints it first.
+  // Otherwise focus Yes and lock the page until it is pressed.
+  useLayoutEffect(() => {
     if (hasAgeCookie(document.cookie)) {
-      setOpen(false);
+      document.documentElement.classList.add(AGE_OK_CLASS);
       return;
     }
     yesRef.current?.focus();
+    releaseRef.current = lockBodyScroll();
+    return () => {
+      releaseRef.current?.();
+      releaseRef.current = null;
+    };
   }, []);
-
-  // Separate effect so the lock is released as soon as `open` turns false
-  // (a cleanup in a mount-only effect would only run on unmount).
-  useEffect(() => {
-    if (!open) return;
-    return lockBodyScroll();
-  }, [open]);
-
-  if (!open) return null;
 
   return (
     <div
       data-age-gate
+      data-after-dark
       role="dialog"
       aria-modal="true"
       aria-labelledby="after-dark-gate-title"
@@ -66,8 +75,9 @@ export function AfterDarkGate() {
           type="button"
           onClick={() => {
             setAgeVerifiedCookie();
+            // The class hides the gate (globals.css); no re-render needed.
             document.documentElement.classList.add(AGE_OK_CLASS);
-            setOpen(false);
+            release();
           }}
           className="mt-6 w-full rounded-full bg-champagne-100 px-6 py-3.5 font-sans text-[12px] font-bold uppercase tracking-[0.14em] text-wine-900 transition hover:bg-champagne-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-champagne-gold"
         >
