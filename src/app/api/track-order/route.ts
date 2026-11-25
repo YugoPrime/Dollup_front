@@ -8,6 +8,7 @@ import {
   normalizePhone,
   parseOrderRef,
   readConfirmedAt,
+  readShippedAt,
   readTrackingCode,
   type TrackOrderResponse,
 } from "@/lib/track-order";
@@ -197,7 +198,7 @@ export async function POST(request: Request) {
       placedAt: toIso(order.created_at),
       confirmedAt: readConfirmedAt(order),
       packedAt: ful?.packed_at ? toIso(ful.packed_at) : null,
-      shippedAt: ful?.shipped_at ? toIso(ful.shipped_at) : null,
+      shippedAt: readShippedAt(order),
       deliveredAt: ful?.delivered_at ? toIso(ful.delivered_at) : null,
     },
   };
