@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { HttpTypes } from "@medusajs/types";
 import { useCart } from "@/components/cart/CartProvider";
 import { formatPrice, getDisplayPrice } from "@/lib/format";
@@ -60,6 +60,7 @@ export function MobilePdpHero({
   preorderEtaCopy,
   freeShippingLabel,
   initialNow,
+  afterDetails,
 }: {
   product: Product;
   descriptionHtml: string;
@@ -67,6 +68,8 @@ export function MobilePdpHero({
   preorderEtaCopy: string | null;
   freeShippingLabel: string;
   initialNow: number;
+  /** Rendered under the details, above the space kept for the sticky bar. */
+  afterDetails?: ReactNode;
 }) {
   const { addItem, loading: cartLoading } = useCart();
   const wished = useIsInWishlist(product.id);
@@ -605,6 +608,7 @@ export function MobilePdpHero({
           freeShippingLabel={freeShippingLabel}
         />
       </div>
+      {afterDetails ? <div className="px-4 pt-4">{afterDetails}</div> : null}
 
       {/* Sticky bottom CTA — matches the reference: cream price chip on a
           warm coral pill, with a small bag glyph next to the ADD TO BAG label.
