@@ -4,6 +4,7 @@ import { listStoreProducts } from "@/lib/medusa";
 import { getRegion } from "@/lib/region";
 import { PRODUCTS_CACHE_TAG } from "@/lib/products";
 import { isExcludedFromFeed, isUnlisted } from "@/lib/visibility";
+import { productCode, sizesInStock, type SizedVariant } from "@/lib/feed-labels";
 
 // Google Merchant Center / Meta Commerce product feed. Same XML schema serves
 // both: Meta's "Scheduled feed" data source accepts the Google Merchant RSS
@@ -234,7 +235,7 @@ async function fetchAllProducts(): Promise<HttpTypes.StoreProduct[]> {
 
 const cachedFeed = unstable_cache(
   async (siteUrl: string): Promise<string> => buildFeed(siteUrl),
-  ["meta-product-feed-v1"],
+  ["meta-product-feed-v2"],
   { tags: [PRODUCTS_CACHE_TAG], revalidate: 3600 },
 );
 
@@ -262,6 +263,13 @@ async function buildFeed(siteUrl: string): Promise<string> {
     const googleCategory = googleCategoryFor(product);
     const productType = productTypeFor(product);
     const newArrival = isNewArrival(product, nowMs);
+    const allVariants = (product.variants ?? []) as VariantLike[];
+    const productSkus = allVariants.map((v) => v.sku);
+    const sizedVariants: SizedVariant[] = allVariants.map((v) => ({
+      size: optionValue(v, "size"),
+      color: optionValue(v, "color"),
+      inStock: variantInStock(v),
+    }));
 
     for (const rawVariant of product.variants ?? []) {
       const variant = rawVariant as VariantLike;
@@ -321,6 +329,12 @@ async function buildFeed(siteUrl: string): Promise<string> {
       if (colorLabel) lines.push(`<g:color>${xmlEscape(colorLabel)}</g:color>`);
       // Recency flag for Meta Product Set filtering → "New Arrivals" ad set.
       if (newArrival) lines.push(`<g:custom_label_0>new_arrival</g:custom_label_0>`);
+      // Printed on the ad image by the Meta image template: the code customers
+      // quote in DMs, and the sizes still in stock in this card's colour.
+      const code = productCode([variant.sku, ...productSkus]);
+      if (code) lines.push(`<g:custom_label_1>${xmlEscape(code)}</g:custom_label_1>`);
+      const sizes = sizesInStock(sizedVariants, colorLabel);
+      if (sizes) lines.push(`<g:custom_label_2>${xmlEscape(sizes)}</g:custom_label_2>`);
 
       items.push(`    <item>\n      ${lines.join("\n      ")}\n    </item>`);
     }
