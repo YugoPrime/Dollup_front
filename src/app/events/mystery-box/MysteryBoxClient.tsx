@@ -22,6 +22,7 @@ import {
   MYSTERY_BOX_DAILY_LIMIT,
   useSpinCounter,
 } from "@/lib/mystery-box-client";
+import { ReplaceBagDialog } from "./ReplaceBagDialog";
 import { SpinWheel } from "./SpinWheel";
 
 type Props = {
@@ -56,6 +57,7 @@ export function MysteryBoxClient({ poolsBySize, regionId }: Props) {
   const [locking, setLocking] = useState(false);
   const [lockError, setLockError] = useState<LockError | null>(null);
   const [sizeChartOpen, setSizeChartOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const pool = size ? poolsBySize[size] ?? [] : [];
   const selectableCount = countSelectableSlots(pool);
@@ -64,10 +66,15 @@ export function MysteryBoxClient({ poolsBySize, regionId }: Props) {
     ? Math.max(0, box.total_value_mur - box.flat_price_mur)
     : 0;
 
-  const cartHasOtherItems = useMemo(
-    () => (cart?.items?.length ?? 0) > 0,
+  const bagPieceCount = useMemo(
+    () =>
+      (cart?.items ?? []).reduce(
+        (sum, item) => sum + Math.max(1, Number(item.quantity) || 1),
+        0,
+      ),
     [cart],
   );
+  const cartHasOtherItems = bagPieceCount > 0;
 
   const handleSpinEnd = useCallback(() => {
     setSpinning(false);
@@ -95,15 +102,18 @@ export function MysteryBoxClient({ poolsBySize, regionId }: Props) {
     }
   };
 
-  const handleLock = async () => {
+  const handleLock = () => {
     if (!box || !size || locking) return;
-
+    // The box checks out as its own bag: ask before replacing one with pieces.
     if (cartHasOtherItems) {
-      const ok = window.confirm(
-        "This will replace your current cart with the Mystery Box. Continue?",
-      );
-      if (!ok) return;
+      setConfirmOpen(true);
+      return;
     }
+    void lockBox();
+  };
+
+  const lockBox = async () => {
+    if (!box || !size || locking) return;
 
     setLocking(true);
     setLockError(null);
@@ -489,6 +499,17 @@ export function MysteryBoxClient({ poolsBySize, regionId }: Props) {
 
       {sizeChartOpen ? (
         <SizeChartModal onClose={() => setSizeChartOpen(false)} />
+      ) : null}
+
+      {confirmOpen ? (
+        <ReplaceBagDialog
+          pieceCount={bagPieceCount}
+          onCancel={() => setConfirmOpen(false)}
+          onConfirm={() => {
+            setConfirmOpen(false);
+            void lockBox();
+          }}
+        />
       ) : null}
     </div>
   );
