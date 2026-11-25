@@ -65,7 +65,7 @@ export function WishlistClient() {
         {ids.length > 0 && (
           <button
             onClick={() => {
-              if (confirm("Clear your wishlist?")) clearWishlist();
+              if (confirm("Clear your wishlist?")) clearWishlist({ byShopper: true });
             }}
             className="font-sans text-[11px] font-bold uppercase tracking-wider text-coral-500 hover:text-coral-700"
           >
