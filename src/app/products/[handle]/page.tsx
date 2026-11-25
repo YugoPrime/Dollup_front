@@ -22,6 +22,8 @@ import {
 } from "@/lib/visibility";
 import { AgeGateModal } from "@/components/product/AgeGateModal";
 import { ToyProductPage } from "@/components/after-dark/ToyProductPage";
+import { AfterDarkStrip } from "@/components/product/AfterDarkStrip";
+import { isLingerieProduct } from "@/lib/lingerie-teaser";
 import {
   AFTER_DARK_DESCRIPTION,
   afterDarkCode,
@@ -138,6 +140,7 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
   const productCode = extractProductCode(product);
   const { sizes: sizeAvailability } = getSizeAvailability(product);
   const quickInfoPrice = getDisplayPrice(product);
+  const showAfterDarkStrip = isLingerieProduct(product.categories);
 
   return (
     <div>
@@ -192,6 +195,7 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
         preorderEtaCopy={cfg.shipping.preorder_eta_copy}
         freeShippingLabel={freeShippingLabel}
         initialNow={adventNowMs()}
+        afterDetails={showAfterDarkStrip ? <AfterDarkStrip /> : null}
       />
 
       <div className="hidden md:block">
@@ -215,6 +219,7 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
             sizeChartHtml={sizeChartHtml}
             initialNow={adventNowMs()}
           />
+          {showAfterDarkStrip ? <AfterDarkStrip className="mt-5" /> : null}
           <div className="mt-6">
             <ProductAccordion
               descriptionHtml={descriptionHtml}
