@@ -182,8 +182,8 @@ function pickImageForColor(product: Product, color: string | null): string | nul
 
 // Serialisable slice handed to the client-side quick-add sheet. Keeps the
 // client bundle free of the full Medusa product while still carrying every
-// option/variant combination with its stock state.
-function toQuickAddProduct(
+// option/variant combination with its stock state. Also used by AfterDarkCard.
+export function toQuickAddProduct(
   product: Product,
   thumb: string | null,
   price: ReturnType<typeof getDisplayPrice>,

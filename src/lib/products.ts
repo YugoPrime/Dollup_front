@@ -14,7 +14,8 @@ import { listStoreProducts, sdk } from "./medusa";
 import { getRegion } from "./region";
 import type { HttpTypes } from "@medusajs/types";
 import type { CanonicalSize, MysteryBoxSlot } from "@/lib/mystery-box";
-import { isInIntimatesCategory, isUnlisted } from "@/lib/visibility";
+import { isUnlisted } from "@/lib/visibility";
+import { applyAfterDarkScope, isAfterDark, type AfterDarkScope } from "@/lib/after-dark";
 
 export const SHOP_FACETS_CACHE_TAG = "shop-facets";
 export const PRODUCTS_CACHE_TAG = "products";
@@ -185,6 +186,9 @@ export type ListProductsArgs = {
   // When true, do not strip `metadata.unlisted` products. Used by the
   // private-unlock catalog. Defaults to false.
   unlocked?: boolean;
+  // After Dark (intimates + toys) scope. Default "exclude": every catalog list
+  // hides them. Only the After Dark page and toy page pass "only" / "all".
+  afterDark?: AfterDarkScope;
 };
 
 // Not wrapped in unstable_cache: the data cache keeps one entry per argument
@@ -263,6 +267,7 @@ function normalizeListProductArgs(args: ListProductsArgs): ListProductsArgs {
     priceMax: args.priceMax,
     sortPrice: args.sortPrice,
     unlocked: args.unlocked,
+    afterDark: args.afterDark ?? "exclude",
   };
 }
 
@@ -293,6 +298,7 @@ async function listWithFacetFilters(
     (p) =>
       (p.metadata as Record<string, unknown> | null | undefined)?.is_preorder !== true,
   );
+  filtered = applyAfterDarkScope(filtered, args.afterDark ?? "exclude");
 
   if (args.category) {
     const ids = new Set(Array.isArray(args.category) ? args.category : [args.category]);
@@ -726,6 +732,7 @@ async function computeShopFacets(args: {
     return (
       meta.is_preorder !== true &&
       !isUnlisted(p as unknown as { metadata?: unknown }) &&
+      !isAfterDark(p) &&
       (p.variants ?? []).some((v) => isVariantInStock(v))
     );
   });
@@ -826,6 +833,7 @@ const cachedProductFacetIndex = unstable_cache(
       const meta = (p.metadata ?? {}) as Record<string, unknown>;
       if (meta.is_preorder === true) continue;
       if (isUnlisted(p as unknown as { metadata?: unknown })) continue;
+      if (isAfterDark(p)) continue;
       const sizes = new Set<string>();
       const colors = new Set<string>();
       let lowest = Infinity;
@@ -1089,6 +1097,7 @@ const cachedCategoryHandlesWithStock = unstable_cache(
       const meta = (p.metadata ?? {}) as Record<string, unknown>;
       if (meta.is_preorder === true) continue;
       if (isUnlisted(p as unknown as { metadata?: unknown })) continue;
+      if (isAfterDark(p)) continue;
       const hasStock = (p.variants ?? []).some((v) => isVariantInStock(v));
       if (!hasStock) continue;
       for (const c of p.categories ?? []) {
@@ -1301,8 +1310,8 @@ export async function listInStockProductsForSizes(
 
   for (const product of products) {
     if (product.discountable === false) continue;
-    // Mystery box must never pick Intimates products or unlisted items.
-    if (isInIntimatesCategory(product as unknown as { categories?: Array<{ handle?: string | null }> })) continue;
+    // Mystery box must never pick After Dark (intimates + toys) or unlisted items.
+    if (isAfterDark(product)) continue;
     if (isUnlisted(product as unknown as { metadata?: unknown })) continue;
 
     for (const rawVariant of product.variants ?? []) {

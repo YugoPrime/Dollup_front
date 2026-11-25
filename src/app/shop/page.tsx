@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
 import { ArrowRight } from "lucide-react";
 import {
@@ -17,6 +18,7 @@ import { ShopSortDropdown } from "@/components/shop/ShopSortDropdown";
 import { ShopMobileClient } from "@/components/shop/ShopMobileClient";
 import { OptimisticGrid, OptimisticCardSlot } from "@/components/shop/OptimisticGrid";
 import { AFTER_DARK_CATEGORY_HANDLES } from "@/lib/products-order";
+import { AFTER_DARK_PATH, afterDarkRedirect } from "@/lib/after-dark";
 
 export const revalidate = 300;
 
@@ -42,6 +44,7 @@ export async function generateMetadata({
   searchParams: SearchParams;
 }): Promise<Metadata> {
   const sp = await searchParams;
+  if (afterDarkRedirect(sp.category, sp.q)) return {};
   const title = sp.q
     ? `Search results for ${sp.q}`
     : sp.category
@@ -69,6 +72,8 @@ export default async function ShopPage({
   searchParams: SearchParams;
 }) {
   const sp = await searchParams;
+  const ad = afterDarkRedirect(sp.category, sp.q);
+  if (ad) permanentRedirect(ad);
   const categoryHandle = sp.category ?? null;
   const q = sp.q ?? undefined;
   const tagValue = sp.tag ?? null;
@@ -103,6 +108,14 @@ export default async function ShopPage({
   // upstream Medusa hiccup; the components fall back to "show everything" when
   // they receive an empty list, so the sidebar/sheet never blank-out the tree.
   const stockedHandles = Array.from(stockedHandlesSet);
+  const shopCategories = allCategories
+    .filter((c) => !AFTER_DARK_CATEGORY_HANDLES.includes(c.handle ?? ""))
+    .map((c) => ({
+      id: c.id,
+      name: c.name,
+      handle: c.handle,
+      parent_category_id: c.parent_category_id,
+    }));
   const latestTag = latestCollection?.value ?? null;
   // Trim trailing slashes so /shop?category=beachwear/ still matches "beachwear".
   const normalizedHandle = categoryHandle?.replace(/\/+$/, "") ?? null;
@@ -168,6 +181,23 @@ export default async function ShopPage({
       onSale,
     }).catch(() => ({ sizes: [], colors: [], priceMin: 0, priceMax: 0 })),
   ]);
+  // Text-only pointer: toys never show in search, so say how many matched.
+  const adMatches = q
+    ? (
+        await listProducts({ q, afterDark: "only", limit: 1 }).catch(() => ({
+          count: 0,
+        }))
+      ).count
+    : 0;
+  const adPointer =
+    adMatches > 0 ? (
+      <Link
+        href={`${AFTER_DARK_PATH}?q=${encodeURIComponent(q ?? "")}`}
+        className="mt-2 inline-flex font-sans text-[13px] font-medium text-wine-800 underline underline-offset-2"
+      >
+        {adMatches} {adMatches === 1 ? "match" : "matches"} in After Dark (18+) →
+      </Link>
+    ) : null;
   // listProducts owns preorder/unlisted/out-of-stock filtering before
   // pagination, so the count and grid stay aligned.
   const products = productsRes.products;
@@ -202,7 +232,7 @@ export default async function ShopPage({
       />
       {showIntimatesTeaser ? (
         <Link
-          href="/shop?category=intimates"
+          href={AFTER_DARK_PATH}
           className="group block border-b border-blush-100 bg-gradient-to-r from-coral-500 via-coral-700 to-ink px-4 py-3 text-white transition hover:from-ink hover:via-coral-700 hover:to-coral-500 md:px-8 md:py-4"
         >
           <div className="mx-auto flex max-w-[1280px] items-center justify-between gap-4">
@@ -239,6 +269,8 @@ export default async function ShopPage({
             {title} <em className="not-italic text-coral-450" style={{ fontStyle: "italic" }}>collection</em>
           </h1>
           <p className="mt-1.5 font-sans text-[12px] text-ink-muted md:text-[13px]">{total} {total === 1 ? "style" : "styles"}</p>
+          {/* With no results the pointer sits in EmptyState instead: one line only. */}
+          {products.length > 0 ? adPointer : null}
         </div>
         <div className="mt-3 md:mt-0">
           <ShopSortDropdown />
@@ -246,30 +278,20 @@ export default async function ShopPage({
       </div>
 
       <ShopMobileClient
-        categories={allCategories.map((c) => ({
-          id: c.id,
-          name: c.name,
-          handle: c.handle,
-          parent_category_id: c.parent_category_id,
-        }))}
+        categories={shopCategories}
         stockedHandles={stockedHandles}
         facets={facets}
       />
 
       <div className="mx-auto grid max-w-[1280px] gap-6 px-4 pb-[72px] pt-3 md:grid-cols-[260px_1fr] md:items-start md:px-8 md:pb-12 md:pt-6">
         <ShopFilterSidebar
-          categories={allCategories.map((c) => ({
-            id: c.id,
-            name: c.name,
-            handle: c.handle,
-            parent_category_id: c.parent_category_id,
-          }))}
+          categories={shopCategories}
           stockedHandles={stockedHandles}
           facets={facets}
         />
         <div>
           {products.length === 0 ? (
-            <EmptyState />
+            <EmptyState pointer={adPointer} />
           ) : (
             <>
               <OptimisticGrid>
@@ -374,11 +396,12 @@ function jsonLd(data: unknown) {
   return JSON.stringify(data).replace(/</g, "\\u003c");
 }
 
-function EmptyState() {
+function EmptyState({ pointer }: { pointer: React.ReactNode }) {
   return (
     <div className="flex flex-col items-center px-10 py-20 text-center">
       <p className="mb-2 font-display text-lg text-ink">No products found</p>
       <p className="font-sans text-[14px] text-ink-muted">Try adjusting your filters or check back soon.</p>
+      {pointer}
     </div>
   );
 }

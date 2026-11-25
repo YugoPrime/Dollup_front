@@ -15,6 +15,12 @@ const ProductCardVariantSheet = dynamic(
   { ssr: false, loading: () => null },
 );
 
+const QUICK_ADD_TONE = {
+  default: "bg-white/95 text-ink hover:bg-white",
+  // After Dark cards: wine pill, same sizes.
+  wine: "bg-wine-800 text-champagne-100 hover:bg-wine-700",
+} as const;
+
 /**
  * Card-level add-to-bag. Single-variant products add straight away;
  * multi-variant products open an inline size/colour sheet instead of
@@ -28,12 +34,17 @@ export function ProductCardQuickAdd({
   isMultiVariant,
   variantId,
   label,
+  addLabel = "Quick add",
   quickAdd,
+  tone = "default",
 }: {
   isMultiVariant: boolean;
   variantId?: string | null;
   label: string;
+  // Single-variant button text (the Plus icon sits before it).
+  addLabel?: string;
   quickAdd: QuickAddProduct;
+  tone?: "default" | "wine";
 }) {
   const { addItem, loading } = useCart();
   const [busy, setBusy] = useState(false);
@@ -62,10 +73,10 @@ export function ProductCardQuickAdd({
           disabled={busy || loading || (!isMultiVariant && !variantId)}
           aria-haspopup={isMultiVariant ? "dialog" : undefined}
           aria-label={isMultiVariant ? `${label} for ${quickAdd.title}` : `Add ${quickAdd.title} to bag`}
-          className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-white/95 px-4 font-sans text-[12px] font-bold uppercase tracking-wider text-ink shadow-[0_2px_8px_rgba(0,0,0,0.12)] backdrop-blur transition-colors hover:bg-white disabled:opacity-60 md:w-full md:justify-center md:rounded-md"
+          className={`inline-flex min-h-11 items-center gap-1.5 rounded-full px-4 font-sans text-[12px] font-bold uppercase tracking-wider shadow-[0_2px_8px_rgba(0,0,0,0.12)] backdrop-blur transition-colors disabled:opacity-60 md:w-full md:justify-center md:rounded-md ${QUICK_ADD_TONE[tone]}`}
         >
           {!isMultiVariant && !busy ? <Plus size={14} aria-hidden="true" /> : null}
-          {busy ? "Adding…" : isMultiVariant ? label : "Quick add"}
+          {busy ? "Adding…" : isMultiVariant ? label : addLabel}
         </button>
       </div>
       {sheetOpen ? (

@@ -1,5 +1,6 @@
 import { seasonalNavLink } from "./advent";
 import { SALE_PATH, isSaleActive } from "./sale-campaign";
+import { AFTER_DARK_PATH } from "./after-dark";
 
 export type NavLink = {
   label: string;
@@ -23,7 +24,7 @@ export const NAV_LINKS: NavLink[] = [
     ],
   },
   { label: "Lingerie", href: "/shop?category=lingerie" },
-  { label: "After Dark", href: "/shop?category=intimates", badge: "hot" },
+  { label: "After Dark", href: AFTER_DARK_PATH, badge: "hot" },
   { label: "Beachwear", href: "/shop?category=beachwear" },
   { label: "Accessories", href: "/shop?category=accessories" },
   { label: "Sale", href: SALE_PATH },
@@ -33,7 +34,7 @@ export const FOOTER_SHOP = [
   { label: "All Products", href: "/shop" },
   { label: "Dresses", href: "/shop?category=dresses" },
   { label: "Lingerie", href: "/shop?category=lingerie" },
-  { label: "After Dark", href: "/shop?category=intimates" },
+  { label: "After Dark", href: AFTER_DARK_PATH },
   { label: "Beachwear", href: "/shop?category=beachwear" },
   { label: "Accessories", href: "/shop?category=accessories" },
   { label: "Sale", href: SALE_PATH },

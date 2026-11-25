@@ -32,6 +32,10 @@ const RETRY_MS = 1000;
  * sits in the header and doesn't count.
  */
 function blocked(): boolean {
+  // Never over After Dark: /after-dark is left out by path (isPopupPath), and
+  // toy pages carry the 18+ check's data-after-dark marker, which stays in
+  // the DOM (hidden) after the check is confirmed.
+  if (document.querySelector("[data-after-dark]")) return true;
   if (document.querySelector('[aria-modal="true"], [data-focus-trap-fallback]')) return true;
   const card = document.querySelector("[data-consent-card]");
   return card !== null && card.getClientRects().length > 0;

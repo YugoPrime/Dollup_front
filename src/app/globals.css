@@ -1,6 +1,18 @@
 @import "tailwindcss";
 
 @theme {
+  --color-wine-950: #260B14;
+  --color-wine-900: #36121D;
+  --color-wine-800: #4A1C2B;
+  --color-wine-700: #56202F;
+  --color-champagne-50: #F6EBDD;
+  --color-champagne-100: #F3E6D3;
+  --color-champagne-200: #E7D3C4;
+  --color-champagne-gold: #D4B47A;
+  --color-champagne-gold-soft: #D9B97E;
+  /* Gold-brown for small caps on white (After Dark card facts line). The
+     mockup's #9B6F3F, a touch darker so 9px text passes AA (4.8:1 on white). */
+  --color-champagne-bronze: #946A3B;
   --color-cream: #FDF8F7;
   --color-cream-50: #FFFCFB;
   --color-cream-100: #FAF1EE;
@@ -42,6 +54,59 @@
   --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
 
   --radius-pill: 9999px;
+
+  /* After Dark hero toy: slow 6 s bob, its shadow breathing in step.
+     Applied only through `motion-safe:` utilities. */
+  --animate-after-dark-float: after-dark-float 6s ease-in-out infinite;
+  --animate-after-dark-shadow: after-dark-shadow 6s ease-in-out infinite;
+  @keyframes after-dark-float {
+    50% { transform: translateY(-7px); }
+  }
+  @keyframes after-dark-shadow {
+    50% { transform: scaleX(0.85); opacity: 0.7; }
+  }
+}
+
+/* After Dark 18+ gate: hidden before paint for returning visitors (see age-gate.ts) */
+.dub-age-ok [data-age-gate] { display: none !important; }
+
+/* After Dark hero band (mockup afterdark-hero-bg-v3, option a): smooth wine,
+   no pattern. The champagne spotlight sits behind the toy itself. */
+.after-dark-hero-bg {
+  background:
+    radial-gradient(ellipse 90% 70% at 20% 0%, color-mix(in srgb, var(--color-wine-700) 70%, transparent), transparent 70%),
+    linear-gradient(170deg, var(--color-wine-800) 0%, var(--color-wine-900) 60%, var(--color-wine-950) 100%);
+}
+.after-dark-spotlight {
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--color-champagne-50) 40%, transparent),
+    color-mix(in srgb, var(--color-champagne-50) 10%, transparent) 64%,
+    transparent
+  );
+}
+/* Floor shadow under the hero toy: a soft radial fade, never a hard bar. */
+.after-dark-toy-shadow {
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--color-wine-950) 55%, transparent),
+    color-mix(in srgb, var(--color-wine-950) 18%, transparent) 60%,
+    transparent
+  );
+}
+
+/* After Dark focus rings. The global coral ring (`button:focus-visible,
+   a:focus-visible` below) is unlayered, so it beats Tailwind's
+   focus-visible:outline-* utilities. Wine on the light After Dark pages, gold
+   on the wine surfaces (hero band, toy page bar) and the 18+ check. Same
+   specificity: the wine/gate rule comes last so it wins where they nest. */
+[data-after-dark-surface="light"] :is(a, button):focus-visible {
+  outline-color: var(--color-wine-800);
+}
+[data-after-dark-surface="wine"] :is(a, button):focus-visible,
+[data-age-gate] :is(a, button):focus-visible {
+  outline-color: var(--color-champagne-gold);
 }
 
 :root {

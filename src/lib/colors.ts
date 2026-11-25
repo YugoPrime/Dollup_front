@@ -53,3 +53,9 @@ export function colorNameToHex(name: string): string {
   const key = name.trim().toLowerCase();
   return COLOR_HEX[key] ?? COLOR_BG[key] ?? FALLBACK;
 }
+
+/** True when `name` (trimmed, lowercased) is a known colour key. */
+export function isColorName(name: string): boolean {
+  const key = name.trim().toLowerCase();
+  return key in COLOR_HEX || key in COLOR_BG;
+}

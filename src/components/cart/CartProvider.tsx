@@ -21,6 +21,7 @@ import {
   setStoredCartType,
 } from "@/lib/cart-client";
 import { trackAddToCart } from "@/lib/analytics";
+import { isAfterDarkLine } from "@/lib/after-dark";
 import { canAddItem, cartTypeOf, type CartType } from "@/lib/cart-type";
 import { ADVENT_GIFT, giftsToRevert } from "@/lib/cart-gifts";
 import { settleOutcome, type SettleOutcome } from "@/lib/advent-cart";
@@ -311,7 +312,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         const addedLine = updated.items?.find(
           (i) => i.variant_id === variantId,
         );
-        if (addedLine) {
+        if (addedLine && !isAfterDarkLine(addedLine)) {
           trackAddToCart({
             variantId,
             productId: addedLine.product_id ?? undefined,

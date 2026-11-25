@@ -93,7 +93,7 @@ const blocked = [
   "/preorder", "/preorder/checkout",
   "/sale", "/sale/", "/checkout", "/checkout/success", "/account", "/account/orders",
   "/login", "/register", "/forgot-password", "/reset-password", "/auth/callback",
-  "/track-order", "/private/x",
+  "/track-order", "/private/x", "/after-dark", "/after-dark/x",
 ]
 check("popup allowed paths", allowed.map(isPopupPath), allowed.map(() => true))
 check("popup blocked paths", blocked.map(isPopupPath), blocked.map(() => false))

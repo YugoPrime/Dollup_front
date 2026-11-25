@@ -11,6 +11,7 @@ import { TagManager, TagManagerNoScript } from "@/components/analytics/TagManage
 import { RouteChangeTracker } from "@/components/analytics/RouteChangeTracker";
 import { ConsentBanner } from "@/components/analytics/ConsentBanner";
 import { CONSENT_BOOTSTRAP_SCRIPT } from "@/lib/analytics";
+import { AGE_BOOTSTRAP_SCRIPT } from "@/lib/age-gate";
 import { PwaSetup } from "@/components/pwa/PwaSetup";
 import { SalePopup } from "@/components/sale/SalePopup";
 
@@ -132,6 +133,7 @@ export default function RootLayout({
     <html
       lang="en-MU"
       data-scroll-behavior="smooth"
+      suppressHydrationWarning
       className={`${playfair.variable} ${dmSans.variable} h-full antialiased`}
     >
       <head>
@@ -140,6 +142,10 @@ export default function RootLayout({
         <script
           id="dub-consent-bootstrap"
           dangerouslySetInnerHTML={{ __html: CONSENT_BOOTSTRAP_SCRIPT }}
+        />
+        <script
+          id="dub-age-bootstrap"
+          dangerouslySetInnerHTML={{ __html: AGE_BOOTSTRAP_SCRIPT }}
         />
         <TagManager />
       </head>
