@@ -25,6 +25,8 @@ import { sanitizeRichText } from "@/lib/sanitize-html";
 import { NewArrivalsRail } from "@/components/home/NewArrivalsRail";
 import { LoyaltyTeaser } from "@/components/home/LoyaltyTeaser";
 import { MysteryBoxTeaser } from "@/components/home/MysteryBoxTeaser";
+import { MysteryBoxGate } from "@/components/events/MysteryBoxGate";
+import { isMysteryBoxPaused } from "@/lib/mystery-box";
 import { InstagramMosaic } from "@/components/home/InstagramMosaic";
 import { BabeEssentials } from "@/components/home/BabeEssentials";
 import {
@@ -84,7 +86,9 @@ export default function HomePage() {
       <Suspense fallback={<EssentialsSkeleton />}>
         <BabeEssentialsSection />
       </Suspense>
-      <MysteryBoxTeaser />
+      <MysteryBoxGate initialPaused={isMysteryBoxPaused()}>
+        <MysteryBoxTeaser />
+      </MysteryBoxGate>
       <LoyaltyTeaser />
       <Suspense fallback={<InstagramSkeleton />}>
         <InstagramMosaic />

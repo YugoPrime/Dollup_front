@@ -1,10 +1,40 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { Gift, Heart, ShoppingBag, Tag, Target } from "lucide-react";
 import { getRegion } from "@/lib/region";
 import { listInStockProductsForSizes } from "@/lib/products";
-import type { CanonicalSize, MysteryBoxSlot } from "@/lib/mystery-box";
+import {
+  isMysteryBoxPaused,
+  mysteryBoxReopensLabel,
+  type CanonicalSize,
+  type MysteryBoxSlot,
+} from "@/lib/mystery-box";
+import { SALE_CAMPAIGN, SALE_PATH } from "@/lib/sale-campaign";
 import { MysteryBoxClient } from "./MysteryBoxClient";
+
+function MysteryBoxPausedCard() {
+  return (
+    <section className="rounded-xl border border-blush-400 bg-white p-6 text-center shadow-[0_10px_30px_rgba(26,18,18,0.06)] md:p-10">
+      <p className="mb-2 font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-coral-500">
+        Back soon
+      </p>
+      <h2 className="mx-auto max-w-[560px] font-display text-[26px] leading-tight text-ink md:text-[34px]">
+        The Mystery Box is resting during {SALE_CAMPAIGN.name}.
+      </h2>
+      <p className="mx-auto mt-3 max-w-[460px] font-sans text-[14px] leading-[1.55] text-ink-soft">
+        Our pieces are already on sale, so a box can&apos;t beat this
+        week&apos;s prices. Spin the wheel again from {mysteryBoxReopensLabel()}.
+      </p>
+      <Link
+        href={SALE_PATH}
+        className="mt-6 inline-flex min-h-12 items-center rounded-full bg-coral-500 px-8 py-3 font-sans text-[12px] font-bold uppercase tracking-[0.16em] text-white transition-colors hover:bg-coral-700"
+      >
+        Shop {SALE_CAMPAIGN.name}
+      </Link>
+    </section>
+  );
+}
 
 export const metadata: Metadata = {
   title: "Mystery Box | Spin the wheel",
@@ -40,11 +70,16 @@ export default async function MysteryBoxPage() {
     );
   }
 
-  let poolsBySize: Partial<Record<CanonicalSize, MysteryBoxSlot[]>>;
-  try {
-    poolsBySize = await listInStockProductsForSizes(SIZES, region.id);
-  } catch {
-    poolsBySize = {};
+  // Off while a sale runs: no pool, no wheel, a "back on <day>" card instead.
+  const paused = isMysteryBoxPaused();
+
+  let poolsBySize: Partial<Record<CanonicalSize, MysteryBoxSlot[]>> = {};
+  if (!paused) {
+    try {
+      poolsBySize = await listInStockProductsForSizes(SIZES, region.id);
+    } catch {
+      poolsBySize = {};
+    }
   }
 
   return (
@@ -158,7 +193,11 @@ export default async function MysteryBoxPage() {
         </header>
 
         <main className="mt-8">
-          <MysteryBoxClient poolsBySize={poolsBySize} regionId={region.id} />
+          {paused ? (
+            <MysteryBoxPausedCard />
+          ) : (
+            <MysteryBoxClient poolsBySize={poolsBySize} regionId={region.id} />
+          )}
         </main>
 
         <p className="mt-10 font-sans text-[11px] text-ink-muted">

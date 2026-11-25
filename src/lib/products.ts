@@ -13,7 +13,12 @@ import { unstable_cache } from "next/cache";
 import { listStoreProducts, sdk } from "./medusa";
 import { getRegion } from "./region";
 import type { HttpTypes } from "@medusajs/types";
-import type { CanonicalSize, MysteryBoxSlot } from "@/lib/mystery-box";
+import {
+  isMysteryBoxProduct,
+  isSalePriced,
+  type CanonicalSize,
+  type MysteryBoxSlot,
+} from "@/lib/mystery-box";
 import { isUnlisted } from "@/lib/visibility";
 import { applyAfterDarkScope, isAfterDark, type AfterDarkScope } from "@/lib/after-dark";
 
@@ -1301,18 +1306,17 @@ export async function listInStockProductsForSizes(
     limit: MYSTERY_BOX_POOL_LIMIT,
     fields:
       "id,title,handle,thumbnail,discountable,metadata," +
-      "*categories," +
+      "*categories,tags.value," +
       "variants.id,variants.sku,variants.title,+variants.inventory_quantity," +
       "+variants.manage_inventory,variants.metadata," +
       "variants.calculated_price.calculated_amount," +
+      "variants.calculated_price.original_amount," +
       "variants.options.value",
   });
 
   for (const product of products) {
-    if (product.discountable === false) continue;
-    // Mystery box must never pick After Dark (intimates + toys) or unlisted items.
-    if (isAfterDark(product)) continue;
-    if (isUnlisted(product as unknown as { metadata?: unknown })) continue;
+    // Never After Dark, Ali30 (collection30), unlisted or non-discountable.
+    if (!isMysteryBoxProduct(product)) continue;
 
     for (const rawVariant of product.variants ?? []) {
       const variant = rawVariant as HttpTypes.StoreProductVariant & {
@@ -1332,6 +1336,8 @@ export async function listInStockProductsForSizes(
         );
       if (!size) continue;
 
+      // A sale price would make the box worth less than its flat price.
+      if (isSalePriced(variant.calculated_price)) continue;
       const price = Number(
         variant.calculated_price?.calculated_amount ?? 0,
       );
