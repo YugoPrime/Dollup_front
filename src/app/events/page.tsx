@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AdventEventsCard } from "@/components/advent/AdventEventsCard";
 import { adventNowMs } from "@/lib/advent";
+import { MysteryBoxGate } from "@/components/events/MysteryBoxGate";
+import { isMysteryBoxPaused } from "@/lib/mystery-box";
 
 export const metadata: Metadata = {
   title: "Events & Giveaways",
@@ -40,7 +42,8 @@ export default function EventsPage() {
       {/* Advent calendar: switches itself off after 24 Dec */}
       <AdventEventsCard initialNow={adventNowMs()} />
 
-      {/* Mystery Box */}
+      {/* Mystery Box: hidden while a sale runs (the box is off then) */}
+      <MysteryBoxGate initialPaused={isMysteryBoxPaused()}>
       <section className="bg-ink px-6 py-14 text-white md:px-10 md:py-20">
         <div className="mx-auto grid max-w-[1100px] gap-10 md:grid-cols-[1fr_1.1fr] md:items-center">
           <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-gradient-to-br from-coral-700 via-coral-500 to-coral-300 md:order-2">
@@ -103,6 +106,7 @@ export default function EventsPage() {
           </div>
         </div>
       </section>
+      </MysteryBoxGate>
 
       {/* Footer CTA */}
       <section className="px-6 py-12 md:px-10 md:py-16">

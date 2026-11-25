@@ -7,6 +7,7 @@ import { ChevronRight, Ruler, ShoppingBag, X } from "lucide-react";
 import { useCart } from "@/components/cart/CartProvider";
 import { clientSdk, setStoredCartId } from "@/lib/cart-client";
 import {
+  canFillBox,
   countSelectableSlots,
   generateBoxId,
   MYSTERY_BOX_FLAT_PRICE_MUR,
@@ -58,7 +59,7 @@ export function MysteryBoxClient({ poolsBySize, regionId }: Props) {
 
   const pool = size ? poolsBySize[size] ?? [] : [];
   const selectableCount = countSelectableSlots(pool);
-  const poolReady = selectableCount >= MYSTERY_BOX_SLOT_COUNT;
+  const poolReady = canFillBox(pool);
   const savings = box
     ? Math.max(0, box.total_value_mur - box.flat_price_mur)
     : 0;
@@ -180,9 +181,7 @@ export function MysteryBoxClient({ poolsBySize, regionId }: Props) {
         </div>
         <div className="flex flex-wrap gap-2">
           {SIZE_OPTIONS.map((option) => {
-            const available =
-              countSelectableSlots(poolsBySize[option] ?? []) >=
-              MYSTERY_BOX_SLOT_COUNT;
+            const available = canFillBox(poolsBySize[option] ?? []);
             const disabled = !available || spinning;
             return (
               <button
