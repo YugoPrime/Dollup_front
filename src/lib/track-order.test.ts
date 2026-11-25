@@ -35,6 +35,10 @@ check("still reads the old tracking_code", readTrackingCode(order({ metadata: { 
 check("reads a fulfilment's tracking_number", readTrackingCode(order({ fulfillments: [{ metadata: { tracking_number: "EE9MU" } }] })), "EE9MU")
 check("blank number is no number", readTrackingCode(order({ metadata: { tracking_number: "  " } })), null)
 check("tracking link", buildTrackingUrl("RR123456789MU"), "https://www.mauritiuspost.mu/track-trace/?tracking_code=RR123456789MU")
+// Rahvi's example link, 26 Nov 2026: opens straight on the parcel's history.
+check("Rahvi's example link", buildTrackingUrl("DP207137471MU"), "https://www.mauritiuspost.mu/track-trace/?tracking_code=DP207137471MU")
+check("lower case and spaces are cleaned", readTrackingCode(order({ metadata: { tracking_number: "dp 207137471 mu" } })), "DP207137471MU")
+check("link is cleaned too", buildTrackingUrl("dp207137471mu "), "https://www.mauritiuspost.mu/track-trace/?tracking_code=DP207137471MU")
 
 check("Postage is postage", isPostageOrder(shippedPostage), true)
 check("Express Postage is postage", isPostageOrder(order({ metadata: { delivery_method: "Express Postage" } })), true)

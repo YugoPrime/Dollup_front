@@ -76,7 +76,7 @@ export function normalizePhone(input: string): string {
 
 export function buildTrackingUrl(code: string | null): string | null {
   if (!code) return null;
-  return `${MAURITIUS_POST_TRACK_URL}${encodeURIComponent(code)}`;
+  return `${MAURITIUS_POST_TRACK_URL}${encodeURIComponent(normalizeTrackingCode(code))}`;
 }
 
 // Staff save the Mauritius Post number as metadata.tracking_number
@@ -92,10 +92,20 @@ export function readTrackingCode(
   for (const meta of sources) {
     for (const key of TRACKING_KEYS) {
       const value = meta?.[key];
-      if (typeof value === "string" && value.trim()) return value.trim();
+      if (typeof value === "string" && value.trim()) {
+        return normalizeTrackingCode(value);
+      }
     }
   }
   return null;
+}
+
+/**
+ * "dp 207137471 mu" → "DP207137471MU". Mauritius Post numbers have no
+ * spaces and are upper case; one saved number ends in "mu" (26 Nov 2026).
+ */
+export function normalizeTrackingCode(code: string): string {
+  return code.replace(/\s+/g, "").toUpperCase();
 }
 
 /** Postage, Express Postage, Rodrigues Postage: parcels go by Mauritius Post. */
