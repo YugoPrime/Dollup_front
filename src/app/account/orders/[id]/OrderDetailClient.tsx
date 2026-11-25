@@ -8,6 +8,12 @@ import type { HttpTypes } from "@medusajs/types";
 import { useCustomer } from "@/lib/auth-client";
 import { clientSdk } from "@/lib/cart-client";
 import { formatPrice } from "@/lib/format";
+import {
+  buildTrackingUrl,
+  deriveStatus,
+  isPostageOrder,
+  readTrackingCode,
+} from "@/lib/track-order";
 
 // Medusa v2 SDK fields syntax: `+field` includes computed fields normally
 // omitted (totals), `*relation` expands a relation. Without the `+` prefix,
@@ -24,7 +30,9 @@ const ORDER_FIELDS =
   "id,+display_id,status,payment_status,fulfillment_status,currency_code,created_at,email," +
   "+total,+item_total,+subtotal,+shipping_total,+shipping_subtotal,+tax_total,+discount_total," +
   "*items,*items.variant,*items.product," +
-  "*shipping_address,*billing_address";
+  "*shipping_address,*billing_address," +
+  // delivery_method, tracking_number and shipped_at (Mauritius Post tracking).
+  "+metadata,*fulfillments";
 
 export function OrderDetailClient({ orderId }: { orderId: string }) {
   const router = useRouter();
@@ -72,6 +80,9 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
       </div>
     );
   }
+
+  const trackingCode =
+    order && isPostageOrder(order) ? readTrackingCode(order) : null;
 
   return (
     <div className="mx-auto max-w-[900px] px-4 py-8 md:px-8 md:py-12">
@@ -204,6 +215,26 @@ export function OrderDetailClient({ orderId }: { orderId: string }) {
             </section>
 
             <section className="space-y-4">
+              {trackingCode ? (
+                <div className="rounded-xl border border-blush-300 bg-white p-6">
+                  <h2 className="font-display text-base text-ink">Tracking</h2>
+                  <p className="mt-2 font-sans text-[13px] text-ink-soft">
+                    Mauritius Post ·{" "}
+                    <span className="font-semibold text-ink">{trackingCode}</span>
+                  </p>
+                  <a
+                    href={buildTrackingUrl(trackingCode) ?? undefined}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-4 inline-flex min-h-11 items-center rounded-full bg-coral-500 px-5 font-sans text-[11px] font-bold uppercase tracking-wider text-white transition-colors hover:bg-coral-700"
+                  >
+                    Track on Mauritius Post →
+                  </a>
+                  <p className="mt-2 font-sans text-[11px] text-ink-muted">
+                    Allow up to 1 day for the tracking to update.
+                  </p>
+                </div>
+              ) : null}
               {order.shipping_address && (
                 <div className="rounded-xl border border-blush-300 bg-white p-6">
                   <h2 className="font-display text-base text-ink">
@@ -307,6 +338,9 @@ function formatDate(iso: string | Date | undefined | null): string {
 
 function orderStatusLabel(o: HttpTypes.StoreOrder): string {
   if (o.fulfillment_status === "delivered") return "Delivered";
-  if (o.fulfillment_status === "shipped") return "Shipped";
+  // deriveStatus also counts a postage order handed to Mauritius Post.
+  if (o.fulfillment_status === "shipped" || deriveStatus(o) === "shipped") {
+    return "Shipped";
+  }
   return "Pending";
 }

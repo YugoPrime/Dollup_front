@@ -79,17 +79,44 @@ export function buildTrackingUrl(code: string | null): string | null {
   return `${MAURITIUS_POST_TRACK_URL}${encodeURIComponent(code)}`;
 }
 
+// Staff save the Mauritius Post number as metadata.tracking_number
+// (dollup-admin order drawer, and the shipped email reads it too).
+// tracking_code is an older key nothing writes; reading only it hid every
+// number from this page until 26 Nov 2026.
+const TRACKING_KEYS = ["tracking_number", "tracking_code"] as const;
+
 export function readTrackingCode(
   order: HttpTypes.StoreOrder,
 ): string | null {
-  const fromOrder = order.metadata?.["tracking_code"];
-  if (typeof fromOrder === "string" && fromOrder.trim()) return fromOrder.trim();
-  const firstFulfillment = order.fulfillments?.[0];
-  const fromFulfillment = firstFulfillment?.metadata?.["tracking_code"];
-  if (typeof fromFulfillment === "string" && fromFulfillment.trim()) {
-    return fromFulfillment.trim();
+  const sources = [order.metadata, order.fulfillments?.[0]?.metadata];
+  for (const meta of sources) {
+    for (const key of TRACKING_KEYS) {
+      const value = meta?.[key];
+      if (typeof value === "string" && value.trim()) return value.trim();
+    }
   }
   return null;
+}
+
+/** Postage, Express Postage, Rodrigues Postage: parcels go by Mauritius Post. */
+export function isPostageOrder(order: HttpTypes.StoreOrder): boolean {
+  const method = order.metadata?.["delivery_method"];
+  return typeof method === "string" && /post/i.test(method);
+}
+
+/**
+ * When the parcel left. Admin's "Mark shipped" creates a fulfilment without
+ * a shipped date and stamps metadata.shipped_at instead.
+ */
+export function readShippedAt(order: HttpTypes.StoreOrder): string | null {
+  const fromFulfillment = order.fulfillments?.[0]?.shipped_at;
+  if (fromFulfillment) {
+    return fromFulfillment instanceof Date
+      ? fromFulfillment.toISOString()
+      : String(fromFulfillment);
+  }
+  const fromMeta = order.metadata?.["shipped_at"];
+  return typeof fromMeta === "string" && fromMeta.trim() ? fromMeta.trim() : null;
 }
 
 export function readConfirmedAt(
@@ -112,7 +139,13 @@ export function deriveStatus(
     fs === "partially_delivered"
   )
     return "shipped";
-  if (fs === "fulfilled" || fs === "partially_fulfilled") return "packed";
+  // A postage order is with Mauritius Post once it has a tracking number,
+  // or once admin's "Mark shipped" fulfilled it (that never sets
+  // fulfillment_status "shipped"). The tracking link shows on that step.
+  if (isPostageOrder(order) && readTrackingCode(order)) return "shipped";
+  if (fs === "fulfilled" || fs === "partially_fulfilled") {
+    return isPostageOrder(order) ? "shipped" : "packed";
+  }
   if (readConfirmedAt(order)) return "confirmed";
   return "placed";
 }
