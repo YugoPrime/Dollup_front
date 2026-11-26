@@ -83,7 +83,7 @@ export function ProductCardQuickAdd({
             disabled={disabled}
             aria-haspopup={isMultiVariant ? "dialog" : undefined}
             aria-label={ariaLabel}
-            className="relative inline-flex h-8 items-center gap-1 whitespace-nowrap rounded-full bg-coral-500 px-2.5 font-sans text-[10px] font-bold uppercase tracking-[0.06em] text-white transition-colors before:absolute before:-inset-y-1.5 before:inset-x-0 before:content-[''] hover:bg-coral-700 disabled:opacity-60"
+            className="relative inline-flex h-8 items-center gap-1 whitespace-nowrap rounded-full bg-coral-500 px-2 font-sans text-[10px] font-bold uppercase tracking-[0.06em] text-white transition-colors before:absolute before:-inset-y-1.5 before:inset-x-0 before:content-[''] hover:bg-coral-700 disabled:opacity-60"
           >
             {!isMultiVariant && !busy ? <Plus size={12} aria-hidden="true" /> : null}
             {labelText}

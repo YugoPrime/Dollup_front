@@ -338,8 +338,8 @@ export function ProductCard({
             </>
           )}
         </div>
-        <div className="mt-auto flex items-center justify-between gap-1.5 pt-1.5">
-          <div className="flex h-5 items-center gap-1">
+        <div className="mt-auto flex items-center justify-between gap-1 pt-1.5">
+          <div className="flex h-5 min-w-0 items-center gap-1 overflow-hidden">
             {colors.length > 1 && (
               <>
                 {colors.slice(0, MAX_COLOR_DOTS).map((c) => (
