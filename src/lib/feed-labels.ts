@@ -20,7 +20,7 @@ export function productCode(
   return null;
 }
 
-const SIZE_RANK: Record<string, number> = {
+export const SIZE_RANK: Record<string, number> = {
   xxs: 0,
   xs: 1,
   s: 2,
