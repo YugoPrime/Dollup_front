@@ -29,7 +29,7 @@ export type QuickAddProduct = {
   variants: QuickAddVariant[];
 };
 
-const SIZE_ORDER = ["XS", "S", "M", "L", "XL", "2XL", "XXL", "3XL", "XXXL", "4XL"];
+const SIZE_ORDER = ["XXS", "XS", "S", "M", "L", "XL", "2XL", "XXL", "3XL", "XXXL", "4XL"];
 
 function sortSizeValues(values: string[]): string[] {
   const rank = (v: string) => {
