@@ -48,7 +48,9 @@ function pickVariantWidth(requested: number): number {
 // original photo if a transformation fails (e.g. the free monthly cap).
 // Kill switch: NEXT_PUBLIC_CF_IMAGE_RESIZE=false + rebuild.
 const CDN_ORIGIN = "https://cdn.dollupboutique.com/";
-const CF_RESIZABLE_RE = /\.(jpe?g|png|webp)$/i;
+// Non-capturing group = same behaviour; it also gives this shared chunk a new file name. Browsers
+// that hit the 26 Nov 14:07 outage stored a 404 for the old name (0v73icuk~hblr.js) for a year.
+const CF_RESIZABLE_RE = /\.(?:jpe?g|png|webp)$/i;
 
 function cloudflareResize(src: string, width: number, quality?: number): string | null {
   if (process.env.NEXT_PUBLIC_CF_IMAGE_RESIZE === "false") return null;
