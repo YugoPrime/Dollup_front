@@ -273,23 +273,25 @@ export function ProductCard({
           </div>
         )}
 
-        <div className="absolute left-2 top-2 z-[3] flex flex-col gap-1.5">
+        <div className="absolute left-2 top-2 z-[3] flex flex-col items-start gap-1.5">
           <AdventCardTag {...advent} soldOut={soldOut} />
-          {isNewArrival(product, latestCollectionTag) && (
-            <span className="rounded bg-coral-500 px-2 py-0.5 font-sans text-[11px] font-bold uppercase tracking-wider text-white">
-              New
-            </span>
+          <div className="flex flex-col gap-1.5 empty:hidden">
+            {isNewArrival(product, latestCollectionTag) && (
+              <span className="rounded bg-coral-500 px-2 py-0.5 font-sans text-[11px] font-bold uppercase tracking-wider text-white">
+                New
+              </span>
+            )}
+            {discountPct && (
+              <span className="rounded bg-coral-500 px-2 py-0.5 font-sans text-[11px] font-bold uppercase tracking-wider text-white">
+                {discountPct}
+              </span>
+            )}
+            {lowStockMsg && !discountPct && (
+              <span className="rounded border border-coral-500 bg-white px-2 py-0.5 font-sans text-[11px] font-bold uppercase tracking-wider text-coral-500">
+                {lowStockMsg}
+              </span>
           )}
-          {discountPct && (
-            <span className="rounded bg-coral-500 px-2 py-0.5 font-sans text-[11px] font-bold uppercase tracking-wider text-white">
-              {discountPct}
-            </span>
-          )}
-          {lowStockMsg && !discountPct && (
-            <span className="rounded border border-coral-500 bg-white px-2 py-0.5 font-sans text-[11px] font-bold uppercase tracking-wider text-coral-500">
-              {lowStockMsg}
-            </span>
-          )}
+          </div>
         </div>
 
         {thumb && (
