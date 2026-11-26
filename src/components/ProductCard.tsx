@@ -290,7 +290,7 @@ export function ProductCard({
               <span className="rounded border border-coral-500 bg-white px-2 py-0.5 font-sans text-[11px] font-bold uppercase tracking-wider text-coral-500">
                 {lowStockMsg}
               </span>
-          )}
+            )}
           </div>
         </div>
 
