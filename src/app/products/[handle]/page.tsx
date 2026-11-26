@@ -23,6 +23,8 @@ import {
 import { AgeGateModal } from "@/components/product/AgeGateModal";
 import { ToyProductPage } from "@/components/after-dark/ToyProductPage";
 import { AfterDarkStrip } from "@/components/product/AfterDarkStrip";
+import { GlueProductPage } from "@/components/glue/GlueProductPage";
+import { isGluePage } from "@/lib/glue-page";
 import { isLingerieProduct } from "@/lib/lingerie-teaser";
 import {
   AFTER_DARK_DESCRIPTION,
@@ -128,6 +130,26 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
   // breadcrumb, dress components, AgeGateModal or fashion related rail.
   if (isAfterDark(productLike)) {
     return <ToyProductPage product={product} />;
+  }
+  // The body glue has a page of its own, built to explain it (what it holds,
+  // how to use it) before the sale. Search data stays: both JSON-LD blocks.
+  if (isGluePage(product)) {
+    return (
+      <div>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: jsonLd(productJsonLd(product)) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: jsonLd(productBreadcrumbJsonLd(product)) }}
+        />
+        <GlueProductPage
+          product={product}
+          freeShippingThreshold={cfg.shipping.free_shipping_threshold_mur}
+        />
+      </div>
+    );
   }
   const ageRestricted = isAgeRestricted(productLike);
   const freeShippingThreshold = cfg.shipping.free_shipping_threshold_mur;
