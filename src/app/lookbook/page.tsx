@@ -39,6 +39,9 @@ const DESKTOP_SPAN: Record<LookSpan, string> = {
   wide: "md:col-span-2 md:row-span-1",
 };
 
+const CREDIT_LINK =
+  "underline decoration-champagne-gold/70 underline-offset-2 transition-colors hover:text-ink";
+
 function modelList(images: LookImage[]): string {
   const names = [...new Set(images.map((i) => i.model))].filter((m) => m !== "Doll Up Boutique");
   if (names.length <= 1) return names.join("");
@@ -130,9 +133,23 @@ export default function LookbookPage() {
                 );
               })}
             </div>
-            <p className="px-6 py-8 text-center font-sans text-[12px] text-ink-muted">
-              {models ? `Models: ${models}.` : null}
-            </p>
+            {/* Photographers whose work is on this page; update when the photos change.
+                AJD Studio: watermark on 02. Love Stories Mauritius (Rohit Lobin): watermark
+                on 03 and 04. @akshay.rsb22: credited on Stacy Woo's own post of 16. */}
+            <div className="space-y-1 px-6 py-8 text-center font-sans text-[12px] leading-[1.6] text-ink-muted">
+              <p>
+                Photography: AJD Studio,{" "}
+                <a href="https://www.instagram.com/rohit_lobin/" target="_blank" rel="noreferrer" className={CREDIT_LINK}>
+                  @rohit_lobin
+                </a>{" "}
+                (Love Stories Mauritius) and{" "}
+                <a href="https://www.instagram.com/akshay.rsb22/" target="_blank" rel="noreferrer" className={CREDIT_LINK}>
+                  @akshay.rsb22
+                </a>
+                .
+              </p>
+              {models ? <p>Models: {models}.</p> : null}
+            </div>
           </div>
         </section>
       ) : (
