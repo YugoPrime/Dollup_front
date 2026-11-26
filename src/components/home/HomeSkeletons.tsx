@@ -8,7 +8,7 @@ export function ProductRailSkeleton() {
         </div>
         <div className="flex gap-3 overflow-hidden px-4 md:px-10">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="w-[150px] shrink-0 md:w-[230px]">
+            <div key={i} className="w-[164px] shrink-0 md:w-[230px]">
               <div className="aspect-[3/4] animate-pulse rounded-xl bg-blush-200" />
             </div>
           ))}

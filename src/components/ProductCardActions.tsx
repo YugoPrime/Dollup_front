@@ -26,9 +26,12 @@ const QUICK_ADD_TONE = {
  * multi-variant products open an inline size/colour sheet instead of
  * navigating away to the PDP (which is what "Select size" used to do).
  *
- * Desktop: the control is hidden until the card is hovered or focused so it
- * never covers the hem of the product photo. Mobile has no hover, so it is a
- * compact pill in the bottom-right corner rather than a full-width block.
+ * `placement="photo"` (default): over the photo. On desktop the control is
+ * hidden until the card is hovered or focused so it never covers the hem of the
+ * photo; mobile has no hover, so it is a compact pill in the bottom-right
+ * corner rather than a full-width block.
+ * `placement="inline"`: the card's coral pill under the price, always visible
+ * on every screen size (no hover reveal).
  */
 export function ProductCardQuickAdd({
   isMultiVariant,
