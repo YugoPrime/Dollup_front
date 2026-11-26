@@ -18,6 +18,7 @@ import {
   PAIRS,
   STEPS,
   featuredCards,
+  tickListLabels,
 } from "@/lib/glue-page";
 import { extractProductCode } from "@/lib/product-meta";
 import { getProductByHandle } from "@/lib/products";
@@ -78,6 +79,8 @@ export async function GlueProductPage({
   const pairCards = featuredCards(PAIRS, linked);
   // One lonely dress looks like a mistake: show the photo grid from two up.
   const showHoldGrid = holdCards.length >= 2;
+  const pictured = showHoldGrid ? holdCards.map((c) => c.handle) : [];
+  const tickList = tickListLabels(HOLDS, pictured, ALSO_HOLDS);
   const initialNow = adventNowMs();
   const code = extractProductCode(product) ?? product.handle?.toUpperCase() ?? null;
   const category = product.categories?.[0];
@@ -126,23 +129,23 @@ export async function GlueProductPage({
           </h1>
         </div>
 
-        <div className="relative mx-auto mt-7 h-[304px] w-[230px] md:col-start-1 md:row-span-2 md:row-start-1 md:mt-0 md:h-[476px] md:w-[360px] md:self-center">
+        <div className="relative mx-auto mt-7 h-[304px] w-[230px] md:col-start-1 md:row-span-2 md:row-start-1 md:mt-0 md:h-[423px] md:w-[320px] md:self-center lg:h-[476px] lg:w-[360px]">
           <div
             aria-hidden="true"
-            className="absolute -inset-2.5 rounded-b-3xl rounded-t-[125px] border border-champagne-gold md:rounded-t-[190px]"
+            className="absolute -inset-2.5 rounded-b-3xl rounded-t-[125px] border border-champagne-gold md:rounded-t-[170px] lg:rounded-t-[190px]"
           />
-          <div className="relative h-full w-full overflow-hidden rounded-b-2xl rounded-t-[115px] bg-blush-100 md:rounded-t-[180px]">
+          <div className="relative h-full w-full overflow-hidden rounded-b-2xl rounded-t-[115px] bg-blush-100 md:rounded-t-[160px] lg:rounded-t-[180px]">
             <Image
               src={GLUE_HERO_IMAGE}
               alt="SHADOMAGIC Body Adhesive roll-on bottle, 50 ml"
               fill
-              sizes="(min-width: 768px) 360px, 230px"
+              sizes="(min-width: 1024px) 360px, (min-width: 768px) 320px, 230px"
               className="object-cover object-[center_30%]"
               preload
               fetchPriority="high"
             />
           </div>
-          <div className="absolute -right-6 bottom-7 flex h-[76px] w-[76px] flex-col items-center justify-center gap-[3px] rounded-full border border-champagne-gold bg-cream md:-right-9 md:h-[96px] md:w-[96px]">
+          <div className="absolute -right-6 bottom-7 flex h-[76px] w-[76px] flex-col items-center justify-center gap-[3px] rounded-full border border-champagne-gold bg-cream md:-right-7 md:h-[88px] md:w-[88px] lg:-right-9 lg:h-[96px] lg:w-[96px]">
             <span className="font-display text-[17px] italic leading-none text-ink md:text-[21px]">
               {GLUE_COPY.seal[0]}
             </span>
@@ -238,7 +241,7 @@ export async function GlueProductPage({
             {showHoldGrid ? "It also holds" : "It holds"}
           </h3>
           <ul className="mt-3 flex flex-col gap-2.5 md:grid md:grid-cols-2 md:gap-x-10">
-            {(showHoldGrid ? [] : HOLDS.map((h) => h.label)).concat(ALSO_HOLDS).map((text) => (
+            {tickList.map((text) => (
               <li key={text} className="flex items-start gap-2.5 font-sans text-[14px] leading-[1.45] text-ink md:text-[15px]">
                 <Check size={16} strokeWidth={2} className="mt-0.5 shrink-0 text-coral-700" aria-hidden />
                 <span>{text}</span>

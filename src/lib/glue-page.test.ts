@@ -1,5 +1,5 @@
 // The body glue page's pure rules. Plain script: `npx tsx src/lib/glue-page.test.ts`.
-import { HOLDS, PAIRS, decemberPriceLabel, featuredCards, isBuyable, isGluePage } from "./glue-page"
+import { ALSO_HOLDS, HOLDS, PAIRS, decemberPriceLabel, featuredCards, isBuyable, isGluePage, tickListLabels } from "./glue-page"
 
 let ok = true
 function check(label: string, got: unknown, exp: unknown): void {
@@ -32,6 +32,14 @@ check("buyable", [isBuyable(inStock), isBuyable(soldOut), isBuyable(untracked), 
 check("four dresses, two pairs", [HOLDS.length, PAIRS.length], [4, 2])
 check("handles are lower case and unique", new Set([...HOLDS, ...PAIRS].map((h) => h.handle)).size, 6)
 check("no handle is the glue itself", [...HOLDS, ...PAIRS].some((h) => isGluePage(h)), false)
+
+// The tick list: every use stays on the page, pictured or not.
+const allFour = HOLDS.map((h) => h.handle)
+check("all four pictured: only the extra uses", tickListLabels(HOLDS, allFour, ALSO_HOLDS), ALSO_HOLDS)
+check("strapless dress sold out: its use moves to the list",
+  tickListLabels(HOLDS, allFour.filter((h) => h !== "is2466"), ALSO_HOLDS), ["Strapless", ...ALSO_HOLDS])
+check("no photo grid: all four uses lead the list",
+  tickListLabels(HOLDS, [], ALSO_HOLDS), ["Strapless", "Off-shoulder", "Plunging necklines", "Tube and bandeau", ...ALSO_HOLDS])
 
 // "December price": only on a reduced price, only in December 2026, Mauritius time (UTC+4).
 const at = (iso: string) => Date.parse(iso)

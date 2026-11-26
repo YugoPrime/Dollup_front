@@ -167,7 +167,11 @@ export function GlueBuy({
 
       <BagPill {...pill} className="mt-6 hidden max-w-[400px] md:flex" />
 
-      {error ? <p className="mt-3 font-sans text-[13px] text-coral-700">{error}</p> : null}
+      {error ? (
+        <p role="alert" className="mt-3 hidden font-sans text-[13px] text-coral-700 md:block">
+          {error}
+        </p>
+      ) : null}
 
       {!inStock ? (
         <div className="mt-4 flex w-full max-w-[400px] items-center justify-between gap-3 rounded-xl border border-blush-200 bg-white px-3.5 py-2.5">
@@ -190,6 +194,15 @@ export function GlueBuy({
         className="fixed inset-x-0 z-[80] px-5 pb-2 pt-2 md:hidden"
         style={{ bottom: "calc(72px + env(safe-area-inset-bottom))" }}
       >
+        {/* The pill is tapped from anywhere on a long page: the error has to be here, not up in the hero. */}
+        {error ? (
+          <p
+            role="alert"
+            className="mb-2 rounded-2xl border border-blush-200 bg-white px-4 py-2.5 text-center font-sans text-[13px] text-coral-700 shadow-[0_4px_12px_rgba(0,0,0,0.12)]"
+          >
+            {error}
+          </p>
+        ) : null}
         <BagPill {...pill} className="flex shadow-[0_8px_20px_rgba(0,0,0,0.22)]" />
       </div>
     </div>

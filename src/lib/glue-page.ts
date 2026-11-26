@@ -7,7 +7,10 @@ export const GLUE_HANDLE = "is2382"
 /** The clean bottle shot. The image loader serves its 400–1600w variants. */
 export const GLUE_HERO_IMAGE = "https://cdn.dollupboutique.com/homepage/babe-essentials/is2382.jpg"
 
-/** Set when the clip exists; null hides the "See it hold" section. */
+/**
+ * Set when the clip exists; null hides the "See it hold" section.
+ * A clip on cdn.dollupboutique.com also needs that host in `media-src` (next.config.ts CSP).
+ */
 export const GLUE_VIDEO: { src: string; poster: string } | null = null
 
 export const GLUE_COPY = {
@@ -119,6 +122,15 @@ export function featuredCards<H extends { handle: string }, T extends FeaturedSo
     out.push({ ...item, product })
   }
   return out
+}
+
+/**
+ * The tick list under the dress photos. A use whose dress isn't pictured (sold out, unlisted, or the
+ * photo grid is hidden) moves into the list, so the page never stops saying the glue holds it.
+ */
+export function tickListLabels(holds: Hold[], picturedHandles: string[], also: string[]): string[] {
+  const pictured = new Set(picturedHandles)
+  return holds.filter((h) => !pictured.has(h.handle)).map((h) => h.label).concat(also)
 }
 
 // Rahvi's "special promo Rs 475 for December": the Medusa price list runs 1–31 Dec 2026, Mauritius time.
