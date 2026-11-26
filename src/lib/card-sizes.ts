@@ -70,9 +70,14 @@ export function cardSizes(
 }
 
 // Room in the photo pill: a label counts its characters, each "·" separator
-// counts 2. 16 is "S · M · L · XL · XXL", the catalogue's longest list on
-// 27 Nov, which fits the 164 px phone rail card.
+// counts 2 (one unit is about 7.5 px). 16 is "S · M · L · XL · XXL", the
+// catalogue's longest list on 27 Nov: 143 px, which needs a card of about
+// 156 px or wider (164 px phone rails, /shop on 360 px+ phones, desktop).
 const PILL_BUDGET = 16
+
+/** Budget for cards under 140 px of pill room (tablet 5-up grids at 125–138 px,
+ *  /shop on 320 px phones): about 105 px, so "S · M · L +2" still fits. */
+export const PILL_COMPACT_BUDGET = 11
 
 function pillUnits(labels: readonly string[]): number {
   return labels.reduce((n, s) => n + s.length, 0) + 2 * Math.max(labels.length - 1, 0)

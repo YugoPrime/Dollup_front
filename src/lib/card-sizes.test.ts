@@ -1,6 +1,6 @@
 // Covers which sizes a product card shows (card-sizes.ts).
 // Plain script, run with `npx tsx src/lib/card-sizes.test.ts`.
-import { cardSizes, isOneSizeLabel, pillSizes, type CardSizeVariant } from "./card-sizes"
+import { cardSizes, isOneSizeLabel, pillSizes, PILL_COMPACT_BUDGET, type CardSizeVariant } from "./card-sizes"
 
 let ok = true
 function check(name: string, actual: unknown, expected: unknown) {
@@ -48,6 +48,11 @@ check("pill: 6 sizes end in +2", pillSizes(["XS", "S", "M", "L", "XL", "XXL"]), 
 check("pill: 5 shoe sizes end in +2", pillSizes(["36", "37", "38", "39", "40"]), { shown: ["36", "37", "38"], more: 2 })
 check("pill: plus sizes end in +2", pillSizes(["L", "XL", "2XL", "3XL", "4XL"]), { shown: ["L", "XL", "2XL"], more: 2 })
 check("pill: a long first label still shows", pillSizes(["EXTRA LARGE LONG LABEL", "M"]), { shown: ["EXTRA LARGE LONG LABEL"], more: 1 })
+
+// The short pill for narrow cards (tablet 5-up grids, 320 px phones).
+check("pill compact: 5 sizes end in +2", pillSizes(["S", "M", "L", "XL", "XXL"], PILL_COMPACT_BUDGET), { shown: ["S", "M", "L"], more: 2 })
+check("pill compact: 4 short sizes still fit", pillSizes(["S", "M", "L", "XL"], PILL_COMPACT_BUDGET), { shown: ["S", "M", "L", "XL"], more: 0 })
+check("pill compact: a prefix can land exactly on the budget", pillSizes(["XS", "S", "M", "L", "XL"], PILL_COMPACT_BUDGET), { shown: ["XS", "S", "M"], more: 2 })
 
 if (!ok) process.exit(1)
 console.log("ALL PASS")

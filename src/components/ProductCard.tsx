@@ -10,7 +10,7 @@ import {
 } from "@/components/ProductCardActions";
 import { AdventCardTag, AdventCardPrice } from "@/components/advent/AdventPrice";
 import { adventNowMs } from "@/lib/advent";
-import { cardSizes, pillSizes } from "@/lib/card-sizes";
+import { cardSizes, pillSizes, PILL_COMPACT_BUDGET } from "@/lib/card-sizes";
 import type { QuickAddProduct } from "@/components/ProductCardVariantSheet";
 
 type Product = HttpTypes.StoreProduct;
@@ -230,26 +230,40 @@ export function toQuickAddProduct(
 // In-stock sizes as one cream pill on the bottom left of the photo (Rahvi
 // picked it over separate chips and a full-width band, 27 Nov). Info only:
 // taps go through to the card link. Screen readers get every size, even when
-// the pill shortens a long list to "+N".
+// the pill shortens a long list to "+N". Cards with under 140 px of pill room
+// (tablet 5-up grids, /shop on 320 px phones) swap in a shorter list through a
+// container query, so a size is never cut in half.
 function CardSizesPill({ sizes }: { sizes: string[] }) {
   if (sizes.length === 0) return null;
-  const { shown, more } = pillSizes(sizes);
+  const full = pillSizes(sizes);
+  const compact = pillSizes(sizes, PILL_COMPACT_BUDGET);
+  const narrowDiffers = compact.shown.length !== full.shown.length;
   return (
-    <div className="pointer-events-none absolute inset-x-2 bottom-2 z-[3] flex">
+    <div className="@container pointer-events-none absolute inset-x-2 bottom-2 z-[3] flex">
       <span className="sr-only">In stock: {sizes.join(", ")}</span>
-      <span
-        aria-hidden="true"
-        className="inline-flex h-6 max-w-full items-center gap-1.5 overflow-hidden whitespace-nowrap rounded-full border border-champagne-gold/80 bg-cream-50/95 px-2.5 font-sans text-[10.5px] font-semibold tracking-[0.08em] text-ink shadow-[0_1px_3px_rgba(26,18,18,0.10)]"
-      >
-        {shown.map((size, i) => (
-          <Fragment key={size}>
-            {i > 0 && <span className="text-champagne-bronze">·</span>}
-            <span>{size}</span>
-          </Fragment>
-        ))}
-        {more > 0 && <span className="text-ink-muted">+{more}</span>}
-      </span>
+      <PillLabels
+        {...full}
+        display={narrowDiffers ? "inline-flex @max-[140px]:hidden" : "inline-flex"}
+      />
+      {narrowDiffers && <PillLabels {...compact} display="hidden @max-[140px]:inline-flex" />}
     </div>
+  );
+}
+
+function PillLabels({ shown, more, display }: { shown: string[]; more: number; display: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`${display} h-6 max-w-full items-center gap-1.5 overflow-hidden whitespace-nowrap rounded-full border border-champagne-gold/80 bg-cream-50/95 px-2.5 font-sans text-[10.5px] font-semibold tracking-[0.08em] text-ink shadow-[0_1px_3px_rgba(26,18,18,0.10)]`}
+    >
+      {shown.map((size, i) => (
+        <Fragment key={size}>
+          {i > 0 && <span className="text-champagne-bronze">·</span>}
+          <span>{size}</span>
+        </Fragment>
+      ))}
+      {more > 0 && <span className="text-ink-muted">+{more}</span>}
+    </span>
   );
 }
 
