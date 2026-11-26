@@ -46,6 +46,12 @@ export function unlockSpend(rules: LoyaltyRules): number {
   return 0
 }
 
+/** What a member's balance gets her: money off from the minimum, else how far she is from it. */
+export function balanceLine(balance: number, minRedeem: number): string {
+  if (balance >= minRedeem) return `Worth Rs ${formatInt(balance)} off at checkout.`;
+  return `${formatInt(minRedeem - balance)} more points to unlock Rs ${formatInt(minRedeem)} off.`;
+}
+
 /** 1830 -> "1,830". Plain string maths: no locale data, same on server and browser. */
 export function formatInt(n: number): string {
   return String(Math.trunc(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ",")

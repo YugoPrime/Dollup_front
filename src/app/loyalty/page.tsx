@@ -209,7 +209,7 @@ export default async function LoyaltyPage() {
               Create an account and you&apos;re in. No separate signup.
             </p>
           </div>
-          <LoyaltyJoinCard welcomeBonus={rules.welcomeBonus} />
+          <LoyaltyJoinCard welcomeBonus={rules.welcomeBonus} minRedeem={rules.minRedeem} />
         </div>
       </section>
 

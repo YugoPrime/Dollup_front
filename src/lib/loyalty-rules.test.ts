@@ -1,5 +1,6 @@
 // Covers the Doll Rewards rules helper. Run with `npx tsx src/lib/loyalty-rules.test.ts`.
 import {
+  balanceLine,
   FALLBACK_RULES,
   formatInt,
   getLoyaltyRules,
@@ -31,6 +32,13 @@ async function main() {
   check("5/150/100 -> Rs 1,000", unlockSpend(FALLBACK_RULES), 1000)
   check("2/150/100 -> Rs 2,500", unlockSpend({ earnPer100: 2, minRedeem: 150, welcomeBonus: 100 }), 2500)
   check("welcome alone enough -> Rs 100", unlockSpend({ earnPer100: 5, minRedeem: 100, welcomeBonus: 150 }), 100)
+
+  // balanceLine: never promise money off below the redeem minimum
+  check("at the minimum", balanceLine(150, 150), "Worth Rs 150 off at checkout.")
+  check("above", balanceLine(1830, 150), "Worth Rs 1,830 off at checkout.")
+  check("new member", balanceLine(100, 150), "50 more points to unlock Rs 150 off.")
+  check("empty", balanceLine(0, 150), "150 more points to unlock Rs 150 off.")
+  check("below zero", balanceLine(-40, 150), "190 more points to unlock Rs 150 off.")
 
   // getLoyaltyRules
   check(

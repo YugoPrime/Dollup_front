@@ -4,12 +4,12 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useCustomer } from "@/lib/auth-client";
 import { getMyLoyalty, type LoyaltyAccount } from "@/lib/loyalty-client";
-import { formatInt } from "@/lib/loyalty-rules";
+import { balanceLine, formatInt } from "@/lib/loyalty-rules";
 
 // Doll Rewards runs on customer accounts: points are earned on orders placed
 // while signed in. Signed out, this card sends people to create an account;
 // signed in, it shows their balance.
-export function LoyaltyJoinCard({ welcomeBonus }: { welcomeBonus: number }) {
+export function LoyaltyJoinCard({ welcomeBonus, minRedeem }: { welcomeBonus: number; minRedeem: number }) {
   const { status: authStatus, customer } = useCustomer();
   // The balance is tied to the customer it was loaded for, so "loading" is
   // derived (no setState inside the effect body).
@@ -58,7 +58,7 @@ export function LoyaltyJoinCard({ welcomeBonus }: { welcomeBonus: number }) {
               </span>
             </p>
             <p className="mt-3 font-sans text-[14px] font-semibold text-coral-700">
-              Worth Rs {formatInt(account.points_balance)} off at checkout.
+              {balanceLine(account.points_balance, minRedeem)}
             </p>
             <p className="mt-2 font-sans text-[13px] leading-[1.55] text-ink-soft">
               Lifetime earned: {formatInt(account.lifetime_earned)} | redeemed:{" "}
