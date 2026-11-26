@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import type { HttpTypes } from "@medusajs/types";
@@ -9,7 +10,7 @@ import {
 } from "@/components/ProductCardActions";
 import { AdventCardTag, AdventCardPrice } from "@/components/advent/AdventPrice";
 import { adventNowMs } from "@/lib/advent";
-import { cardSizes } from "@/lib/card-sizes";
+import { cardSizes, pillSizes } from "@/lib/card-sizes";
 import type { QuickAddProduct } from "@/components/ProductCardVariantSheet";
 
 type Product = HttpTypes.StoreProduct;
@@ -226,6 +227,32 @@ export function toQuickAddProduct(
   };
 }
 
+// In-stock sizes as one cream pill on the bottom left of the photo (Rahvi
+// picked it over separate chips and a full-width band, 27 Nov). Info only:
+// taps go through to the card link. Screen readers get every size, even when
+// the pill shortens a long list to "+N".
+function CardSizesPill({ sizes }: { sizes: string[] }) {
+  if (sizes.length === 0) return null;
+  const { shown, more } = pillSizes(sizes);
+  return (
+    <div className="pointer-events-none absolute inset-x-2 bottom-2 z-[3] flex">
+      <span className="sr-only">In stock: {sizes.join(", ")}</span>
+      <span
+        aria-hidden="true"
+        className="inline-flex h-6 max-w-full items-center gap-1.5 overflow-hidden whitespace-nowrap rounded-full border border-champagne-gold/80 bg-cream-50/95 px-2.5 font-sans text-[10.5px] font-semibold tracking-[0.08em] text-ink shadow-[0_1px_3px_rgba(26,18,18,0.10)]"
+      >
+        {shown.map((size, i) => (
+          <Fragment key={size}>
+            {i > 0 && <span className="text-champagne-bronze">·</span>}
+            <span>{size}</span>
+          </Fragment>
+        ))}
+        {more > 0 && <span className="text-ink-muted">+{more}</span>}
+      </span>
+    </div>
+  );
+}
+
 export function ProductCard({
   product,
   latestCollectionTag = null,
@@ -304,6 +331,7 @@ export function ProductCard({
             className="object-cover object-top"
           />
         )}
+        <CardSizesPill sizes={sizes} />
       </div>
 
       <div className="flex flex-1 flex-col px-2.5 pb-3 pt-2.5">
@@ -321,22 +349,6 @@ export function ProductCard({
           onSale={price.onSale}
           emphasis
         />
-        <div className="mt-1 flex h-5 gap-1 overflow-hidden">
-          {sizes.length > 0 && (
-            <>
-              <span className="sr-only">In stock: {sizes.join(", ")}</span>
-              {sizes.map((size) => (
-                <span
-                  key={size}
-                  aria-hidden="true"
-                  className="inline-flex h-5 min-w-[22px] shrink-0 items-center justify-center rounded-[5px] border border-[#DCCBC7] px-1 font-sans text-[10.5px] font-semibold text-ink"
-                >
-                  {size}
-                </span>
-              ))}
-            </>
-          )}
-        </div>
         <div className="mt-auto flex items-center justify-between gap-1 pt-1.5">
           <div className="flex h-5 min-w-0 items-center gap-1 overflow-hidden">
             {colors.length > 1 && (
