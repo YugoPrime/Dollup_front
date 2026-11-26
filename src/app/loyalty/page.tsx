@@ -197,7 +197,7 @@ export default async function LoyaltyPage() {
         <div className="mx-auto grid max-w-[1100px] gap-10 md:grid-cols-[1.1fr_1fr] md:items-center">
           <div>
             <p className="mb-2 font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-coral-500">
-              ✦ Join the list
+              ✦ Join Doll Rewards
             </p>
             <h2 className="font-display text-[28px] leading-[1.05] text-ink md:text-[42px]">
               Free to join.{" "}
@@ -207,9 +207,6 @@ export default async function LoyaltyPage() {
             </h2>
             <p className="mt-4 font-sans text-[14px] leading-[1.6] text-ink-soft md:text-[15px]">
               Create an account and you&apos;re in. No separate signup.
-            </p>
-            <p className="mt-3 font-sans text-[12px] text-ink-muted">
-              No spam: one email a week at most. Unsubscribe anytime.
             </p>
           </div>
           <LoyaltyJoinCard welcomeBonus={rules.welcomeBonus} />
