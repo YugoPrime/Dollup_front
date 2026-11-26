@@ -3,6 +3,7 @@ import path from "node:path";
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
+import { planLookbookGrid, type LookSpan } from "@/lib/lookbook-grid";
 
 export const metadata: Metadata = {
   title: "Lookbook",
@@ -24,19 +25,25 @@ type LookImage = {
   src: string;
   alt: string;
   model: string;
-  span?: "wide" | "tall" | "square";
 };
 
-const SPAN_CYCLE: Array<LookImage["span"]> = [
-  "tall",
-  "square",
-  "square",
-  "wide",
-  "square",
-  "tall",
-  "square",
-  "square",
-];
+// Spans as literal class names so Tailwind generates them.
+const MOBILE_SPAN: Record<LookSpan, string> = {
+  sq: "",
+  tall: "row-span-2",
+  wide: "col-span-2",
+};
+const DESKTOP_SPAN: Record<LookSpan, string> = {
+  sq: "md:col-span-1 md:row-span-1",
+  tall: "md:col-span-1 md:row-span-2",
+  wide: "md:col-span-2 md:row-span-1",
+};
+
+function modelList(images: LookImage[]): string {
+  const names = [...new Set(images.map((i) => i.model))].filter((m) => m !== "Doll Up Boutique");
+  if (names.length <= 1) return names.join("");
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
 
 function titleCase(slug: string): string {
   return slug
@@ -54,14 +61,13 @@ function loadLookbook(): LookImage[] {
       .readdirSync(dir)
       .filter((f) => /\.(jpe?g|png|webp|avif)$/i.test(f))
       .sort()
-      .map((f, i) => {
+      .map((f) => {
         const slug = f.replace(/^\d+[-_]?/, "").replace(/\.[a-z]+$/i, "");
         const model = slug ? titleCase(slug) : "Doll Up Boutique";
         return {
           src: `/lookbook/${f}`,
-          alt: `Doll Up Boutique lookbook — ${model}`,
+          alt: `Doll Up Boutique lookbook: ${model}`,
           model,
-          span: SPAN_CYCLE[i % SPAN_CYCLE.length],
         };
       });
   } catch {
@@ -72,6 +78,8 @@ function loadLookbook(): LookImage[] {
 export default function LookbookPage() {
   const images = loadLookbook();
   const hasImages = images.length > 0;
+  const plan = planLookbookGrid(images.length);
+  const models = modelList(images);
 
   return (
     <div className="bg-cream">
@@ -87,7 +95,7 @@ export default function LookbookPage() {
             Look<em className="not-italic text-coral-300" style={{ fontStyle: "italic" }}>book</em>
           </h1>
           <p className="mx-auto mt-6 max-w-[560px] font-sans text-[15px] leading-[1.55] text-white/85 md:text-[16px]">
-            Editorial shoots of our latest drops — styled and photographed locally with our favourite Mauritian models.
+            Editorial shoots of our latest pieces, styled and photographed in Mauritius with Mauritian models.
           </p>
         </div>
       </section>
@@ -98,12 +106,8 @@ export default function LookbookPage() {
           <div className="mx-auto max-w-[1600px]">
             <div className="grid auto-rows-[180px] grid-cols-2 gap-0 sm:auto-rows-[220px] md:auto-rows-[280px] md:grid-cols-4 lg:auto-rows-[320px]">
               {images.map((img, i) => {
-                const cls =
-                  img.span === "wide"
-                    ? "col-span-2"
-                    : img.span === "tall"
-                    ? "row-span-2"
-                    : "";
+                const { mobile, desktop } = plan[i];
+                const cls = `${MOBILE_SPAN[mobile]} ${DESKTOP_SPAN[desktop]}`;
                 return (
                   <figure
                     key={img.src}
@@ -113,7 +117,7 @@ export default function LookbookPage() {
                       src={img.src}
                       alt={img.alt}
                       fill
-                      sizes="(max-width: 768px) 50vw, 25vw"
+                      sizes={`(max-width: 767px) ${mobile === "wide" ? "100vw" : "50vw"}, ${desktop === "wide" ? "50vw" : "25vw"}`}
                       className="object-cover transition-transform duration-500 group-hover:scale-[1.05]"
                       priority={i < 2}
                     />
@@ -127,7 +131,7 @@ export default function LookbookPage() {
               })}
             </div>
             <p className="px-6 py-8 text-center font-sans text-[12px] text-ink-muted">
-              Photography by our team in collaboration with local Mauritian models.
+              {models ? `Models: ${models}.` : null}
             </p>
           </div>
         </section>
@@ -166,24 +170,27 @@ export default function LookbookPage() {
       )}
 
       {/* CTA */}
-      <section className="bg-coral-500 px-6 py-14 text-white md:px-10 md:py-20">
+      <section className="border-t border-champagne-gold/40 bg-blush-100 px-6 py-14 md:px-10 md:py-20">
         <div className="mx-auto max-w-[800px] text-center">
-          <h2 className="font-display text-[28px] leading-[1.1] md:text-[40px]">
-            Loved a look? Shop the pieces.
+          <h2 className="font-display text-[28px] leading-[1.1] text-ink md:text-[40px]">
+            Loved a look?{" "}
+            <em className="not-italic text-coral-700" style={{ fontStyle: "italic" }}>
+              Shop the pieces.
+            </em>
           </h2>
-          <p className="mx-auto mt-3 max-w-[520px] font-sans text-[14px] leading-[1.55] text-white/90">
-            Most pieces in the lookbook are still in stock — head to the shop to grab them.
+          <p className="mx-auto mt-3 max-w-[520px] font-sans text-[14px] leading-[1.55] text-ink-soft">
+            Most pieces from the lookbook are still in stock.
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Link
               href="/shop"
-              className="rounded-full bg-white px-7 py-3 font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-coral-500 transition-colors hover:bg-ink hover:text-white"
+              className="rounded-full bg-ink px-7 py-3 font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-coral-700"
             >
               Shop the latest →
             </Link>
             <Link
               href="/events"
-              className="rounded-full border border-white/40 bg-white/5 px-7 py-3 font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-white hover:text-coral-500"
+              className="rounded-full border border-ink bg-transparent px-7 py-3 font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-ink transition-colors hover:bg-ink hover:text-white"
             >
               Events &amp; giveaways
             </Link>

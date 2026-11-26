@@ -381,7 +381,7 @@ function SidebarPriceInputs({
           aria-label="Minimum price"
           className="w-full rounded-md border border-blush-300 bg-white px-2 py-1.5 font-sans text-[12px] text-ink outline-none focus:border-coral-500"
         />
-        <span className="font-sans text-[11px] text-ink-muted">—</span>
+        <span className="font-sans text-[11px] text-ink-muted">to</span>
         <input
           type="number"
           min={facets.priceMin}

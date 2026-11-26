@@ -105,7 +105,7 @@ export async function Footer() {
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
             </svg>
             <span className="font-sans text-[12px] font-semibold tracking-wide text-coral-500">
-              Doll Rewards — Join &amp; earn points
+              Doll Rewards · Join &amp; earn points
             </span>
           </Link>
           <InstallAppButton />
@@ -133,7 +133,7 @@ export async function Footer() {
           </span>
         </div>
         <div className="flex flex-wrap gap-2">
-          {["Juice", "Bank Transfer", "Cash on Delivery"].map((p) => (
+          {["Juice", "Bank Transfer", "Payment on delivery"].map((p) => (
             <span
               key={p}
               className="rounded bg-white px-2.5 py-1 text-[11px] font-bold tracking-wider text-ink shadow-[0_1px_2px_rgba(0,0,0,0.04)]"

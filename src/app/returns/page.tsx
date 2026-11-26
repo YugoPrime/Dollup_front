@@ -5,7 +5,7 @@ import { getStoreConfig } from "@/lib/store-config";
 export const metadata: Metadata = {
   title: "Refund & Returns Policy",
   description:
-    "Our return window, what we accept, what we don't, and how to start a return — clearly explained.",
+    "Our return window, what we accept, what we don't, and how to start a return, clearly explained.",
   alternates: { canonical: "/returns" },
   openGraph: {
     title: "Refund & Returns Policy",
@@ -34,7 +34,7 @@ export default async function ReturnsPage() {
             </em>
           </h1>
           <p className="mx-auto mt-5 max-w-[520px] font-sans text-[14px] leading-[1.55] text-ink-soft md:text-[15px]">
-            15 days to change your mind on in-stock items. Tell us first, then post it back — we&apos;ll take care of the rest.
+            15 days to change your mind on in-stock items. Tell us first, then post it back. We&apos;ll take care of the rest.
           </p>
         </div>
       </section>
@@ -189,7 +189,7 @@ export default async function ReturnsPage() {
             Exchanges
           </h2>
           <p className="font-sans text-[14px] leading-[1.6] text-ink-soft">
-            Exchanges are possible on selected products only — a Rs 150 fee applies to cover redelivery. Get in touch first and we&apos;ll let you know if the piece can be exchanged or if a return + new order is the better path.
+            Exchanges are possible on selected products only. A Rs 150 fee applies to cover redelivery. Get in touch first and we&apos;ll let you know if the piece can be exchanged or if a return + new order is the better path.
           </p>
         </div>
       </section>

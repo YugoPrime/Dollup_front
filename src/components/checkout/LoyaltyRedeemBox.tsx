@@ -94,7 +94,7 @@ export function LoyaltyRedeemBox({
     const minDiscount = Math.floor(
       (p.min_redeem_points * p.redeem_rate_mur_per_100_pts) / 100,
     );
-    return `Cart subtotal is too low — you need at least Rs ${(minDiscount * 2).toLocaleString("en-MU")} to redeem ${p.min_redeem_points.toLocaleString("en-MU")} pts.`;
+    return `Cart subtotal is too low. You need at least Rs ${(minDiscount * 2).toLocaleString("en-MU")} to redeem ${p.min_redeem_points.toLocaleString("en-MU")} pts.`;
   }
 
   if (alreadyApplied && applied) {

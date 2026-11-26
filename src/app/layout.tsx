@@ -32,7 +32,7 @@ const dmSans = DM_Sans({
 
 const SITE_URL = "https://dollupboutique.com";
 const SITE_DESCRIPTION =
-  "Doll Up Boutique is a Mauritius fashion boutique for dresses, lingerie, beachwear and accessories, with cash on delivery available island-wide.";
+  "Doll Up Boutique is a Mauritius fashion boutique for dresses, lingerie, beachwear and accessories, delivered island-wide with payment on delivery (cash or Juice).";
 const DEFAULT_OG_IMAGE = "/og-default.jpg";
 const ALLOW_INDEXING = process.env.ALLOW_INDEXING === "true";
 
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
     default: "Doll Up Boutique",
-    template: "%s — Doll Up Boutique",
+    template: "%s · Doll Up Boutique",
   },
   description: SITE_DESCRIPTION,
   // iPhone "Add to Home Screen": open full-screen, labelled "Doll Up".
@@ -165,8 +165,10 @@ export default function RootLayout({
         <CartProvider>
           <WishlistAuthSync />
           <Header />
+          {/* No bottom padding here: MobileBottomNav is sticky and sits after the
+              footer, so padding only opened a blank strip above the footer. */}
           <main id="site-content" className="flex-1">
-            <div className="pb-[64px] md:pb-0">{children}</div>
+            {children}
           </main>
           <Footer />
           <MobileBottomNav />

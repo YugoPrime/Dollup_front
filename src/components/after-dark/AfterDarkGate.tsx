@@ -91,7 +91,7 @@ export function AfterDarkGate() {
         </Link>
       </div>
       <p className="absolute inset-x-0 bottom-6 font-sans text-[10px] uppercase tracking-[0.14em] text-champagne-200/70">
-        Cash on delivery · Ask us privately
+        Payment on delivery · Ask us privately
       </p>
     </div>
   );

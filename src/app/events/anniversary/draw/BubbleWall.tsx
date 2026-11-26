@@ -43,7 +43,7 @@ function Bubble({ entry, isWinner, dimmed }: { entry: DrawEntry; isWinner: boole
           marginTop: `${nudge}px`,
         } as React.CSSProperties
       }
-      title={entry.isEntry ? "In the draw" : "Not an entry — ordered off the website"}
+      title={entry.isEntry ? "In the draw" : "Not an entry (ordered off the website)"}
     >
       <span
         className={[

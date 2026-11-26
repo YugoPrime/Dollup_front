@@ -45,7 +45,7 @@ export function PreorderGallery({
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={images[mainIdx]}
-        alt={`${productTitle} — ${activeColor}`}
+        alt={`${productTitle}, ${activeColor}`}
         className="w-full rounded-lg border border-sage-100 bg-blush-50"
         fetchPriority={mainIdx === 0 ? "high" : "auto"}
       />

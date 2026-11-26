@@ -40,7 +40,7 @@ check("week ticker", week?.ticker, [
   "Up to 50% off",
   "300+ pieces",
   "Ends Sunday 29 Nov",
-  "Cash on delivery",
+  "Payment on delivery",
 ])
 check("week kicker", week?.kicker, "Black Friday · ends Sunday 29 Nov")
 check("week line", week?.line, "300+ dresses, swimwear, lingerie & essentials. Ends Sunday 29 Nov.")
@@ -63,7 +63,7 @@ check("peak ticker", peak?.ticker, [
   "Today only: prices drop again",
   "Up to 50% off",
   "Ends at midnight",
-  "Cash on delivery",
+  "Payment on delivery",
 ])
 check("peak kicker", peak?.kicker, "Black Friday · today only")
 check("peak line", peak?.line, "Today only, most pieces are another 10% lower. Ends at midnight.")

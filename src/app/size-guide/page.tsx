@@ -4,7 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Size Guide",
   description:
-    "How to measure yourself and find your size on Doll Up Boutique. Each piece has its own chart on the product page — here's a general guide.",
+    "How to measure yourself and find your size on Doll Up Boutique. Each piece has its own chart on the product page. Here's a general guide.",
   alternates: { canonical: "/size-guide" },
   openGraph: {
     title: "Size Guide",
@@ -50,7 +50,7 @@ export default function SizeGuidePage() {
             </em>
           </h1>
           <p className="mx-auto mt-5 max-w-[520px] font-sans text-[14px] leading-[1.55] text-ink-soft md:text-[15px]">
-            Sizing varies between dresses, lingerie and beachwear. Always check the chart on the actual product page first — this page is your general reference.
+            Sizing varies between dresses, lingerie and beachwear. Always check the chart on the actual product page first. This page is your general reference.
           </p>
         </div>
       </section>
@@ -67,7 +67,7 @@ export default function SizeGuidePage() {
                 Each product has its own chart
               </h2>
               <p className="font-sans text-[14px] leading-[1.65] text-ink-soft">
-                Cuts and fabrics vary by piece, especially across <strong>dresses</strong>, <strong>lingerie</strong>, <strong>swimwear</strong> and <strong>jumpsuits</strong>. On every product page, scroll down to the <strong>Size Chart</strong> accordion — it has the exact measurements for that specific style. The general chart below is a starting point only.
+                Cuts and fabrics vary by piece, especially across <strong>dresses</strong>, <strong>lingerie</strong>, <strong>swimwear</strong> and <strong>jumpsuits</strong>. On every product page, scroll down to the <strong>Size Chart</strong> accordion. It has the exact measurements for that specific style. The general chart below is a starting point only.
               </p>
             </div>
           </div>
@@ -91,7 +91,7 @@ export default function SizeGuidePage() {
               },
               {
                 t: "Waist",
-                d: "Measure around the narrowest part of your natural waist — usually just above the belly button.",
+                d: "Measure around the narrowest part of your natural waist, usually just above the belly button.",
               },
               {
                 t: "Hips",
@@ -114,7 +114,7 @@ export default function SizeGuidePage() {
           </div>
           <div className="mt-8 rounded-2xl bg-blush-100 p-6 md:p-8">
             <p className="font-sans text-[13px] leading-[1.7] text-ink-soft md:text-[14px]">
-              <strong className="text-ink">A few tips:</strong> measure with a soft tailor&apos;s tape, in light clothing or your underwear. Don&apos;t pull the tape tight — it should sit flat against your skin. Numbers between two sizes? Size up for a relaxed fit, size down for a fitted look. Or simply DM us — we&apos;ll guide you on the exact piece.
+              <strong className="text-ink">A few tips:</strong> measure with a soft tailor&apos;s tape, in light clothing or your underwear. Don&apos;t pull the tape tight. It should sit flat against your skin. Numbers between two sizes? Size up for a relaxed fit, size down for a fitted look. Or simply DM us. We&apos;ll guide you on the exact piece.
             </p>
           </div>
         </div>
@@ -212,7 +212,7 @@ export default function SizeGuidePage() {
             {[
               {
                 t: "Dresses",
-                d: "Bodycon and fitted dresses run small — size up if you're between sizes. Loose and tiered styles run true.",
+                d: "Bodycon and fitted dresses run small. Size up if you're between sizes. Loose and tiered styles run true.",
               },
               {
                 t: "Lingerie & bras",
@@ -224,15 +224,15 @@ export default function SizeGuidePage() {
               },
               {
                 t: "Jumpsuits",
-                d: "Watch the inseam length on the product page — Mauritian heights vary, and tall styles need a hem.",
+                d: "Watch the inseam length on the product page. Mauritian heights vary, and tall styles need a hem.",
               },
               {
                 t: "Tops & blouses",
-                d: "Crop tops are cropped — check the length in the product chart if you prefer longer cover.",
+                d: "Crop tops are cropped. Check the length in the product chart if you prefer longer cover.",
               },
               {
                 t: "Bottoms",
-                d: "Stretchy waist and elastic styles run forgiving. Tailored pants — order the chart size.",
+                d: "Stretchy waist and elastic styles run forgiving. Tailored pants: order the chart size.",
               },
             ].map((c) => (
               <div
@@ -256,7 +256,7 @@ export default function SizeGuidePage() {
             Still unsure?
           </h2>
           <p className="mx-auto mt-3 max-w-[440px] font-sans text-[13px] leading-[1.55] text-ink-soft md:text-[14px]">
-            Send us your measurements on WhatsApp with the product link — we&apos;ll tell you exactly which size to pick.
+            Send us your measurements on WhatsApp with the product link. We&apos;ll tell you exactly which size to pick.
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <a

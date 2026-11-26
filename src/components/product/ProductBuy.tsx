@@ -315,7 +315,7 @@ export function ProductBuy({
           ) : (
             <>
               <span aria-hidden="true">● </span>
-              In stock — Ships in 1-2 days
+              In stock · Ships in 1-2 days
             </>
           )
         ) : (
@@ -419,7 +419,7 @@ export function ProductBuy({
       <div className="grid grid-cols-2 gap-2 border-y border-blush-100 py-4 font-sans text-[11px] font-semibold uppercase tracking-wider text-ink">
         {[
           { ico: "⌖", line1: "Free delivery", line2: freeShippingThreshold > 0 ? `${formatPrice(freeShippingThreshold, "MUR")}+` : "available" },
-          { ico: "✦", line1: "Cash on", line2: "delivery" },
+          { ico: "✦", line1: "Payment on", line2: "delivery" },
         ].map((t) => (
           <div key={t.line1} className="flex flex-col items-center gap-1.5 text-center">
             <span className="text-[18px] text-coral-500">{t.ico}</span>
@@ -491,8 +491,8 @@ function OptionGroup({
                 role="radio"
                 aria-checked={selected === v}
                 aria-disabled={disabled || undefined}
-                aria-label={disabled ? `${v} — sold out` : v}
-                title={disabled ? `${v} — sold out` : v}
+                aria-label={disabled ? `${v}, sold out` : v}
+                title={disabled ? `${v}, sold out` : v}
                 tabIndex={i === focusableIndex ? 0 : -1}
                 onClick={() => onSelect(v)}
                 onKeyDown={(e) => handleKeyDown(e, i)}
@@ -524,7 +524,7 @@ function OptionGroup({
                 role="radio"
                 aria-checked={selected === v}
                 aria-disabled={disabled || undefined}
-                aria-label={disabled ? `${v} — sold out` : undefined}
+                aria-label={disabled ? `${v}, sold out` : undefined}
                 tabIndex={i === focusableIndex ? 0 : -1}
                 onClick={() => onSelect(v)}
                 onKeyDown={(e) => handleKeyDown(e, i)}

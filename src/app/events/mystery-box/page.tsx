@@ -201,8 +201,8 @@ export default async function MysteryBoxPage() {
         </main>
 
         <p className="mt-10 font-sans text-[11px] text-ink-muted">
-          Free delivery and COD across Mauritius. Stock is reserved at checkout,
-          not at spin time.
+          Free delivery across Mauritius, payment on delivery (cash or Juice).
+          Stock is reserved at checkout, not when you spin.
         </p>
       </div>
     </div>

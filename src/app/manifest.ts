@@ -10,7 +10,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Doll Up Boutique",
     short_name: "Doll Up",
     description:
-      "Dresses, lingerie, beachwear and accessories in Mauritius, with cash on delivery island-wide.",
+      "Dresses, lingerie, beachwear and accessories in Mauritius. Island-wide delivery, payment on delivery.",
     lang: "en-MU",
     start_url: "/",
     scope: "/",

@@ -8,7 +8,7 @@ import { isMysteryBoxPaused } from "@/lib/mystery-box";
 export const metadata: Metadata = {
   title: "Events & Giveaways",
   description:
-    "Doll Up Boutique giveaways, mystery boxes and seasonal happenings — exclusive perks for our community.",
+    "Doll Up Boutique giveaways, mystery boxes and seasonal happenings. Exclusive perks for our community.",
   alternates: { canonical: "/events" },
   openGraph: {
     title: "Events & Giveaways",
@@ -71,7 +71,7 @@ export default function EventsPage() {
               </em>
             </h2>
             <p className="mt-4 max-w-[460px] font-sans text-[14px] leading-[1.55] text-white/80">
-              Pick your size. Spin our mystery wheel. We curate <strong className="text-white">5 surprise pieces</strong> from our collection — yours for a flat <strong className="text-white">Rs 3,500</strong>. Always more value than the price tag, every time.
+              Pick your size. Spin our mystery wheel. We hand-pick <strong className="text-white">5 surprise pieces</strong> from our collection, yours for a flat <strong className="text-white">Rs 3,500</strong>. Always more value than the price tag, every time.
             </p>
             <ul className="mt-5 space-y-2.5 font-sans text-[13px] text-white/80">
               <li className="flex items-start gap-2">
@@ -84,7 +84,7 @@ export default function EventsPage() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="mt-[3px] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-coral-300" />
-                Free delivery + COD across Mauritius
+                Free delivery across Mauritius, payment on delivery
               </li>
             </ul>
             <div className="mt-7 flex flex-wrap gap-3">

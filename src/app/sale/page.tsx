@@ -213,8 +213,8 @@ function SalePerks({
           </Perk>
         )}
         {/* COD is only offered on in-person handoff (allowedPaymentMethods). */}
-        <Perk icon={<Banknote className="h-5 w-5" aria-hidden />} title="Cash on delivery">
-          On home delivery &amp; pick-up
+        <Perk icon={<Banknote className="h-5 w-5" aria-hidden />} title="Payment on delivery">
+          Cash or Juice, on home delivery &amp; pick-up
         </Perk>
         <Perk
           icon={<MessageCircle className="h-5 w-5" aria-hidden />}

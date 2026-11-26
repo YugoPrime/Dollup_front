@@ -913,7 +913,7 @@ export function CheckoutForm({ cutoffHour, initialNow }: { cutoffHour: number; i
               !isValidDeliveryDate(state.deliveryDate, new Date(), isPickup, cutoffHour) && (
                 <p className="font-sans text-[11px] text-coral-700">
                   {isPickup
-                    ? "That date is not available — no pickups on Sundays."
+                    ? "That date is not available. No pickups on Sundays."
                     : `That date is not available. No same-day delivery, next-day cutoff is ${cutoffLabel}, no Sundays.`}
                 </p>
               )}
@@ -1155,8 +1155,8 @@ export function CheckoutForm({ cutoffHour, initialNow }: { cutoffHour: number; i
               const label =
                 m === "Cash"
                   ? {
-                      main: "Cash on Delivery",
-                      sub: "Pay with cash when your order arrives.",
+                      main: "Payment on delivery",
+                      sub: "Pay cash or Juice when you receive your order.",
                       Icon: Banknote,
                     }
                   : {

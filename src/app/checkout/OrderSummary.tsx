@@ -351,7 +351,7 @@ export function OrderSummary({
                 Mystery Box
               </dt>
               <dd className="mt-1 font-sans text-[12px] text-ink">
-                Box <strong>{mysteryBox.id}</strong> - size {mysteryBox.size} -
+                Box <strong>{mysteryBox.id}</strong> · size {mysteryBox.size} ·
                 flat {formatPrice(mysteryBox.flat_price_mur, currency)}
               </dd>
             </div>
@@ -454,7 +454,7 @@ function PreorderPaymentBreakdown({
       ) : (
         <p className="mt-2 font-sans text-[11px] leading-snug text-ink-soft">
           Pay the balance ({formatPrice(balanceOnArrival, currency)}) on
-          delivery or at pickup — cash or Juice.
+          delivery or at pickup: cash or Juice.
         </p>
       )}
     </div>

@@ -71,12 +71,12 @@ export function PaymentInstructions({
     return (
       <div className="mb-8 rounded-xl border border-emerald-200 bg-emerald-50/60 p-5">
         <h2 className="font-display text-base font-semibold text-emerald-900">
-          Cash on Delivery
+          Payment on delivery
         </h2>
         <p className="mt-2 font-sans text-sm text-emerald-900/80">
-          You&apos;ll pay <span className="font-semibold">{totalLabel}</span> in
-          cash when your order arrives. Please have the exact amount ready if
-          possible.
+          You&apos;ll pay <span className="font-semibold">{totalLabel}</span> when
+          you receive your order, in cash or by Juice. If you pay cash, please
+          have the exact amount ready.
         </p>
       </div>
     );

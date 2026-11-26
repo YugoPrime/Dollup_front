@@ -12,7 +12,7 @@ import { FREE_POSTAGE_UNTIL_LABEL, freePostageActive } from "@/lib/checkout";
 export const metadata: Metadata = {
   title: "Shipping & Delivery",
   description:
-    "How we deliver across Mauritius and Rodrigues — fees, timeframes, free-delivery threshold and pickup options.",
+    "How we deliver across Mauritius and Rodrigues: fees, timeframes, free-delivery threshold and pickup options.",
   alternates: { canonical: "/shipping" },
   openGraph: {
     title: "Shipping & Delivery",
@@ -138,7 +138,7 @@ export default async function ShippingPage() {
             </div>
             <h2 className="mb-1 font-display text-[20px] leading-tight text-ink">Free pickup</h2>
             <p className="font-sans text-[13px] leading-[1.5] text-ink-soft">
-              Skip delivery and pick up at our Pereybere point near Winners — no minimum order.
+              Skip delivery and pick up at our Pereybere point near Winners. No minimum order.
             </p>
           </div>
         </div>
@@ -193,7 +193,7 @@ export default async function ShippingPage() {
             </li>
             <li className="flex items-start gap-2">
               <span className="mt-[7px] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-coral-500" />
-              For Cash on Delivery, please keep your phone with you — we call twice and cancel if unanswered.
+              If you pay on delivery, please keep your phone with you. We call twice and cancel if there&apos;s no answer.
             </li>
           </ul>
         </div>

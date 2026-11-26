@@ -28,7 +28,7 @@ export type HappyHourState = "later" | "live" | "over"
 export type BarCopy = { lead: string; href: string | null; tail: string | null }
 
 const MU_OFFSET_MS = 4 * 60 * 60 * 1000
-const COD = "Cash on delivery available"
+const COD = "Payment on delivery: cash or Juice"
 const ADVENT_YEAR = 2026
 const ADVENT_MONTH = 11 // December, 0-based
 const HAPPY_HOUR_START = 20

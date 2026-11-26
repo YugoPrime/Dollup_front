@@ -14,7 +14,7 @@
 import { freePostageActive, muDateParts } from "./checkout";
 
 /** Shown at the end of the promo bar on desktop, as on the advent bar. */
-const COD = "Cash on delivery available";
+const COD = "Payment on delivery: cash or Juice";
 
 /**
  * How loud the site is about the sale. "mono" is the Black Friday look: a

@@ -106,7 +106,7 @@ export function PreorderQuoteBox() {
         <p className="mt-2 max-w-lg text-[14px] leading-relaxed text-ink-muted">
           Open your item on SHEIN, read its price in{" "}
           <span className="font-semibold text-ink">US dollars</span>, and type it
-          below. We&rsquo;ll show your final Mauritius price — shipping, customs
+          below. We&rsquo;ll show your final Mauritius price. Shipping, customs
           and handling already included.
         </p>
       </div>
@@ -165,7 +165,7 @@ export function PreorderQuoteBox() {
           </div>
           <p id="usd-hint" className="mt-2.5 text-[12px] leading-relaxed text-ink-muted">
             Tip: SHEIN usually shows prices in USD by default. Enter the item
-            price only — not bundle or cart totals.
+            price only, not bundle or cart totals.
           </p>
         </form>
 
@@ -221,7 +221,7 @@ export function PreorderQuoteBox() {
               <ul className="mt-4 space-y-1.5 text-[12.5px] leading-relaxed text-ink-muted">
                 <li className="flex items-start gap-2">
                   <span aria-hidden className="mt-px text-sage-500">✓</span>
-                  Shipping, customs &amp; handling included — no surprises at delivery.
+                  Shipping, customs &amp; handling included. No surprises at delivery.
                 </li>
                 <li className="flex items-start gap-2">
                   <span aria-hidden className="mt-px text-sage-500">✓</span>
@@ -229,7 +229,7 @@ export function PreorderQuoteBox() {
                 </li>
                 <li className="flex items-start gap-2">
                   <span aria-hidden className="mt-px text-sage-500">✓</span>
-                  Estimate at today&rsquo;s rate — we confirm the exact price when you send the link.
+                  Estimate at today&rsquo;s rate. We confirm the exact price when you send the link.
                 </li>
               </ul>
             </div>
@@ -255,7 +255,7 @@ export function PreorderQuoteBox() {
               </a>
               {stale && (
                 <p className="mt-2.5 text-[12px] text-coral-700">
-                  You changed the price — tap &ldquo;See my price&rdquo; again for an
+                  You changed the price. Tap &ldquo;See my price&rdquo; again for an
                   updated quote.
                 </p>
               )}

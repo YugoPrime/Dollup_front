@@ -39,7 +39,7 @@ export type SpotlightCopy = {
 export const POPUP_STORAGE_KEY = "dub_sale_popup_seen_v1";
 
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const COD = "Cash on delivery";
+const COD = "Payment on delivery";
 
 /** "Sunday 29 Nov" */
 function dayLabel(iso: string): string {

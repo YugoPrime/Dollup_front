@@ -5,10 +5,10 @@ import { CookieManager } from "./CookieManager";
 export const metadata: Metadata = {
   title: "Cookie preferences",
   description:
-    "Manage how Doll Up Boutique uses cookies on your device — accept, reject, or reset your choice.",
+    "Manage how Doll Up Boutique uses cookies on your device: accept, reject, or reset your choice.",
   alternates: { canonical: "/privacy/cookies" },
   openGraph: {
-    title: "Cookie preferences — Doll Up Boutique",
+    title: "Cookie preferences · Doll Up Boutique",
     description: "Manage your cookie choice for dollupboutique.com.",
     url: "/privacy/cookies",
   },
@@ -43,8 +43,8 @@ export default function CookiePreferencesPage() {
               <div>
                 <dt className="font-semibold text-ink">Strictly necessary</dt>
                 <dd className="mt-1">
-                  Required for the cart, checkout and login to work. Always on
-                  — they store your session and basket. Disabling them breaks
+                  Required for the cart, checkout and login to work. Always on:
+                  they store your session and basket. Disabling them breaks
                   the site, so they aren&apos;t something you can opt out of.
                 </dd>
               </div>

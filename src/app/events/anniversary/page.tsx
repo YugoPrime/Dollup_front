@@ -13,12 +13,12 @@ import {
 import { AnniversaryCountdown } from "./AnniversaryCountdown";
 
 export const metadata: Metadata = {
-  title: "8 Years of Doll Up — Anniversary Sale",
+  title: "8 Years of Doll Up: Anniversary Sale",
   description:
     "Celebrating 8 years of Doll Up Boutique. Up to 50% off, free gifts, bundle deals and a Rs 2,000 prize draw. Jul 17–31, Mauritius only.",
   alternates: { canonical: "/events/anniversary" },
   openGraph: {
-    title: "8 Years of Doll Up — Anniversary Sale",
+    title: "8 Years of Doll Up: Anniversary Sale",
     description:
       "Up to 50% off, free gifts, bundle deals and a Rs 2,000 prize draw. Jul 17–31.",
     url: "/events/anniversary",
@@ -66,7 +66,7 @@ const OFFERS: Offer[] = [
     id: "bogo-tape",
     icon: Sparkles,
     title: "Buy 1 Get 1 Free",
-    desc: "Boob tape — Jul 25–27 only.",
+    desc: "Boob tape, Jul 25–27 only.",
     tag: "Jul 25–27",
     // Medusa promo BOGO-TAPE targets this exact product (is1361).
     href: "/products/is1361",
@@ -76,7 +76,7 @@ const OFFERS: Offer[] = [
     id: "bogo-glue",
     icon: Droplets,
     title: "Buy 1 Get 1 Free",
-    desc: "Anti-slip glue — Jul 28–30 only.",
+    desc: "Anti-slip glue, Jul 28–30 only.",
     tag: "Jul 28–30",
     // Medusa promo BOGO-GLUE targets this exact product (is2382).
     href: "/products/is2382",
@@ -92,7 +92,7 @@ const OFFERS: Offer[] = [
     id: "dresses-b2g1",
     icon: Shirt,
     title: "Pick Any 3 Dresses",
-    desc: "Buy 2 dresses, get the 3rd free — Jul 21–27 only.",
+    desc: "Buy 2 dresses, get the 3rd free. Jul 21–27 only.",
     tag: "Jul 21–27",
     // Medusa promo DRESSES-B2G1 is scoped to the Dresses category
     // (pcat_01KN5D9SQPS6KZE3V48DZNNZ5A = handle `dresses`).
@@ -138,13 +138,13 @@ export default function AnniversaryPage() {
             </h1>
 
             <p className="mx-auto mt-5 max-w-[560px] font-sans text-[15px] leading-[1.6] text-ink-soft md:text-[17px]">
-              Eight years of dressing the babes of Mauritius — and it&apos;s all
+              Eight years of dressing the babes of Mauritius, and it&apos;s all
               thanks to you. To celebrate, we&apos;re throwing our biggest party
               yet.
             </p>
 
             <p className="mx-auto mt-6 inline-block rounded-full bg-coral-500 px-6 py-2.5 font-sans text-[13px] font-bold uppercase tracking-[0.14em] text-white shadow-[0_4px_14px_rgba(229,96,74,0.3)] md:text-[14px]">
-              Up to 50% Off — Jul 17–31
+              Up to 50% Off · Jul 17–31
             </p>
 
             <div className="mt-9 flex justify-center">
@@ -250,7 +250,7 @@ export default function AnniversaryPage() {
                   href="/shop?on_sale=1"
                   className="rounded-full bg-gold px-8 py-4 font-sans text-[12px] font-bold uppercase tracking-[0.14em] text-white transition-colors hover:brightness-95 md:text-[13px]"
                 >
-                  Enter — Shop Now
+                  Enter · Shop Now
                 </Link>
                 <Link
                   href="/events/anniversary/draw"

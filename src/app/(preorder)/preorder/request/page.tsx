@@ -22,7 +22,7 @@ export default function PreorderRequestPage() {
             Found something on SHEIN?
           </h1>
           <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-ink-soft">
-            Check the all-in Mauritius price in seconds — shipping, customs and
+            Check the all-in Mauritius price in seconds. Shipping, customs and
             handling included. Like it? Send the link, reserve with a 75%
             deposit, and we&rsquo;ll order it for you.
           </p>
@@ -52,9 +52,9 @@ export default function PreorderRequestPage() {
               What we can pre-order
             </p>
             <ul className="mt-3 space-y-2 text-[13px] leading-relaxed text-ink-soft">
-              <li className="flex gap-2"><span aria-hidden className="text-sage-300">—</span>Clothing, lingerie, swimwear, accessories on SHEIN MU/EU.</li>
-              <li className="flex gap-2"><span aria-hidden className="text-sage-300">—</span>Items currently in stock at SHEIN (not their pre-orders).</li>
-              <li className="flex gap-2"><span aria-hidden className="text-sage-300">—</span>Up to 5 pieces per pre-order request.</li>
+              <li className="flex gap-2"><span aria-hidden className="text-sage-300">•</span>Clothing, lingerie, swimwear, accessories on SHEIN MU/EU.</li>
+              <li className="flex gap-2"><span aria-hidden className="text-sage-300">•</span>Items currently in stock at SHEIN (not their pre-orders).</li>
+              <li className="flex gap-2"><span aria-hidden className="text-sage-300">•</span>Up to 5 pieces per pre-order request.</li>
             </ul>
           </div>
           <div className="rounded-xl border border-sage-100 bg-white p-5">
@@ -63,9 +63,9 @@ export default function PreorderRequestPage() {
               What we can&rsquo;t
             </p>
             <ul className="mt-3 space-y-2 text-[13px] leading-relaxed text-ink-muted">
-              <li className="flex gap-2"><span aria-hidden className="text-blush-400">—</span>Electronics, fragrances, restricted goods.</li>
-              <li className="flex gap-2"><span aria-hidden className="text-blush-400">—</span>Items SHEIN flags as &ldquo;ships from overseas only&rdquo;.</li>
-              <li className="flex gap-2"><span aria-hidden className="text-blush-400">—</span>Anything you need in under 15 days — try the in-stock store.</li>
+              <li className="flex gap-2"><span aria-hidden className="text-blush-400">•</span>Electronics, fragrances, restricted goods.</li>
+              <li className="flex gap-2"><span aria-hidden className="text-blush-400">•</span>Items SHEIN flags as &ldquo;ships from overseas only&rdquo;.</li>
+              <li className="flex gap-2"><span aria-hidden className="text-blush-400">•</span>Anything you need in under 15 days (try the in-stock store).</li>
             </ul>
           </div>
         </div>
