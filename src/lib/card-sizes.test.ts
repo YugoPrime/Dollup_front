@@ -1,6 +1,6 @@
 // Covers which sizes a product card shows (card-sizes.ts).
 // Plain script, run with `npx tsx src/lib/card-sizes.test.ts`.
-import { cardSizes, isOneSizeLabel, type CardSizeVariant } from "./card-sizes"
+import { cardSizes, isOneSizeLabel, pillSizes, type CardSizeVariant } from "./card-sizes"
 
 let ok = true
 function check(name: string, actual: unknown, expected: unknown) {
@@ -40,6 +40,14 @@ check("a misspelt colour counts under its shop group", cardSizes([v("L", 1, "Bur
 check("Pink and Light Pink both count under pink", cardSizes([v("S", 1, "Pink"), v("M", 1, "Light Pink"), v("L", 1, "Black")], "pink"), ["S", "M"])
 check("a colour with no colour option on any variant counts every size", cardSizes([v("S", 1), v("M", 1)], "burgundy"), ["S", "M"])
 check("isOneSizeLabel knows the shop's one-size labels", ["OS", " os ", "One Size", "Free Size", "freesize", "free-size", "M"].map(isOneSizeLabel), [true, true, true, true, true, true, false])
+
+// The photo pill: which sizes fit before it switches to "+N".
+check("pill: 5 sizes fit", pillSizes(["S", "M", "L", "XL", "XXL"]), { shown: ["S", "M", "L", "XL", "XXL"], more: 0 })
+check("pill: nothing to show", pillSizes([]), { shown: [], more: 0 })
+check("pill: 6 sizes end in +2", pillSizes(["XS", "S", "M", "L", "XL", "XXL"]), { shown: ["XS", "S", "M", "L"], more: 2 })
+check("pill: 5 shoe sizes end in +2", pillSizes(["36", "37", "38", "39", "40"]), { shown: ["36", "37", "38"], more: 2 })
+check("pill: plus sizes end in +2", pillSizes(["L", "XL", "2XL", "3XL", "4XL"]), { shown: ["L", "XL", "2XL"], more: 2 })
+check("pill: a long first label still shows", pillSizes(["EXTRA LARGE LONG LABEL", "M"]), { shown: ["EXTRA LARGE LONG LABEL"], more: 1 })
 
 if (!ok) process.exit(1)
 console.log("ALL PASS")

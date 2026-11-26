@@ -68,3 +68,28 @@ export function cardSizes(
   }
   return [...seen.values()].sort(compareSizes)
 }
+
+// Room in the photo pill: a label counts its characters, each "·" separator
+// counts 2. 16 is "S · M · L · XL · XXL", the catalogue's longest list on
+// 27 Nov, which fits the 164 px phone rail card.
+const PILL_BUDGET = 16
+
+function pillUnits(labels: readonly string[]): number {
+  return labels.reduce((n, s) => n + s.length, 0) + 2 * Math.max(labels.length - 1, 0)
+}
+
+/** The sizes the photo pill shows, and how many more hide behind "+N". */
+export function pillSizes(
+  sizes: readonly string[],
+  budget = PILL_BUDGET,
+): { shown: string[]; more: number } {
+  if (pillUnits(sizes) <= budget) return { shown: [...sizes], more: 0 }
+  // The longest prefix that leaves room for " +N"; always at least one label.
+  for (let n = sizes.length - 1; n > 1; n--) {
+    const more = sizes.length - n
+    if (pillUnits(sizes.slice(0, n)) + 1 + `+${more}`.length <= budget) {
+      return { shown: sizes.slice(0, n), more }
+    }
+  }
+  return { shown: sizes.slice(0, 1), more: sizes.length - 1 }
+}
