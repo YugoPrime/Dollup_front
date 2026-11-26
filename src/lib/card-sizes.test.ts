@@ -36,6 +36,9 @@ check("other labels sort A to Z", cardSizes([v("C", 1), v("A", 1), v("B", 1)]), 
 check("a size shared by two colours shows once", cardSizes([v("S", 1, "Black"), v("S", 2, "Red")]), ["S"])
 check("the option title matches in any case", cardSizes([{ manage_inventory: true, inventory_quantity: 1, options: [{ value: "M", option: { title: "SIZE" } }] }]), ["M"])
 check("no variants hides the row", cardSizes(undefined), [])
+check("a misspelt colour counts under its shop group", cardSizes([v("L", 1, "Burgandy"), v("S", 1, "Black")], "burgundy"), ["L"])
+check("Pink and Light Pink both count under pink", cardSizes([v("S", 1, "Pink"), v("M", 1, "Light Pink"), v("L", 1, "Black")], "pink"), ["S", "M"])
+check("a colour with no colour option on any variant counts every size", cardSizes([v("S", 1), v("M", 1)], "burgundy"), ["S", "M"])
 check("isOneSizeLabel knows the shop's one-size labels", ["OS", " os ", "One Size", "Free Size", "freesize", "free-size", "M"].map(isOneSizeLabel), [true, true, true, true, true, true, false])
 
 if (!ok) process.exit(1)

@@ -251,10 +251,7 @@ export function ProductCard({
   const discountPct = formatDiscountPercent(price.amount, price.original);
 
   const colors = getColorOptions(product, selectedSizes);
-  // /shop lets products with no (or differently spelled) colour option through
-  // a colour filter, so fall back to every in-stock size instead of an empty row.
-  let sizes = cardSizes(product.variants, selectedColor);
-  if (sizes.length === 0 && selectedColor) sizes = cardSizes(product.variants, null);
+  const sizes = cardSizes(product.variants, selectedColor);
   const thumb = pickImageForColor(product, selectedColor ?? colors[0] ?? null);
   const isMultiVariant = (product.variants?.length ?? 0) > 1;
   const advent = {

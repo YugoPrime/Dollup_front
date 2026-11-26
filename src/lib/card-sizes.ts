@@ -1,4 +1,5 @@
 // Which sizes a product card lists. Pure logic, no React.
+import { canonicalColor } from "./color-buckets"
 import { SIZE_RANK } from "./feed-labels"
 
 export type CardSizeVariant = {
@@ -48,11 +49,18 @@ export function cardSizes(
   variants: ReadonlyArray<CardSizeVariant> | null | undefined,
   color?: string | null,
 ): string[] {
-  const wanted = color ? norm(color) : null
+  const group = (c: string) => canonicalColor(c) ?? norm(c)
+  const list = variants ?? []
+  // A colour filter only means something if the product has a colour option.
+  const wanted =
+    color && list.some((v) => optionValue(v, "color") !== null) ? group(color) : null
   const seen = new Map<string, string>()
-  for (const v of variants ?? []) {
+  for (const v of list) {
     if (!isBuyable(v)) continue
-    if (wanted !== null && norm(optionValue(v, "color")) !== wanted) continue
+    if (wanted !== null) {
+      const vc = optionValue(v, "color")
+      if (vc === null || group(vc) !== wanted) continue
+    }
     const size = optionValue(v, "size")
     if (!size || isOneSizeLabel(size)) continue
     const key = norm(size)
