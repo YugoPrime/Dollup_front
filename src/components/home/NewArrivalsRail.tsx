@@ -38,16 +38,16 @@ export function NewArrivalsRail({
             <div
               key={p.id}
               data-card
-              className="w-[150px] shrink-0 snap-start md:w-[230px]"
+              className="w-[164px] shrink-0 snap-start md:w-[230px]"
             >
               <ProductCard
                 product={p}
                 latestCollectionTag={latestCollectionTag}
-                imageSizes="(max-width: 768px) 150px, 230px"
+                imageSizes="(max-width: 768px) 164px, 230px"
               />
             </div>
           ))}
-          <div data-card className="w-[150px] shrink-0 snap-start md:w-[230px]">
+          <div data-card className="w-[164px] shrink-0 snap-start md:w-[230px]">
             <div className="aspect-[3/4.5]">
               <ViewAllTile href={viewAllHref} />
             </div>

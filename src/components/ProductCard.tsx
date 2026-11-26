@@ -9,12 +9,13 @@ import {
 } from "@/components/ProductCardActions";
 import { AdventCardTag, AdventCardPrice } from "@/components/advent/AdventPrice";
 import { adventNowMs } from "@/lib/advent";
+import { cardSizes } from "@/lib/card-sizes";
 import type { QuickAddProduct } from "@/components/ProductCardVariantSheet";
 
 type Product = HttpTypes.StoreProduct;
 
 const LOW_STOCK_THRESHOLD = 5;
-const MAX_COLOR_DOTS = 4;
+const MAX_COLOR_DOTS = 2;
 
 // "New" = product carries the highest-numbered `collectionN` tag in the catalog.
 // Auto-rotates: when collection29 lands and gets a product, collection28 stops
@@ -250,6 +251,10 @@ export function ProductCard({
   const discountPct = formatDiscountPercent(price.amount, price.original);
 
   const colors = getColorOptions(product, selectedSizes);
+  // /shop lets products with no (or differently spelled) colour option through
+  // a colour filter, so fall back to every in-stock size instead of an empty row.
+  let sizes = cardSizes(product.variants, selectedColor);
+  if (sizes.length === 0 && selectedColor) sizes = cardSizes(product.variants, null);
   const thumb = pickImageForColor(product, selectedColor ?? colors[0] ?? null);
   const isMultiVariant = (product.variants?.length ?? 0) > 1;
   const advent = {
@@ -261,7 +266,7 @@ export function ProductCard({
   };
 
   return (
-    <div className="group relative block overflow-hidden rounded-xl bg-white shadow-[0_2px_8px_rgba(229,96,74,0.06)] transition-all duration-200 ease-out hover:-translate-y-[3px] hover:shadow-[0_10px_24px_rgba(229,96,74,0.16)]">
+    <div className="group relative flex h-full flex-col overflow-hidden rounded-xl bg-white shadow-[0_2px_8px_rgba(229,96,74,0.06)] transition-all duration-200 ease-out hover:-translate-y-[3px] hover:shadow-[0_10px_24px_rgba(229,96,74,0.16)]">
       <div className="relative aspect-[3/4] overflow-hidden bg-blush-100">
         {soldOut && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/65">
@@ -300,21 +305,12 @@ export function ProductCard({
             className="object-cover object-top"
           />
         )}
-
-        {!soldOut && (
-          <ProductCardQuickAdd
-            isMultiVariant={isMultiVariant}
-            variantId={isMultiVariant ? null : inStockVariant?.id}
-            label={getVariantPickerLabel(product)}
-            quickAdd={toQuickAddProduct(product, thumb, price)}
-          />
-        )}
       </div>
 
-      <div className="flex min-h-[118px] flex-col px-3 pb-3 pt-2.5">
+      <div className="flex flex-1 flex-col px-2.5 pb-3 pt-2.5">
         <Link
           href={`/products/${product.handle}`}
-          className="line-clamp-2 min-h-[37px] font-sans text-[14px] leading-[1.3] text-ink before:absolute before:inset-0 before:z-[1] before:content-['']"
+          className="block truncate font-sans text-[14px] leading-[1.3] text-ink before:absolute before:inset-0 before:z-[1] before:content-['']"
         >
           {product.title}
         </Link>
@@ -324,24 +320,52 @@ export function ProductCard({
           currency={price.currency}
           soldOut={soldOut}
           onSale={price.onSale}
+          emphasis
         />
-        <div className="mt-auto flex h-5 items-center gap-1 pt-1.5">
-          {colors.length > 1 && (
+        <div className="mt-1 flex h-5 gap-1 overflow-hidden">
+          {sizes.length > 0 && (
             <>
-              {colors.slice(0, MAX_COLOR_DOTS).map((c) => (
+              <span className="sr-only">In stock: {sizes.join(", ")}</span>
+              {sizes.map((size) => (
                 <span
-                  key={c}
-                  title={c}
-                  className="h-3.5 w-3.5 rounded-full border border-black/10"
-                  style={{ background: colorNameToHex(c) }}
-                />
-              ))}
-              {colors.length > MAX_COLOR_DOTS && (
-                <span className="flex h-4 min-w-[22px] items-center justify-center rounded-full border border-ink-muted bg-white px-1 font-sans text-[10px] font-bold text-ink-muted">
-                  +{colors.length - MAX_COLOR_DOTS}
+                  key={size}
+                  aria-hidden="true"
+                  className="inline-flex h-5 min-w-[22px] shrink-0 items-center justify-center rounded-[5px] border border-[#DCCBC7] px-1 font-sans text-[10.5px] font-semibold text-ink"
+                >
+                  {size}
                 </span>
-              )}
+              ))}
             </>
+          )}
+        </div>
+        <div className="mt-auto flex items-center justify-between gap-1.5 pt-1.5">
+          <div className="flex h-5 items-center gap-1">
+            {colors.length > 1 && (
+              <>
+                {colors.slice(0, MAX_COLOR_DOTS).map((c) => (
+                  <span
+                    key={c}
+                    title={c}
+                    className="h-3 w-3 rounded-full border border-black/10"
+                    style={{ background: colorNameToHex(c) }}
+                  />
+                ))}
+                {colors.length > MAX_COLOR_DOTS && (
+                  <span className="font-sans text-[10px] font-bold text-ink-muted">
+                    +{colors.length - MAX_COLOR_DOTS}
+                  </span>
+                )}
+              </>
+            )}
+          </div>
+          {!soldOut && (
+            <ProductCardQuickAdd
+              placement="inline"
+              isMultiVariant={isMultiVariant}
+              variantId={isMultiVariant ? null : inStockVariant?.id}
+              label={getVariantPickerLabel(product)}
+              quickAdd={toQuickAddProduct(product, thumb, price)}
+            />
           )}
         </div>
       </div>

@@ -29,8 +29,8 @@ export function TrendingRail({
         {/* Mobile: horizontal scroll */}
         <div className="flex gap-2.5 overflow-x-auto px-4 pb-2 md:hidden">
           {products.slice(0, 10).map((p) => (
-            <div key={p.id} className="w-[150px] shrink-0">
-              <ProductCard product={p} imageSizes="150px" />
+            <div key={p.id} className="w-[164px] shrink-0">
+              <ProductCard product={p} imageSizes="164px" />
             </div>
           ))}
         </div>
