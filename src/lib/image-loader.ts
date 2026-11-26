@@ -39,32 +39,6 @@ function pickVariantWidth(requested: number): number {
   return VARIANT_WIDTHS[VARIANT_WIDTHS.length - 1];
 }
 
-// Cloudflare Image Transformations on the dollupboutique.com zone (2026-11-26).
-// Before this, every R2 photo was sent as the full 1200×1600 JPEG: /shop page 1
-// loaded 8.8 MB of card images, where a 400w WebP is ~17 KB. Widths snap to the
-// buckets above, so one photo costs at most 4 unique transformations a month
-// (format and quality don't count; 5,000 free, then $0.50 per 1,000).
-// fit=scale-down never upscales; onerror=redirect sends the browser to the
-// original photo if a transformation fails (e.g. the free monthly cap).
-// Kill switch: NEXT_PUBLIC_CF_IMAGE_RESIZE=false + rebuild.
-const CDN_ORIGIN = "https://cdn.dollupboutique.com/";
-const CF_RESIZABLE_RE = /\.(jpe?g|png|webp)$/i;
-
-function cloudflareResize(src: string, width: number, quality?: number): string | null {
-  if (process.env.NEXT_PUBLIC_CF_IMAGE_RESIZE === "false") return null;
-  if (!src.startsWith(CDN_ORIGIN)) return null;
-  const path = src.slice(CDN_ORIGIN.length);
-  if (path.startsWith("cdn-cgi/") || !CF_RESIZABLE_RE.test(path.split(/[?#]/)[0])) return null;
-  const options = [
-    `width=${pickVariantWidth(width)}`,
-    `quality=${quality ?? 75}`,
-    "fit=scale-down",
-    "format=auto",
-    "onerror=redirect",
-  ].join(",");
-  return `${CDN_ORIGIN}cdn-cgi/image/${options}/${path}`;
-}
-
 export default function customImageLoader({ src, width, quality }: ImageLoaderProps): string {
   // Local public assets (e.g. /logo.png, /og-default.jpg) — Next.js disables
   // the built-in /_next/image endpoint when `images.loader: "custom"` is set,
@@ -78,9 +52,6 @@ export default function customImageLoader({ src, width, quality }: ImageLoaderPr
       return `${match[1]}-${variantWidth}w.webp`;
     }
   }
-
-  const resized = cloudflareResize(src, width, quality);
-  if (resized) return resized;
 
   for (const prefix of PASSTHROUGH_PREFIXES) {
     if (src.startsWith(prefix)) return src;
