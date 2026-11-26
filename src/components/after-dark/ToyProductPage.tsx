@@ -89,7 +89,7 @@ export function ToyProductPage({ product }: { product: HttpTypes.StoreProduct })
         <section aria-labelledby="toy-delivery-title" className="mt-7">
           <ToySectionHeading id="toy-delivery-title">Delivery &amp; payment</ToySectionHeading>
           <ul className="mt-1">
-            <ToyInfoRow icon={<Banknote {...ICON} />} title="Cash on delivery" sub="Island-wide" />
+            <ToyInfoRow icon={<Banknote {...ICON} />} title="Payment on delivery" sub="Cash or Juice" />
             <ToyInfoRow
               icon={<Package {...ICON} />}
               title="Discreet delivery"

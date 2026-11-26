@@ -96,7 +96,7 @@ export function NewsletterForm() {
         className="mt-1.5 min-h-[16px] font-sans text-[11px] text-white/85"
       >
         {status === "success"
-          ? "Thanks — you're on the list."
+          ? "Thanks, you're on the list."
           : status === "error"
             ? errorMsg
             : ""}

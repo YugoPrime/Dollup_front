@@ -46,7 +46,7 @@ export function PreorderTerms({
           required
         />
         <span>
-          I understand pre-orders are <strong>final</strong> — no refunds or cancellations once the deposit is paid.
+          I understand pre-orders are <strong>final</strong>: no refunds or cancellations once the deposit is paid.
         </span>
       </label>
     </div>

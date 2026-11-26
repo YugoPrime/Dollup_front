@@ -42,12 +42,12 @@ export function generateMetadata(): Metadata {
   return {
     title: "Doll Up Boutique",
     description:
-      "Shop dresses, lingerie, beachwear and accessories curated in Mauritius, with cash on delivery available island-wide.",
+      "Shop dresses, lingerie, beachwear and accessories in Mauritius, delivered island-wide with payment on delivery (cash or Juice).",
     alternates: { canonical: "/" },
     openGraph: {
       title: "Doll Up Boutique",
       description:
-        "Shop dresses, lingerie, beachwear and accessories curated in Mauritius.",
+        "Shop dresses, lingerie, beachwear and accessories in Mauritius, delivered island-wide.",
       url: "/",
     },
   };

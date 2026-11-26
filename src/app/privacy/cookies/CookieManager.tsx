@@ -27,7 +27,7 @@ export function CookieManager() {
     setStatus(choice);
     setConfirmation(
       choice === "accepted"
-        ? "All cookies enabled. Thanks — analytics will help us improve the site for you."
+        ? "All cookies enabled. Thanks. Analytics will help us improve the site for you."
         : "Non-essential cookies turned off. Only the cookies needed for cart, checkout and login will be used.",
     );
   };
@@ -80,7 +80,7 @@ export function CookieManager() {
 
       <p className="font-sans text-[13px] leading-relaxed text-ink-soft">
         Use the buttons below to change how we use cookies on your device. Your
-        choice is stored locally on this browser only — clear it if you want
+        choice is stored locally on this browser only. Clear it if you want
         to be asked again, or use a different choice on a different device.
       </p>
 

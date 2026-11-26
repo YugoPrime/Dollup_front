@@ -56,6 +56,12 @@ export function LoyaltySignup() {
       return;
     }
 
+    if (!birthMonth) {
+      setStatus("err");
+      setErrorMsg("Pick your birthday month.");
+      return;
+    }
+
     try {
       const key = "dub_loyalty_signups";
       const existing = JSON.parse(localStorage.getItem(key) || "[]") as Array<{
@@ -86,8 +92,14 @@ export function LoyaltySignup() {
           Welcome to Doll Rewards.
         </h3>
         <p className="font-sans text-[14px] leading-[1.6] text-white/90">
-          We&apos;ve saved your details. Watch your inbox — we&apos;ll email you the moment point-earning goes live in your account, with a welcome bonus to thank you for being early.
+          We&apos;ve saved your details. Points are earned on orders placed with an account.
         </p>
+        <Link
+          href="/register"
+          className="mt-5 inline-block rounded-full bg-white px-6 py-3 font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-coral-700 transition-colors hover:bg-ink hover:text-white"
+        >
+          Create an account →
+        </Link>
       </div>
     );
   }
@@ -160,25 +172,41 @@ export function LoyaltySignup() {
         />
       </label>
 
-      <label className="mt-4 block">
-        <span className="mb-1.5 block font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-ink">
+      {/* Month chips instead of a native select: the phone's select sheet
+          (a long grey list) broke the page's look. Real radios underneath,
+          so arrow keys and screen readers work as usual. */}
+      <fieldset className="mt-4">
+        <legend className="mb-1.5 block font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-ink">
           Birthday month
-        </span>
-        <select
-          required
-          value={birthMonth}
-          onChange={(e) => setBirthMonth(e.target.value)}
-          className="w-full rounded-lg border border-blush-300 bg-cream px-4 py-3 font-sans text-[14px] text-ink outline-none"
-        >
-          <option value="" disabled>Select month</option>
+        </legend>
+        <div className="grid grid-cols-4 gap-2">
           {MONTHS.map((m) => (
-            <option key={m} value={m}>{m}</option>
+            <label key={m} className="relative">
+              <input
+                type="radio"
+                name="birthMonth"
+                value={m}
+                checked={birthMonth === m}
+                onChange={() => {
+                  setBirthMonth(m);
+                  setErrorMsg(null);
+                }}
+                className="peer sr-only"
+              />
+              <span
+                aria-hidden="true"
+                className="flex h-11 cursor-pointer select-none items-center justify-center rounded-full border border-blush-300 bg-cream font-sans text-[13px] font-semibold text-ink-soft transition-colors hover:border-ink peer-checked:border-ink peer-checked:bg-ink peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-coral-500 peer-focus-visible:ring-offset-2"
+              >
+                {m.slice(0, 3)}
+              </span>
+              <span className="sr-only">{m}</span>
+            </label>
           ))}
-        </select>
-        <span className="mt-1 block font-sans text-[11px] text-ink-muted">
+        </div>
+        <span className="mt-1.5 block font-sans text-[11px] text-ink-muted">
           So we know when to send your birthday treat.
         </span>
-      </label>
+      </fieldset>
 
       {errorMsg && (
         <p className="mt-3 font-sans text-[12px] text-coral-700">{errorMsg}</p>

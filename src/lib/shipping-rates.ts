@@ -28,7 +28,7 @@ const DISPLAY = [
   { key: "home", label: "Home / office delivery", timeframe: "" },
   { key: "postRegular", label: "Mauritius Post (regular)", timeframe: "2–4 working days" },
   { key: "postExpress", label: "Mauritius Post (express)", timeframe: "1–2 working days" },
-  { key: "pickup", label: "Pickup at Pereybere", timeframe: "When ready — we'll WhatsApp you" },
+  { key: "pickup", label: "Pickup at Pereybere", timeframe: "When ready, we'll WhatsApp you" },
 ] as const;
 
 const RODRIGUES_DISPLAY = {

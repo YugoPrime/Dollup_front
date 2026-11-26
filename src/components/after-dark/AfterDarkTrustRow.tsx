@@ -17,7 +17,7 @@ export function AfterDarkTrustRow() {
       <div className="mx-auto grid max-w-[1280px] grid-cols-3 divide-x divide-champagne-gold/25">
         <div className={CELL}>
           <Icon><Banknote {...icon} /></Icon>
-          Cash on delivery
+          Payment on delivery
         </div>
         <div className={CELL}>
           <Icon><Package {...icon} /></Icon>

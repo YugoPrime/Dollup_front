@@ -98,7 +98,7 @@ const FRIDAY_TEASE = /drop again|27 Nov|Fri(day)? 27/i
 check("banner copy keeps Friday a surprise", FRIDAY_TEASE.test(SALE_CAMPAIGN.bannerDescription), false)
 check("search description keeps Friday a surprise", FRIDAY_TEASE.test(SALE_CAMPAIGN.description), false)
 check("no Friday teaser copy left", "teaser" in SALE_CAMPAIGN.peak, false)
-check("bar copy on Friday", saleBarCopy(peakOpens), { lead: "Black Friday · today only, prices drop again →", href: "/sale", tail: "Cash on delivery available" })
+check("bar copy on Friday", saleBarCopy(peakOpens), { lead: "Black Friday · today only, prices drop again →", href: "/sale", tail: "Payment on delivery: cash or Juice" })
 check("bar copy Fri 23:59:59", saleBarCopy(peakLastSecond)?.lead, "Black Friday · today only, prices drop again →")
 check("bar copy at the weekend", saleBarCopy(afterPeak), { ...week, tail: "Ends Sunday 29 November" })
 check("bar copy last second", saleBarCopy(lastSaleSecond)?.lead, week.lead)

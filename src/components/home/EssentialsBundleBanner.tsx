@@ -5,7 +5,7 @@ import { EssentialsBundleAdd } from "./EssentialsBundleAdd";
 const DIR = "/events/essentials-bundle";
 
 const ALT =
-  "The Essentials Bundle: body adhesive, boob tape with 2 nipple covers and an invisible panty — Rs 1,190 instead of Rs 1,550, free delivery or free postage";
+  "The Essentials Bundle: body adhesive, boob tape with 2 nipple covers and an invisible panty. Rs 1,190 instead of Rs 1,550, free delivery or free postage";
 
 export function EssentialsBundleBanner() {
   // Home page revalidates every 5 min, so the banner is gone within 5 min of the end.

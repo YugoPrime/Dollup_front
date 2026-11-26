@@ -5,7 +5,7 @@ import { LoyaltySignup } from "./LoyaltySignup";
 export const metadata: Metadata = {
   title: "Doll Rewards · Loyalty Programme",
   description:
-    "Earn points on every order, unlock perks for your birthday, and get priority support — Doll Rewards is our way of saying thank you.",
+    "Earn points on every order and get a treat for your birthday. Doll Rewards is our way of saying thank you.",
   alternates: { canonical: "/loyalty" },
   openGraph: {
     title: "Doll Rewards",
@@ -18,17 +18,12 @@ const PERKS = [
   {
     icon: "★",
     title: "2 points per Rs 100",
-    body: "Every order earns you points automatically. Redeem from 150 points — 1 point = Rs 1 off.",
+    body: "Every order earns you points automatically. Redeem from 150 points: 1 point = Rs 1 off.",
   },
   {
     icon: "♥",
     title: "Birthday surprise",
     body: "Tell us your birth month at signup. We send a private code in your birthday week, every year.",
-  },
-  {
-    icon: "✦",
-    title: "Priority DMs",
-    body: "Members jump to the front of our WhatsApp and Instagram queue — sizing, restocks, all of it.",
   },
   {
     icon: "✿",
@@ -38,7 +33,7 @@ const PERKS = [
   {
     icon: "♕",
     title: "Member-only sales",
-    body: "Periodic flash sales we don't advertise publicly — only sent to our list.",
+    body: "Flash sales we don't advertise publicly. Only our list hears about them.",
   },
 ];
 
@@ -46,7 +41,7 @@ const HOW_IT_WORKS = [
   {
     step: "01",
     title: "Sign up free",
-    body: "Drop your email and birthday below. That's it — you're a member.",
+    body: "Leave your email and birthday month below. That's it, you're a member.",
   },
   {
     step: "02",
@@ -60,8 +55,8 @@ const HOW_IT_WORKS = [
   },
   {
     step: "04",
-    title: "Unlock the perks",
-    body: "Birthday treat, early access, member-only sales — we'll email you when each one drops.",
+    title: "Enjoy the perks",
+    body: "Birthday treat, early access, member-only sales: we'll email you when each one drops.",
   },
 ];
 
@@ -113,7 +108,7 @@ export default function LoyaltyPage() {
               What you get for being a member
             </h2>
           </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {PERKS.map((p) => (
               <div
                 key={p.title}
@@ -171,50 +166,19 @@ export default function LoyaltyPage() {
               </em>
             </h2>
             <p className="mt-4 font-sans text-[14px] leading-[1.6] text-ink-soft md:text-[15px]">
-              Drop your email and birthday below. We&apos;ll add you to the members list, send your welcome perks, and notify you when point-earning launches in your account.
+              Leave your email and birthday month below to join the members list.
             </p>
             <div className="mt-5 rounded-xl border border-blush-300 bg-white/60 p-4 font-sans text-[13px] leading-[1.55] text-ink-soft">
-              <strong className="text-ink">Already have an account?</strong> You&apos;re automatically enrolled in Doll Rewards — no separate signup needed. <Link href="/register" className="text-coral-500 hover:underline">Create an account →</Link> or <Link href="/login" className="text-coral-500 hover:underline">sign in</Link>.
+              <strong className="text-ink">Already have an account?</strong> You&apos;re automatically enrolled in Doll Rewards, no separate signup needed. <Link href="/register" className="text-coral-500 hover:underline">Create an account →</Link> or <Link href="/login" className="text-coral-500 hover:underline">sign in</Link>.
             </div>
             <p className="mt-3 font-sans text-[12px] text-ink-muted">
-              No spam — about one email a week, max. Unsubscribe anytime.
+              No spam: one email a week at most. Unsubscribe anytime.
             </p>
           </div>
           <LoyaltySignup />
         </div>
       </section>
 
-      {/* Status note */}
-      <section className="bg-white px-6 py-12 md:px-10 md:py-16">
-        <div className="mx-auto max-w-[820px] rounded-2xl border border-blush-300 bg-cream p-7 md:p-10">
-          <p className="mb-2 font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-coral-500">
-            Heads up
-          </p>
-          <h2 className="mb-2 font-display text-[20px] leading-[1.2] text-ink md:text-[24px]">
-            We&apos;re relaunching the rewards system
-          </h2>
-          <p className="font-sans text-[13px] leading-[1.65] text-ink-soft md:text-[14px]">
-            Doll Rewards is being rebuilt from scratch with our new shop. Sign up now to lock in your spot — we&apos;ll email you the moment your account starts earning points, plus a welcome bonus to thank you for being early.
-          </p>
-        </div>
-      </section>
-
-      {/* Final CTA */}
-      <section className="px-6 py-12 md:px-10 md:py-16">
-        <div className="mx-auto max-w-[700px] text-center">
-          <h2 className="font-display text-[24px] leading-[1.2] text-ink md:text-[32px]">
-            In the meantime — go shopping.
-          </h2>
-          <div className="mt-6">
-            <Link
-              href="/shop"
-              className="rounded-full bg-coral-500 px-7 py-3 font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-white transition-colors hover:bg-coral-700"
-            >
-              Browse the shop →
-            </Link>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }

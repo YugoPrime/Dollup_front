@@ -445,7 +445,7 @@ export function MobilePdpHero({
                   aria-disabled={!s.available || undefined}
                   role="radio"
                   aria-checked={active}
-                  aria-label={s.available ? `Size ${s.value}` : `Size ${s.value} — sold out`}
+                  aria-label={s.available ? `Size ${s.value}` : `Size ${s.value}, sold out`}
                   className={`pointer-events-auto flex h-11 w-11 items-center justify-center rounded-full font-sans text-[13px] font-semibold transition-colors ${
                     active
                       ? "bg-coral-500 text-white shadow-[0_2px_8px_rgba(0,0,0,0.22)]"

@@ -137,7 +137,7 @@ export default async function PreorderPDP({
             </li>
           </ol>
           <p className="mt-4 rounded border border-coral-300 bg-white px-3 py-2 text-[12px] font-semibold text-coral-700">
-            All pre-order sales are final — no cancellations or refunds once deposit is paid.
+            All pre-order sales are final: no cancellations or refunds once deposit is paid.
           </p>
         </div>
 

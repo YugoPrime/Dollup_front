@@ -41,7 +41,7 @@ export function FeedbackModal({ onClose }: Props) {
 
     const trimmed = message.trim();
     if (trimmed.length < 5) {
-      setErrorMsg("Tell us a little more — at least a few words.");
+      setErrorMsg("Tell us a little more (at least a few words).");
       setStatus("error");
       return;
     }
@@ -107,7 +107,7 @@ export function FeedbackModal({ onClose }: Props) {
             </h2>
             <p className="mt-1 font-sans text-[13px] text-ink-muted">
               {done
-                ? "We've received your note — we read every one."
+                ? "We've received your note. We read every one."
                 : "Spotted a bug or have an idea? Let us know."}
             </p>
           </div>

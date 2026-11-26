@@ -208,7 +208,7 @@ export function ProductCardVariantSheet({
                   </span>
                 ) : opt === triggerOption && !color ? (
                   <span className="ml-1 font-medium normal-case tracking-normal text-ink-muted">
-                    — tap to add
+                    (tap to add)
                   </span>
                 ) : null}
               </p>
@@ -227,7 +227,7 @@ export function ProductCardVariantSheet({
                         type="button"
                         role="radio"
                         aria-checked={active}
-                        aria-label={available ? v : `${v} — sold out`}
+                        aria-label={available ? v : `${v}, sold out`}
                         title={v}
                         disabled={!available || busy}
                         onClick={() => choose(opt, v)}
@@ -251,7 +251,7 @@ export function ProductCardVariantSheet({
                       type="button"
                       role="radio"
                       aria-checked={active}
-                      aria-label={available ? v : `${v} — sold out`}
+                      aria-label={available ? v : `${v}, sold out`}
                       disabled={!available || busy}
                       onClick={() => choose(opt, v)}
                       className={`min-h-11 rounded-md border px-2 font-sans text-[14px] font-semibold transition-colors ${

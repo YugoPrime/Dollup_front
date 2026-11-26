@@ -6,12 +6,12 @@ import { AnniversaryCountdown } from "../AnniversaryCountdown";
 import { BubbleWall } from "./BubbleWall";
 
 export const metadata: Metadata = {
-  title: "The Rs 2,000 Draw — 8 Years of Doll Up",
+  title: "The Rs 2,000 Draw · 8 Years of Doll Up",
   description:
     "Every website order is an entry in the Rs 2,000 anniversary draw. Watch the wall fill up. Winner drawn Aug 1.",
   alternates: { canonical: "/events/anniversary/draw" },
   openGraph: {
-    title: "The Rs 2,000 Draw — 8 Years of Doll Up",
+    title: "The Rs 2,000 Draw · 8 Years of Doll Up",
     description: "Every website order is an entry. Winner drawn Aug 1.",
     url: "/events/anniversary/draw",
   },
@@ -77,7 +77,7 @@ export default async function DrawPage() {
             href="/shop?on_sale=1"
             className="inline-block rounded-full bg-coral-500 px-8 py-3.5 font-sans text-[14px] font-bold text-white transition hover:bg-coral-700"
           >
-            Shop the sale — get your entry
+            Shop the sale · Get your entry
           </Link>
           <p className="mx-auto mt-6 max-w-lg font-sans text-[12px] leading-relaxed text-ink-muted">
             Free entry with any website purchase, Jul 17–31. One entry per order. The winner is

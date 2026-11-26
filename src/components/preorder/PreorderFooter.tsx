@@ -45,7 +45,7 @@ export function PreorderFooter() {
         </div>
 
         <div className="mt-10 border-t border-sage-200 pt-6 text-[11px] text-ink-muted">
-          © {new Date().getFullYear()} Doll Up Boutique · Mauritius · COD + Juice deposits
+          © {new Date().getFullYear()} Doll Up Boutique · Mauritius · Juice deposits, balance on delivery
         </div>
       </div>
     </footer>

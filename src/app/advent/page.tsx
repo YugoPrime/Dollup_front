@@ -12,7 +12,7 @@ import { isAgeRestricted } from "@/lib/visibility";
 export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: "24 Days of Doll Up — Advent calendar",
+  title: "24 Days of Doll Up: Advent calendar",
   description:
     "A new treat behind every door, 1 to 24 December. Open today's door for a Doll Up offer on website orders.",
   alternates: { canonical: "/advent" },

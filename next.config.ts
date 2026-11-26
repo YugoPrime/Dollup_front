@@ -106,17 +106,21 @@ const nextConfig: NextConfig = {
     ];
   },
   async headers() {
+    // Asset folders use `:path+` (one or more segments), not `:path*`: `*`
+    // also matches the bare folder path, and "/lookbook/:path*" gave the
+    // /lookbook PAGE a one-year immutable header. Cloudflare then kept that
+    // HTML for months, pointing at CSS files a later deploy had removed.
     return [
       {
-        source: "/categories/:path*",
+        source: "/categories/:path+",
         headers: longLivedAssetHeaders,
       },
       {
-        source: "/lookbook/:path*",
+        source: "/lookbook/:path+",
         headers: longLivedAssetHeaders,
       },
       {
-        source: "/mystery-box/:path*",
+        source: "/mystery-box/:path+",
         headers: longLivedAssetHeaders,
       },
       {

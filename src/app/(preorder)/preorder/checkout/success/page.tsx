@@ -29,7 +29,7 @@ export default async function PreorderSuccessPage({
 
       {/* Headline */}
       <h1 className="mt-3 font-display text-3xl font-semibold leading-tight text-ink md:text-4xl">
-        Thank you — you&apos;re almost set.
+        Thank you. You&apos;re almost set.
       </h1>
 
       {/* Order + 24h instruction */}

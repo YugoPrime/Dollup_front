@@ -4,7 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "FAQ",
   description:
-    "Answers to the questions our customers ask most — orders, payment, sizing, delivery, returns and more.",
+    "Answers to the questions our customers ask most: orders, payment, sizing, delivery, returns and more.",
   alternates: { canonical: "/faq" },
   openGraph: {
     title: "FAQ",
@@ -43,7 +43,7 @@ const SECTIONS: FaqSection[] = [
         q: "Can I modify my order after checkout?",
         a: (
           <p>
-            Yes — message us on WhatsApp <a href="https://wa.me/23059416359" target="_blank" rel="noreferrer" className="text-coral-500 hover:underline">+230 5941 6359</a> within 24 hours of checkout, with your order number. After that the order moves to packing and changes get tricky.
+            Yes. Message us on WhatsApp <a href="https://wa.me/23059416359" target="_blank" rel="noreferrer" className="text-coral-500 hover:underline">+230 5941 6359</a> within 24 hours of checkout, with your order number. After that the order moves to packing and changes get tricky.
           </p>
         ),
       },
@@ -51,7 +51,7 @@ const SECTIONS: FaqSection[] = [
         q: "How do I track my order?",
         a: (
           <p>
-            Use the <Link href="/track-order" className="text-coral-500 hover:underline">Track Order</Link> page with your order ID and the phone number you used at checkout. We&apos;ll show you each step — placed, confirmed, packed, shipped, delivered.
+            Use the <Link href="/track-order" className="text-coral-500 hover:underline">Track Order</Link> page with your order ID and the phone number you used at checkout. We&apos;ll show you each step: placed, confirmed, packed, shipped, delivered.
           </p>
         ),
       },
@@ -65,7 +65,7 @@ const SECTIONS: FaqSection[] = [
         q: "How can I pay?",
         a: (
           <p>
-            We accept <strong>Juice</strong>, <strong>bank transfer</strong> and <strong>cash on delivery</strong>. Card payments are coming soon.
+            We accept <strong>Juice</strong>, <strong>bank transfer</strong> and <strong>payment on delivery</strong> (cash or Juice, for home delivery and pickup). Card payments are coming soon.
           </p>
         ),
       },
@@ -73,7 +73,7 @@ const SECTIONS: FaqSection[] = [
         q: "Which currency do you accept?",
         a: (
           <p>
-            Mauritian Rupees (MUR) only at the moment. Reunion Island shipping is paused — when it resumes you&apos;ll be able to pay in Euros.
+            Mauritian Rupees (MUR) only at the moment. Reunion Island shipping is paused. When it resumes you&apos;ll be able to pay in Euros.
           </p>
         ),
       },
@@ -81,7 +81,7 @@ const SECTIONS: FaqSection[] = [
         q: "Do prices include VAT?",
         a: (
           <p>
-            Yes — every price on the site is shown all-taxes-included (VAT). What you see is what you pay (plus delivery if applicable).
+            Yes. Every price on the site is shown all-taxes-included (VAT). What you see is what you pay (plus delivery if applicable).
           </p>
         ),
       },
@@ -95,7 +95,7 @@ const SECTIONS: FaqSection[] = [
         q: "How do I know my size?",
         a: (
           <p>
-            Each product has its own size chart inside the <strong>Size Chart</strong> accordion on the product page (just under the price). Charts vary between dresses, lingerie and beachwear, so always check the one on the actual piece. Between two sizes? Message us — we&apos;ll guide you.
+            Each product has its own size chart inside the <strong>Size Chart</strong> accordion on the product page (just under the price). Charts vary between dresses, lingerie and beachwear, so always check the one on the actual piece. Between two sizes? Message us. We&apos;ll guide you.
           </p>
         ),
       },
@@ -103,7 +103,7 @@ const SECTIONS: FaqSection[] = [
         q: "Where is your stock from?",
         a: (
           <p>
-            Our pieces come from China, Hong Kong and Thailand. We curate carefully each season for the Mauritian climate and festive moments — not every drop ends up on the site.
+            Our pieces come from China, Hong Kong and Thailand. We curate carefully each season for the Mauritian climate and festive moments. Not every drop ends up on the site.
           </p>
         ),
       },
@@ -125,7 +125,7 @@ const SECTIONS: FaqSection[] = [
         q: "What are your delivery hours?",
         a: (
           <p>
-            We deliver Monday to Saturday — no fixed time slots. The driver gives you a call about an hour before arriving so you can plan around it.
+            We deliver Monday to Saturday, with no fixed time slots. The driver gives you a call about an hour before arriving so you can plan around it.
           </p>
         ),
       },
@@ -133,7 +133,7 @@ const SECTIONS: FaqSection[] = [
         q: "How fast is delivery?",
         a: (
           <p>
-            In-stock items ship <strong>next-day</strong> if you order before the day's cutoff — usually <strong>noon</strong>, shown at checkout. Order after it on a Friday and delivery moves to <strong>Monday</strong>. By post, count <strong>2–4 working days</strong> regular or <strong>1–2 working days</strong> express.
+            In-stock items ship <strong>next-day</strong> if you order before the day&apos;s cutoff (shown at checkout). Order after it on a Friday and delivery moves to <strong>Monday</strong>. By post, count <strong>2–4 working days</strong> regular or <strong>1–2 working days</strong> express.
           </p>
         ),
       },
@@ -171,7 +171,7 @@ const SECTIONS: FaqSection[] = [
         q: "What if my item arrives damaged?",
         a: (
           <p>
-            Send us photos and a message <strong>within 24 hours of delivery</strong>. We&apos;ll replace, exchange or refund — whatever you prefer.
+            Send us photos and a message <strong>within 24 hours of delivery</strong>. We&apos;ll replace, exchange or refund, whatever you prefer.
           </p>
         ),
       },
@@ -195,7 +195,7 @@ export default function FaqPage() {
             </em>
           </h1>
           <p className="mx-auto mt-5 max-w-[520px] font-sans text-[14px] leading-[1.55] text-ink-soft md:text-[15px]">
-            Everything you might wonder before buying — and a few things you might wonder after.
+            Everything you might wonder before buying, and a few things you might wonder after.
           </p>
         </div>
       </section>
@@ -253,7 +253,7 @@ export default function FaqPage() {
             Didn&apos;t find your answer?
           </h2>
           <p className="mx-auto mt-3 max-w-[440px] font-sans text-[13px] leading-[1.55] text-ink-soft md:text-[14px]">
-            Drop us an email or message us on WhatsApp — we&apos;ll get back to you within a business day.
+            Drop us an email or message us on WhatsApp. We&apos;ll get back to you within a business day.
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <a

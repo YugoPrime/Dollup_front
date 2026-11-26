@@ -5,7 +5,7 @@ import { getStoreConfig } from "@/lib/store-config";
 export const metadata: Metadata = {
   title: "Contact Us",
   description:
-    "Get in touch with Doll Up Boutique — WhatsApp, phone, email, opening hours and pickup location in Mauritius.",
+    "Get in touch with Doll Up Boutique: WhatsApp, phone, email, opening hours and our pickup point in Mauritius.",
   alternates: { canonical: "/contact" },
   openGraph: {
     title: "Contact Us",
@@ -33,7 +33,7 @@ export default async function ContactPage() {
             </em>
           </h1>
           <p className="mx-auto mt-5 max-w-[520px] font-sans text-[14px] leading-[1.55] text-ink-soft md:text-[15px]">
-            Question about a product, sizing, or your order? Check the FAQ first — most answers are there. Otherwise, drop us an email and we&apos;ll get back to you within a business day.
+            Question about a product, sizing or your order? Most answers are in the FAQ. Otherwise, email us and we&apos;ll reply within one working day.
           </p>
         </div>
       </section>
@@ -123,7 +123,7 @@ export default async function ContactPage() {
             <span className="mr-2 inline-block rounded-full bg-coral-500 px-2.5 py-0.5 font-bold uppercase tracking-[0.12em] text-[10px] text-white">
               Coming soon
             </span>
-            Live chat directly on the website — instant answers, even outside office hours.
+            Live chat on the website, with instant answers even outside office hours.
           </p>
         </div>
       </section>
@@ -142,7 +142,7 @@ export default async function ContactPage() {
               {cfg.store.contact_hours}
             </p>
             <p className="mt-5 font-sans text-[13px] leading-[1.55] text-ink-soft">
-              Outside office hours? Drop us a WhatsApp anyway — we reply first thing the next morning.
+              Outside office hours? WhatsApp us anyway. We reply first thing the next morning.
             </p>
           </div>
 
@@ -163,11 +163,7 @@ export default async function ContactPage() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="mt-[6px] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-coral-500" />
-                Available Monday – Saturday
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="mt-[6px] inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-coral-500" />
-                Try-before-you-take on selected items (ask us)
+                Monday to Saturday
               </li>
             </ul>
           </div>
@@ -184,7 +180,7 @@ export default async function ContactPage() {
             Check the FAQ first
           </h2>
           <p className="mx-auto mt-3 max-w-[520px] font-sans text-[14px] leading-[1.55] text-white/80 md:text-[15px]">
-            Sizing, delivery, returns, payment — chances are we&apos;ve already answered it. It&apos;s the fastest way to get an answer.
+            Sizing, delivery, returns, payment: the answer is probably already there.
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Link
@@ -216,7 +212,7 @@ export default async function ContactPage() {
             </em>
           </h2>
           <p className="mx-auto mt-3 max-w-[480px] font-sans text-[13px] leading-[1.55] text-white/80 md:text-[14px]">
-            Slide into our DMs for styling tips, restock alerts and giveaway entries.
+            Message us for styling tips, restock alerts and giveaways.
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <a

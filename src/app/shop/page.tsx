@@ -241,12 +241,12 @@ export default async function ShopPage({
                 Feeling bold?
               </p>
               <p className="mt-0.5 font-display text-[18px] leading-tight md:text-[22px]">
-                Spice up your love life{" "}
+                Spice up your love life.{" "}
                 <em
                   className="not-italic text-blush-100"
                   style={{ fontStyle: "italic" }}
                 >
-                  — explore After Dark
+                  Explore After Dark
                 </em>
               </p>
             </div>
@@ -360,7 +360,7 @@ function shopItemListJsonLd(
   return {
     "@context": "https://schema.org",
     "@type": "ItemList",
-    name: `${listName} — Doll Up Boutique`,
+    name: `${listName} · Doll Up Boutique`,
     numberOfItems: products.length,
     itemListElement: products.map((p, i) => ({
       "@type": "ListItem",

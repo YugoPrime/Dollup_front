@@ -23,7 +23,7 @@ export function PreorderHeader() {
       </div>
 
       <div className="flex min-h-[60px] items-center gap-3 px-4 md:min-h-[88px] md:gap-6 md:px-8">
-        <Link href="/preorder" aria-label="Doll Up Boutique — Pre-Order" className="flex shrink-0 items-center gap-3">
+        <Link href="/preorder" aria-label="Doll Up Boutique, Pre-Order" className="flex shrink-0 items-center gap-3">
           <Image
             src="/logo.png"
             alt="Doll Up Boutique"

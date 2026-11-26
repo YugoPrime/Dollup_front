@@ -123,8 +123,8 @@ export function SalesOfTheMonth({
       <div className="relative mx-auto max-w-[680px] px-6 text-center">
         <p className={`mb-3 font-sans text-[11px] font-bold uppercase tracking-[0.3em] ${t.soft}`}>
           {peak
-            ? `— ${cfg.peak.label} —`
-            : `— Limited time · ends ${new Date(cfg.endsAt).toLocaleDateString("en-MU", { weekday: "long" })} —`}
+            ? cfg.peak.label
+            : `Limited time · ends ${new Date(cfg.endsAt).toLocaleDateString("en-MU", { weekday: "long" })}`}
         </p>
         <h2 className="font-display text-[36px] leading-[0.95] md:text-[60px]">
           {lead}{" "}

@@ -538,7 +538,7 @@ function SheetPriceInputs({
           aria-label="Minimum price"
           className="w-full min-h-11 rounded-xl border border-blush-300 bg-white px-3 py-2 font-sans text-[13px] text-ink outline-none focus:border-coral-500"
         />
-        <span className="font-sans text-[12px] text-ink-muted">—</span>
+        <span className="font-sans text-[12px] text-ink-muted">to</span>
         <input
           type="number"
           inputMode="numeric"

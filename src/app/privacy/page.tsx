@@ -46,11 +46,11 @@ export default function PrivacyPage() {
           <Section number="2" title="What we collect">
             <p>We collect only the information needed to run the shop and serve our customers:</p>
             <ul className="list-disc space-y-1.5 pl-5">
-              <li><strong>Account info:</strong> first name, last name, email, password (hashed), and optionally phone number — when you register an account.</li>
+              <li><strong>Account info:</strong> first name, last name, email, password (hashed), and optionally phone number, when you register an account.</li>
               <li><strong>Order info:</strong> billing and shipping address, phone, items ordered, payment method, and order notes you add.</li>
               <li><strong>Wishlist &amp; cart:</strong> the items you save are stored against your account if signed in, otherwise locally in your browser.</li>
               <li><strong>Communications:</strong> the content of messages you send us by email, WhatsApp, Instagram or Facebook.</li>
-              <li><strong>Technical data:</strong> device, browser, IP address, pages visited, and timestamps — collected automatically through cookies and server logs to keep the site fast and secure.</li>
+              <li><strong>Technical data:</strong> device, browser, IP address, pages visited, and timestamps, collected automatically through cookies and server logs to keep the site fast and secure.</li>
             </ul>
           </Section>
 
@@ -69,10 +69,10 @@ export default function PrivacyPage() {
           <Section number="4" title="Legal bases">
             <p>Under the Mauritius Data Protection Act 2017, we process your data on the following bases:</p>
             <ul className="list-disc space-y-1.5 pl-5">
-              <li><strong>Contract</strong> — to fulfil your order and account.</li>
-              <li><strong>Consent</strong> — when you opt in to marketing emails or non-essential cookies.</li>
-              <li><strong>Legitimate interest</strong> — to keep the site secure, prevent abuse, and improve our service.</li>
-              <li><strong>Legal obligation</strong> — when we must keep records (e.g. for tax or accounting).</li>
+              <li><strong>Contract:</strong> to fulfil your order and account.</li>
+              <li><strong>Consent:</strong> when you opt in to marketing emails or non-essential cookies.</li>
+              <li><strong>Legitimate interest:</strong> to keep the site secure, prevent abuse, and improve our service.</li>
+              <li><strong>Legal obligation:</strong> when we must keep records (e.g. for tax or accounting).</li>
             </ul>
           </Section>
 
@@ -80,10 +80,10 @@ export default function PrivacyPage() {
             <p>We don&apos;t sell your data. We share it only with the providers we need to run the shop:</p>
             <ul className="list-disc space-y-1.5 pl-5">
               <li><strong>Hosting &amp; infrastructure:</strong> Coolify, Cloudflare.</li>
-              <li><strong>Couriers:</strong> our delivery driver and Mauritius Post — to deliver your parcel.</li>
-              <li><strong>Payment proof channels:</strong> Juice, bank transfer — when you send proof of payment.</li>
-              <li><strong>Email service</strong> (when enabled) — to send transactional and (if you opted in) marketing emails.</li>
-              <li><strong>Authorities</strong> — if compelled by law (police, courts, tax authorities).</li>
+              <li><strong>Couriers:</strong> our delivery driver and Mauritius Post, to deliver your parcel.</li>
+              <li><strong>Payment proof channels:</strong> Juice, bank transfer (when you send proof of payment).</li>
+              <li><strong>Email service</strong> (when enabled): to send transactional and (if you opted in) marketing emails.</li>
+              <li><strong>Authorities:</strong> if compelled by law (police, courts, tax authorities).</li>
             </ul>
             <p>Each of these only receives the minimum data needed for the task.</p>
           </Section>
@@ -97,9 +97,9 @@ export default function PrivacyPage() {
           <Section number="7" title="Cookies">
             <p>We use cookies and similar technologies for three things:</p>
             <ul className="list-disc space-y-1.5 pl-5">
-              <li><strong>Strictly necessary</strong> — to make the site work (login session, cart, security).</li>
-              <li><strong>Functional</strong> — to remember your preferences (region, recently viewed).</li>
-              <li><strong>Analytics</strong> — to understand which pages people use most so we can improve them. We don&apos;t use ad-tracking cookies.</li>
+              <li><strong>Strictly necessary:</strong> to make the site work (login session, cart, security).</li>
+              <li><strong>Functional:</strong> to remember your preferences (region, recently viewed).</li>
+              <li><strong>Analytics:</strong> to understand which pages people use most so we can improve them. We don&apos;t use ad-tracking cookies.</li>
             </ul>
             <p>You can disable cookies in your browser, but some parts of the site (cart, checkout, login) won&apos;t work without the necessary ones.</p>
           </Section>
@@ -124,7 +124,7 @@ export default function PrivacyPage() {
 
           <Section number="9" title="Security">
             <p>
-              We use industry-standard measures — HTTPS encryption, hashed passwords, role-based admin access, and regular backups — to protect your data. No system is perfect, so if we ever discover a breach that affects you we will notify you and the Data Protection Office without undue delay.
+              We use industry-standard measures (HTTPS encryption, hashed passwords, role-based admin access, and regular backups) to protect your data. No system is perfect, so if we ever discover a breach that affects you we will notify you and the Data Protection Office without undue delay.
             </p>
           </Section>
 

@@ -21,7 +21,7 @@ export default async function PreorderHomePage() {
           </h1>
           <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-ink-soft">
             Hand-picked from SHEIN, reserved with a 75% deposit, delivered to
-            Mauritius in about 15–20 days. No surprises, no markup games —
+            Mauritius in about 15–20 days. No surprises, no markup games,
             just one transparent price.
           </p>
 
@@ -125,7 +125,7 @@ export default async function PreorderHomePage() {
               No pre-order pieces just yet.
             </p>
             <p className="mt-2 text-[14px] text-ink-muted">
-              We're curating new SHEIN finds — check back soon, or request something specific.
+              We&apos;re curating new SHEIN finds. Check back soon, or request something specific.
             </p>
             <Link
               href="/preorder/request"
@@ -147,11 +147,11 @@ export default async function PreorderHomePage() {
             },
             {
               title: "One transparent price",
-              body: "Includes shipping, customs and our handling — no surprises at delivery.",
+              body: "Includes shipping, customs and our handling. No surprises at delivery.",
             },
             {
               title: "Mauritius-only, delivered locally",
-              body: "Same delivery network as the in-stock store. COD island-wide.",
+              body: "Same delivery network as the in-stock store, with payment on delivery.",
             },
           ].map((item) => (
             <div key={item.title}>

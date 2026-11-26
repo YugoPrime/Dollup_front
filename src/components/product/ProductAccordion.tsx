@@ -57,8 +57,8 @@ export function ProductAccordion({
             <strong className="text-ink">{preorderEtaCopy}</strong>
           </p>
           <p className="mt-1.5">
-            Free delivery on orders {freeShippingLabel}+. Cash on delivery
-            available island-wide.
+            Free delivery on orders {freeShippingLabel}+. Payment on delivery
+            (cash or Juice) for home delivery and pickup.
           </p>
         </div>
       ),

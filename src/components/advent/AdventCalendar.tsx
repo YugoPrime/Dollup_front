@@ -18,6 +18,7 @@ type Thumbs = { day: number; items: { title: string; thumbnail: string; href: st
 
 const STORAGE_KEY = "dub_advent_opened_v1";
 const UNTIE_MS = 650;
+const NOTE_MS = 3200;
 
 function readOpened(): number[] {
   try {
@@ -43,6 +44,25 @@ function formatCountdown(ms: number): string {
   const h = Math.floor((totalMin % 1440) / 60);
   const m = totalMin % 60;
   return d > 0 ? `${d}d ${h}h ${m}m` : `${h}h ${m}m`;
+}
+
+// The locked-door message, under the tapped door. It scrolls itself into view
+// so a door near the bottom of the screen doesn't hide it behind the bottom nav.
+function NoteBubble({ text, align }: { text: string; align: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    ref.current?.scrollIntoView({ block: "nearest", behavior: reduced ? "auto" : "smooth" });
+  }, [text]);
+  return (
+    <span
+      ref={ref}
+      aria-hidden="true"
+      className={`pointer-events-none absolute top-full z-10 mt-1.5 scroll-mb-24 whitespace-nowrap rounded-full bg-ink px-3 py-1.5 text-[12px] font-semibold text-white shadow-lg ${align}`}
+    >
+      {text}
+    </span>
+  );
 }
 
 function Bow({ untying }: { untying: boolean }) {
@@ -97,12 +117,14 @@ function DoorTile({
   state,
   opened,
   untying,
+  note,
   onTap,
 }: {
   door: Door;
   state: DoorState;
   opened: boolean;
   untying: boolean;
+  note: string | null;
   onTap: (door: Door) => void;
 }) {
   const wide = door.day === ADVENT.doors.length;
@@ -125,9 +147,12 @@ function DoorTile({
   }
 
   const wrapped = state === "locked" || (state === "today" && !opened);
+  // Keep the bubble on screen: edge columns align to their outer edge.
+  const col = (door.day - 1) % 4;
+  const bubbleAlign = wide || col === 1 || col === 2 ? "left-1/2 -translate-x-1/2" : col === 0 ? "left-0" : "right-0";
 
   return (
-    <li className={wide ? "col-span-4" : ""}>
+    <li className={`relative ${wide ? "col-span-4" : ""}`}>
       <button
         type="button"
         onClick={() => onTap(door)}
@@ -160,6 +185,8 @@ function DoorTile({
           </span>
         )}
       </button>
+      {/* The status line below the grid reads the message out. */}
+      {note && <NoteBubble text={note} align={bubbleAlign} />}
     </li>
   );
 }
@@ -170,8 +197,9 @@ export function AdventCalendar({ initialNow, thumbs }: { initialNow: number; thu
   const [opened, setOpened] = useState<number[]>([]);
   const [sheetDay, setSheetDay] = useState<number | null>(null);
   const [untyingDay, setUntyingDay] = useState<number | null>(null);
-  const [note, setNote] = useState<string | null>(null);
+  const [note, setNote] = useState<{ day: number; text: string } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const noteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     // Read after hydration so server and first client render match.
@@ -179,6 +207,7 @@ export function AdventCalendar({ initialNow, thumbs }: { initialNow: number; thu
     setOpened(readOpened());
     return () => {
       if (timer.current) clearTimeout(timer.current);
+      if (noteTimer.current) clearTimeout(noteTimer.current);
     };
   }, []);
 
@@ -193,7 +222,11 @@ export function AdventCalendar({ initialNow, thumbs }: { initialNow: number; thu
   function onTap(door: Door) {
     const state = doorState(door.day, now);
     if (state === "locked") {
-      setNote(`Opens ${muDayLabel(door.day)}`);
+      // Name the door: "Opens Thursday 3 December" alone read as if the
+      // whole calendar started on the 3rd.
+      setNote({ day: door.day, text: `Door ${door.day} opens ${muDayLabel(door.day)}` });
+      if (noteTimer.current) clearTimeout(noteTimer.current);
+      noteTimer.current = setTimeout(() => setNote(null), NOTE_MS);
       return;
     }
     if (state !== "today") return;
@@ -242,7 +275,7 @@ export function AdventCalendar({ initialNow, thumbs }: { initialNow: number; thu
         )}
         {phase === "ended" && (
           <p className="mx-auto mt-5 max-w-xs rounded-2xl bg-blush-200 px-4 py-3 text-center font-display text-lg text-ink">
-            That&apos;s a wrap — see you next Christmas
+            That&apos;s a wrap. See you next Christmas
           </p>
         )}
 
@@ -254,16 +287,17 @@ export function AdventCalendar({ initialNow, thumbs }: { initialNow: number; thu
               state={phase === "ended" ? "past" : phase === "teaser" ? "locked" : doorState(door.day, now)}
               opened={opened.includes(door.day)}
               untying={untyingDay === door.day}
+              note={note?.day === door.day ? note.text : null}
               onTap={onTap}
             />
           ))}
         </ol>
 
-        <p role="status" aria-live="polite" className="mt-3 min-h-6 text-center text-sm font-semibold text-ink">
-          {note}
+        <p role="status" aria-live="polite" className="sr-only">
+          {note?.text}
         </p>
 
-        <section className="mt-8 rounded-2xl border border-blush-200 bg-white p-5">
+        <section className="mt-11 rounded-2xl border border-blush-200 bg-white p-5">
           <h2 className="font-display text-xl font-medium text-ink">
             How it <em className="italic text-coral-700">works</em>
           </h2>
