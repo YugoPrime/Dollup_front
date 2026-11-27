@@ -11,6 +11,7 @@ import {
 import { AdventCardTag, AdventCardPrice } from "@/components/advent/AdventPrice";
 import { adventNowMs } from "@/lib/advent";
 import { cardSizes, pillSizes, PILL_COMPACT_BUDGET } from "@/lib/card-sizes";
+import { sheetOptions, pickerLabel } from "@/lib/card-options";
 import type { QuickAddProduct } from "@/components/ProductCardVariantSheet";
 
 type Product = HttpTypes.StoreProduct;
@@ -127,16 +128,6 @@ function getColorOptions(product: Product, selectedSizes: string[] | null) {
   return allColors.filter((c) => inStockColors.has(c));
 }
 
-function getVariantPickerLabel(product: Product): string {
-  const titles = (product.options ?? [])
-    .map((o) => (o.title ?? "").toLowerCase())
-    .filter(Boolean);
-  const hasSize = titles.some((t) => t === "size");
-  const hasColor = titles.some((t) => t === "color");
-  if (hasSize) return "Select size";
-  if (hasColor) return "Select color";
-  return "Select options";
-}
 
 function pickImageForColor(product: Product, color: string | null): string | null {
   const fallback = product.thumbnail ?? product.images?.[0]?.url ?? null;
@@ -295,6 +286,10 @@ export function ProductCard({
   const sizes = cardSizes(product.variants, selectedColor);
   const thumb = pickImageForColor(product, selectedColor ?? colors[0] ?? null);
   const isMultiVariant = (product.variants?.length ?? 0) > 1;
+  // The sheet skips single-value options (Size "OS"), so a one-size item with
+  // colours says "Select color" and adds on a colour tap.
+  const baseQuickAdd = toQuickAddProduct(product, thumb, price);
+  const quickAdd = { ...baseQuickAdd, options: sheetOptions(baseQuickAdd.options) };
   const advent = {
     amount: price.amount,
     categoryHandles: (product.categories ?? []).map((c) => c.handle),
@@ -388,8 +383,8 @@ export function ProductCard({
               placement="inline"
               isMultiVariant={isMultiVariant}
               variantId={isMultiVariant ? null : inStockVariant?.id}
-              label={getVariantPickerLabel(product)}
-              quickAdd={toQuickAddProduct(product, thumb, price)}
+              label={pickerLabel(quickAdd.options)}
+              quickAdd={quickAdd}
             />
           )}
         </div>
