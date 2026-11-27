@@ -26,9 +26,12 @@ const QUICK_ADD_TONE = {
  * multi-variant products open an inline size/colour sheet instead of
  * navigating away to the PDP (which is what "Select size" used to do).
  *
- * Desktop: the control is hidden until the card is hovered or focused so it
- * never covers the hem of the product photo. Mobile has no hover, so it is a
- * compact pill in the bottom-right corner rather than a full-width block.
+ * `placement="photo"` (default): over the photo. On desktop the control is
+ * hidden until the card is hovered or focused so it never covers the hem of the
+ * photo; mobile has no hover, so it is a compact pill in the bottom-right
+ * corner rather than a full-width block.
+ * `placement="inline"`: the card's coral pill under the price, always visible
+ * on every screen size (no hover reveal).
  */
 export function ProductCardQuickAdd({
   isMultiVariant,
@@ -37,6 +40,7 @@ export function ProductCardQuickAdd({
   addLabel = "Quick add",
   quickAdd,
   tone = "default",
+  placement = "photo",
 }: {
   isMultiVariant: boolean;
   variantId?: string | null;
@@ -45,6 +49,9 @@ export function ProductCardQuickAdd({
   addLabel?: string;
   quickAdd: QuickAddProduct;
   tone?: "default" | "wine";
+  // "photo": absolute on the product photo (default). "inline": coral pill in
+  // the card info area; `tone` does not apply.
+  placement?: "photo" | "inline";
 }) {
   const { addItem, loading } = useCart();
   const [busy, setBusy] = useState(false);
@@ -64,21 +71,42 @@ export function ProductCardQuickAdd({
     }
   };
 
+  const inline = placement === "inline";
+  const labelText = busy ? "Adding…" : isMultiVariant ? label : addLabel;
+  const ariaLabel = isMultiVariant ? `${label} for ${quickAdd.title}` : `Add ${quickAdd.title} to bag`;
+  const disabled = busy || loading || (!isMultiVariant && !variantId);
+
   return (
     <>
-      <div className="absolute inset-x-2 bottom-2 z-[5] flex justify-end md:justify-stretch md:opacity-0 md:transition-opacity md:duration-200 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
-        <button
-          type="button"
-          onClick={onQuickAdd}
-          disabled={busy || loading || (!isMultiVariant && !variantId)}
-          aria-haspopup={isMultiVariant ? "dialog" : undefined}
-          aria-label={isMultiVariant ? `${label} for ${quickAdd.title}` : `Add ${quickAdd.title} to bag`}
-          className={`inline-flex min-h-11 items-center gap-1.5 rounded-full px-4 font-sans text-[12px] font-bold uppercase tracking-wider shadow-[0_2px_8px_rgba(0,0,0,0.12)] backdrop-blur transition-colors disabled:opacity-60 md:w-full md:justify-center md:rounded-md ${QUICK_ADD_TONE[tone]}`}
-        >
-          {!isMultiVariant && !busy ? <Plus size={14} aria-hidden="true" /> : null}
-          {busy ? "Adding…" : isMultiVariant ? label : addLabel}
-        </button>
-      </div>
+      {inline ? (
+        <div className="relative z-[2] shrink-0">
+          <button
+            type="button"
+            onClick={onQuickAdd}
+            disabled={disabled}
+            aria-haspopup={isMultiVariant ? "dialog" : undefined}
+            aria-label={ariaLabel}
+            className="relative inline-flex h-8 items-center gap-1 whitespace-nowrap rounded-full bg-coral-500 px-2 font-sans text-[10px] font-bold uppercase tracking-[0.06em] text-white transition-colors before:absolute before:-inset-y-1.5 before:inset-x-0 before:content-[''] hover:bg-coral-700 disabled:opacity-60"
+          >
+            {!isMultiVariant && !busy ? <Plus size={12} aria-hidden="true" /> : null}
+            {labelText}
+          </button>
+        </div>
+      ) : (
+        <div className="absolute inset-x-2 bottom-2 z-[5] flex justify-end md:justify-stretch md:opacity-0 md:transition-opacity md:duration-200 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
+          <button
+            type="button"
+            onClick={onQuickAdd}
+            disabled={disabled}
+            aria-haspopup={isMultiVariant ? "dialog" : undefined}
+            aria-label={ariaLabel}
+            className={`inline-flex min-h-11 items-center gap-1.5 rounded-full px-4 font-sans text-[12px] font-bold uppercase tracking-wider shadow-[0_2px_8px_rgba(0,0,0,0.12)] backdrop-blur transition-colors disabled:opacity-60 md:w-full md:justify-center md:rounded-md ${QUICK_ADD_TONE[tone]}`}
+          >
+            {!isMultiVariant && !busy ? <Plus size={14} aria-hidden="true" /> : null}
+            {labelText}
+          </button>
+        </div>
+      )}
       {sheetOpen ? (
         <ProductCardVariantSheet
           product={quickAdd}

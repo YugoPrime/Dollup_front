@@ -17,7 +17,7 @@ import { restockWhatsAppUrl } from "@/lib/restock";
 
 type Product = HttpTypes.StoreProduct;
 
-const SIZE_ORDER = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
+const SIZE_ORDER = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL"];
 
 function sortSizes<T extends { value: string }>(arr: T[]): T[] {
   return [...arr].sort((a, b) => {

@@ -28,11 +28,11 @@ export function YouMayAlsoLike({
         </div>
         <div className="flex gap-2.5 overflow-x-auto px-4 pb-2 md:hidden">
           {products.slice(0, 6).map((p) => (
-            <div key={p.id} className="w-[150px] shrink-0">
+            <div key={p.id} className="w-[164px] shrink-0">
               <ProductCard
                 product={p}
                 latestCollectionTag={latestCollectionTag}
-                imageSizes="150px"
+                imageSizes="164px"
               />
             </div>
           ))}

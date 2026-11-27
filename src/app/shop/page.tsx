@@ -295,7 +295,7 @@ export default async function ShopPage({
           ) : (
             <>
               <OptimisticGrid>
-                <div id="shop-grid" className="grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-4">
+                <div id="shop-grid" className="grid grid-cols-2 gap-2.5 md:gap-4 lg:grid-cols-3 xl:grid-cols-4">
                   {products.map((p, index) => (
                     <OptimisticCardSlot key={p.id} productId={p.id}>
                       <ProductCard
