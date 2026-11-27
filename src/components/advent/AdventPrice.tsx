@@ -29,13 +29,21 @@ export function AdventCardTag(p: AdventPriceInput & { soldOut?: boolean }) {
 }
 
 export function AdventCardPrice(
-  p: AdventPriceInput & { original: number | null; currency: string; soldOut: boolean; onSale: boolean },
+  p: AdventPriceInput & {
+    original: number | null;
+    currency: string;
+    soldOut: boolean;
+    onSale: boolean;
+    // 17px bold (product card) instead of 16px semibold (glue page).
+    emphasis?: boolean;
+  },
 ) {
   const hit = useDoorPrice(p, p.soldOut);
+  const priceSize = p.emphasis ? "text-[17px] font-bold" : "text-[16px] font-semibold";
   if (hit) {
     return (
       <div className="mt-1.5 flex items-baseline gap-1.5">
-        <span className="font-sans text-[16px] font-semibold text-coral-500">
+        <span className={`font-sans ${priceSize} text-coral-500`}>
           {formatPrice(hit.price, p.currency)}
         </span>
         <span className="font-sans text-[12px] text-ink-muted line-through">
@@ -47,7 +55,7 @@ export function AdventCardPrice(
   return (
     <div className="mt-1.5 flex items-baseline gap-1.5">
       <span
-        className={`font-sans text-[16px] font-semibold ${
+        className={`font-sans ${priceSize} ${
           p.soldOut ? "text-coral-300" : p.onSale ? "text-coral-500" : "text-ink"
         }`}
       >

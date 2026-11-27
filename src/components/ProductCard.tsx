@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import type { HttpTypes } from "@medusajs/types";
@@ -9,12 +10,14 @@ import {
 } from "@/components/ProductCardActions";
 import { AdventCardTag, AdventCardPrice } from "@/components/advent/AdventPrice";
 import { adventNowMs } from "@/lib/advent";
+import { cardSizes, pillSizes, PILL_COMPACT_BUDGET } from "@/lib/card-sizes";
+import { sheetOptions, pickerLabel } from "@/lib/card-options";
 import type { QuickAddProduct } from "@/components/ProductCardVariantSheet";
 
 type Product = HttpTypes.StoreProduct;
 
 const LOW_STOCK_THRESHOLD = 5;
-const MAX_COLOR_DOTS = 4;
+const MAX_COLOR_DOTS = 2;
 
 // "New" = product carries the highest-numbered `collectionN` tag in the catalog.
 // Auto-rotates: when collection29 lands and gets a product, collection28 stops
@@ -125,16 +128,6 @@ function getColorOptions(product: Product, selectedSizes: string[] | null) {
   return allColors.filter((c) => inStockColors.has(c));
 }
 
-function getVariantPickerLabel(product: Product): string {
-  const titles = (product.options ?? [])
-    .map((o) => (o.title ?? "").toLowerCase())
-    .filter(Boolean);
-  const hasSize = titles.some((t) => t === "size");
-  const hasColor = titles.some((t) => t === "color");
-  if (hasSize) return "Select size";
-  if (hasColor) return "Select color";
-  return "Select options";
-}
 
 function pickImageForColor(product: Product, color: string | null): string | null {
   const fallback = product.thumbnail ?? product.images?.[0]?.url ?? null;
@@ -225,6 +218,46 @@ export function toQuickAddProduct(
   };
 }
 
+// In-stock sizes as one cream pill on the bottom left of the photo (Rahvi
+// picked it over separate chips and a full-width band, 27 Nov). Info only:
+// taps go through to the card link. Screen readers get every size, even when
+// the pill shortens a long list to "+N". Cards with under 140 px of pill room
+// (tablet 5-up grids, /shop on 320 px phones) swap in a shorter list through a
+// container query, so a size is never cut in half.
+function CardSizesPill({ sizes }: { sizes: string[] }) {
+  if (sizes.length === 0) return null;
+  const full = pillSizes(sizes);
+  const compact = pillSizes(sizes, PILL_COMPACT_BUDGET);
+  const narrowDiffers = compact.shown.length !== full.shown.length;
+  return (
+    <div className="@container pointer-events-none absolute inset-x-2 bottom-2 z-[3] flex">
+      <span className="sr-only">In stock: {sizes.join(", ")}</span>
+      <PillLabels
+        {...full}
+        display={narrowDiffers ? "inline-flex @max-[140px]:hidden" : "inline-flex"}
+      />
+      {narrowDiffers && <PillLabels {...compact} display="hidden @max-[140px]:inline-flex" />}
+    </div>
+  );
+}
+
+function PillLabels({ shown, more, display }: { shown: string[]; more: number; display: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`${display} h-6 max-w-full items-center gap-1.5 overflow-hidden whitespace-nowrap rounded-full border border-champagne-gold/80 bg-cream-50/95 px-2.5 font-sans text-[10.5px] font-semibold tracking-[0.08em] text-ink shadow-[0_1px_3px_rgba(26,18,18,0.10)]`}
+    >
+      {shown.map((size, i) => (
+        <Fragment key={size}>
+          {i > 0 && <span className="text-champagne-bronze">·</span>}
+          <span>{size}</span>
+        </Fragment>
+      ))}
+      {more > 0 && <span className="text-ink-muted">+{more}</span>}
+    </span>
+  );
+}
+
 export function ProductCard({
   product,
   latestCollectionTag = null,
@@ -250,8 +283,13 @@ export function ProductCard({
   const discountPct = formatDiscountPercent(price.amount, price.original);
 
   const colors = getColorOptions(product, selectedSizes);
+  const sizes = cardSizes(product.variants, selectedColor);
   const thumb = pickImageForColor(product, selectedColor ?? colors[0] ?? null);
   const isMultiVariant = (product.variants?.length ?? 0) > 1;
+  // The sheet skips single-value options (Size "OS"), so a one-size item with
+  // colours says "Select color" and adds on a colour tap.
+  const baseQuickAdd = toQuickAddProduct(product, thumb, price);
+  const quickAdd = { ...baseQuickAdd, options: sheetOptions(baseQuickAdd.options) };
   const advent = {
     amount: price.amount,
     categoryHandles: (product.categories ?? []).map((c) => c.handle),
@@ -261,7 +299,7 @@ export function ProductCard({
   };
 
   return (
-    <div className="group relative block overflow-hidden rounded-xl bg-white shadow-[0_2px_8px_rgba(229,96,74,0.06)] transition-all duration-200 ease-out hover:-translate-y-[3px] hover:shadow-[0_10px_24px_rgba(229,96,74,0.16)]">
+    <div className="group relative flex h-full flex-col overflow-hidden rounded-xl bg-white shadow-[0_2px_8px_rgba(229,96,74,0.06)] transition-all duration-200 ease-out hover:-translate-y-[3px] hover:shadow-[0_10px_24px_rgba(229,96,74,0.16)]">
       <div className="relative aspect-[3/4] overflow-hidden bg-blush-100">
         {soldOut && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/65">
@@ -271,23 +309,25 @@ export function ProductCard({
           </div>
         )}
 
-        <div className="absolute left-2 top-2 z-[3] flex flex-col gap-1.5">
+        <div className="absolute left-2 top-2 z-[3] flex flex-col items-start gap-1.5">
           <AdventCardTag {...advent} soldOut={soldOut} />
-          {isNewArrival(product, latestCollectionTag) && (
-            <span className="rounded bg-coral-500 px-2 py-0.5 font-sans text-[11px] font-bold uppercase tracking-wider text-white">
-              New
-            </span>
-          )}
-          {discountPct && (
-            <span className="rounded bg-coral-500 px-2 py-0.5 font-sans text-[11px] font-bold uppercase tracking-wider text-white">
-              {discountPct}
-            </span>
-          )}
-          {lowStockMsg && !discountPct && (
-            <span className="rounded border border-coral-500 bg-white px-2 py-0.5 font-sans text-[11px] font-bold uppercase tracking-wider text-coral-500">
-              {lowStockMsg}
-            </span>
-          )}
+          <div className="flex flex-col gap-1.5 empty:hidden">
+            {isNewArrival(product, latestCollectionTag) && (
+              <span className="rounded bg-coral-500 px-2 py-0.5 font-sans text-[11px] font-bold uppercase tracking-wider text-white">
+                New
+              </span>
+            )}
+            {discountPct && (
+              <span className="rounded bg-coral-500 px-2 py-0.5 font-sans text-[11px] font-bold uppercase tracking-wider text-white">
+                {discountPct}
+              </span>
+            )}
+            {lowStockMsg && !discountPct && (
+              <span className="rounded border border-coral-500 bg-white px-2 py-0.5 font-sans text-[11px] font-bold uppercase tracking-wider text-coral-500">
+                {lowStockMsg}
+              </span>
+            )}
+          </div>
         </div>
 
         {thumb && (
@@ -300,21 +340,13 @@ export function ProductCard({
             className="object-cover object-top"
           />
         )}
-
-        {!soldOut && (
-          <ProductCardQuickAdd
-            isMultiVariant={isMultiVariant}
-            variantId={isMultiVariant ? null : inStockVariant?.id}
-            label={getVariantPickerLabel(product)}
-            quickAdd={toQuickAddProduct(product, thumb, price)}
-          />
-        )}
+        <CardSizesPill sizes={sizes} />
       </div>
 
-      <div className="flex min-h-[118px] flex-col px-3 pb-3 pt-2.5">
+      <div className="flex flex-1 flex-col px-2.5 pb-3 pt-2.5">
         <Link
           href={`/products/${product.handle}`}
-          className="line-clamp-2 min-h-[37px] font-sans text-[14px] leading-[1.3] text-ink before:absolute before:inset-0 before:z-[1] before:content-['']"
+          className="block truncate font-sans text-[14px] leading-[1.3] text-ink before:absolute before:inset-0 before:z-[1] before:content-['']"
         >
           {product.title}
         </Link>
@@ -324,24 +356,36 @@ export function ProductCard({
           currency={price.currency}
           soldOut={soldOut}
           onSale={price.onSale}
+          emphasis
         />
-        <div className="mt-auto flex h-5 items-center gap-1 pt-1.5">
-          {colors.length > 1 && (
-            <>
-              {colors.slice(0, MAX_COLOR_DOTS).map((c) => (
-                <span
-                  key={c}
-                  title={c}
-                  className="h-3.5 w-3.5 rounded-full border border-black/10"
-                  style={{ background: colorNameToHex(c) }}
-                />
-              ))}
-              {colors.length > MAX_COLOR_DOTS && (
-                <span className="flex h-4 min-w-[22px] items-center justify-center rounded-full border border-ink-muted bg-white px-1 font-sans text-[10px] font-bold text-ink-muted">
-                  +{colors.length - MAX_COLOR_DOTS}
-                </span>
-              )}
-            </>
+        <div className="mt-auto flex items-center justify-between gap-1 pt-1.5">
+          <div className="flex h-5 min-w-0 items-center gap-1 overflow-hidden">
+            {colors.length > 1 && (
+              <>
+                {colors.slice(0, MAX_COLOR_DOTS).map((c) => (
+                  <span
+                    key={c}
+                    title={c}
+                    className="h-3 w-3 rounded-full border border-black/10"
+                    style={{ background: colorNameToHex(c) }}
+                  />
+                ))}
+                {colors.length > MAX_COLOR_DOTS && (
+                  <span className="font-sans text-[10px] font-bold text-ink-muted">
+                    +{colors.length - MAX_COLOR_DOTS}
+                  </span>
+                )}
+              </>
+            )}
+          </div>
+          {!soldOut && (
+            <ProductCardQuickAdd
+              placement="inline"
+              isMultiVariant={isMultiVariant}
+              variantId={isMultiVariant ? null : inStockVariant?.id}
+              label={pickerLabel(quickAdd.options)}
+              quickAdd={quickAdd}
+            />
           )}
         </div>
       </div>
