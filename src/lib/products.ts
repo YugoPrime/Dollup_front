@@ -21,6 +21,12 @@ import {
   type MysteryBoxSlot,
 } from "@/lib/mystery-box";
 import { isUnlisted } from "@/lib/visibility";
+import {
+  extractSleevePhrases,
+  haystackHasToken,
+  normalizeSearchText,
+  normalizeSearchToken,
+} from "@/lib/search-text";
 import { applyAfterDarkScope, isAfterDark, type AfterDarkScope } from "@/lib/after-dark";
 
 export const SHOP_FACETS_CACHE_TAG = "shop-facets";
@@ -494,7 +500,10 @@ function colorPhrases(): string[] {
 }
 
 export function parseSearchQuery(q: string): ParsedSearchQuery {
-  let normalized = q.toLowerCase();
+  // "long sleeve" / "short sleeve" stay one phrase so "long" is not read as
+  // a dress length (see search-text.ts).
+  const sleeves = extractSleevePhrases(q.toLowerCase());
+  let normalized = sleeves.rest;
   const sizes: string[] = [];
   const colors: string[] = [];
 
@@ -519,7 +528,7 @@ export function parseSearchQuery(q: string): ParsedSearchQuery {
     .map((t) => t.trim())
     .filter(Boolean);
 
-  const textTokens: string[] = [];
+  const textTokens: string[] = [...sleeves.phrases];
   for (const token of rawTokens) {
     if (SEARCH_NOISE_WORDS.has(token)) continue;
     const sizeCode = SIZE_WORD_MAP[token];
@@ -534,7 +543,8 @@ export function parseSearchQuery(q: string): ParsedSearchQuery {
       colors.push(colorCode);
       continue;
     }
-    textTokens.push(token);
+    const text = normalizeSearchToken(token);
+    if (text) textTokens.push(text);
   }
 
   return {
@@ -591,25 +601,26 @@ export function productMatchesParsedQuery(
 
   if (parsed.textTokens.length === 0) return true;
 
+  // Fields are normalized like query tokens (lowercase, hyphens as spaces).
   const haystack: string[] = [];
-  if (p.title) haystack.push(p.title.toLowerCase());
-  if (p.handle) haystack.push(p.handle.toLowerCase());
+  if (p.title) haystack.push(normalizeSearchText(p.title));
+  if (p.handle) haystack.push(normalizeSearchText(p.handle));
   for (const c of p.categories ?? []) {
-    if (c.name) haystack.push(c.name.toLowerCase());
-    if (c.handle) haystack.push(c.handle.toLowerCase());
+    if (c.name) haystack.push(normalizeSearchText(c.name));
+    if (c.handle) haystack.push(normalizeSearchText(c.handle));
   }
   for (const t of p.tags ?? []) {
     const v = (t as { value?: string | null }).value;
-    if (v) haystack.push(v.toLowerCase());
+    if (v) haystack.push(normalizeSearchText(v));
   }
   for (const v of p.variants ?? []) {
-    if (v.title) haystack.push(v.title.toLowerCase());
-    if (v.sku) haystack.push(v.sku.toLowerCase());
+    if (v.title) haystack.push(normalizeSearchText(v.title));
+    if (v.sku) haystack.push(normalizeSearchText(v.sku));
     for (const o of v.options ?? []) {
       const val = (o as { value?: string | null }).value;
       if (!val) continue;
       const lc = val.toLowerCase();
-      haystack.push(lc);
+      haystack.push(normalizeSearchText(val));
       // Push canonicalized color so "burgundy" matches a "Burgandy" variant
       // even though the raw spelling differs.
       if (isColorOption(o)) {
@@ -626,21 +637,19 @@ export function productMatchesParsedQuery(
   const meta = (p.metadata ?? {}) as { search_terms?: unknown };
   if (typeof meta.search_terms === "string" && meta.search_terms.trim()) {
     for (const term of meta.search_terms.split(/[,|]/)) {
-      const t = term.trim().toLowerCase();
+      const t = normalizeSearchText(term);
       if (t) haystack.push(t);
     }
   } else if (Array.isArray(meta.search_terms)) {
     for (const term of meta.search_terms) {
       if (typeof term === "string") {
-        const t = term.trim().toLowerCase();
+        const t = normalizeSearchText(term);
         if (t) haystack.push(t);
       }
     }
   }
 
-  return parsed.textTokens.every((token) =>
-    haystack.some((field) => field.includes(token)),
-  );
+  return parsed.textTokens.every((token) => haystackHasToken(haystack, token));
 }
 
 type PriceRecord = {
