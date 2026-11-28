@@ -1,66 +1,79 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { LoyaltySignup } from "./LoyaltySignup";
+import { formatInt, getLoyaltyRules, pointsFor, unlockSpend, type LoyaltyRules } from "@/lib/loyalty-rules";
+import { LoyaltyJoinCard } from "./LoyaltySignup";
+
+// Rules come from the shop (5-minute cache), so a rate change in the admin
+// reaches this page without a deploy.
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "Doll Rewards · Loyalty Programme",
   description:
-    "Earn points on every order and get a treat for your birthday. Doll Rewards is our way of saying thank you.",
+    "Earn points on every order and spend them as money off. Doll Rewards is our way of saying thank you.",
   alternates: { canonical: "/loyalty" },
   openGraph: {
     title: "Doll Rewards",
-    description: "Earn points, birthday perks and early access with Doll Rewards.",
+    description: "Earn points on every order and get early access with Doll Rewards.",
     url: "/loyalty",
   },
 };
 
-const PERKS = [
-  {
-    icon: "★",
-    title: "2 points per Rs 100",
-    body: "Every order earns you points automatically. Redeem from 150 points: 1 point = Rs 1 off.",
-  },
-  {
-    icon: "♥",
-    title: "Birthday surprise",
-    body: "Tell us your birth month at signup. We send a private code in your birthday week, every year.",
-  },
-  {
-    icon: "✿",
-    title: "Early access drops",
-    body: "Members shop new drops 24 hours before everyone else. First in, first picks.",
-  },
-  {
-    icon: "♕",
-    title: "Member-only sales",
-    body: "Flash sales we don't advertise publicly. Only our list hears about them.",
-  },
-];
+function perks(r: LoyaltyRules) {
+  return [
+    {
+      icon: "★",
+      title: `${r.earnPer100} points per Rs 100`,
+      body: `That's ${r.earnPer100}% back on every order. Redeem from ${formatInt(r.minRedeem)} points: 1 point = Rs 1 off.`,
+    },
+    {
+      icon: "♥",
+      title: `${formatInt(r.welcomeBonus)} points to start`,
+      body: `Create your account and ${formatInt(r.welcomeBonus)} points land straight away.`,
+    },
+    {
+      icon: "✿",
+      title: "Early access drops",
+      body: "Members shop new drops 24 hours before everyone else. First in, first picks.",
+    },
+    {
+      icon: "♕",
+      title: "Member-only sales",
+      body: "Flash sales we don't advertise publicly. Only our list hears about them.",
+    },
+  ];
+}
 
-const HOW_IT_WORKS = [
-  {
-    step: "01",
-    title: "Sign up free",
-    body: "Leave your email and birthday month below. That's it, you're a member.",
-  },
-  {
-    step: "02",
-    title: "Earn on every order",
-    body: "Every Rs 100 you spend = 2 points. Points appear in your account the moment your order is placed.",
-  },
-  {
-    step: "03",
-    title: "Redeem at checkout",
-    body: "Use points as discount on any future order, from 150 points. 1 point = Rs 1 off (capped at 50% of cart).",
-  },
-  {
-    step: "04",
-    title: "Enjoy the perks",
-    body: "Birthday treat, early access, member-only sales: we'll email you when each one drops.",
-  },
-];
+function howItWorks(r: LoyaltyRules) {
+  return [
+    {
+      step: "01",
+      title: "Create your account",
+      body: `Sign up with your email. ${formatInt(r.welcomeBonus)} points are yours straight away.`,
+    },
+    {
+      step: "02",
+      title: "Earn on every order",
+      body: `Every Rs 100 = ${r.earnPer100} points on website orders placed while signed in. Points show the moment you order.`,
+    },
+    {
+      step: "03",
+      title: "Redeem at checkout",
+      body: `From ${formatInt(r.minRedeem)} points. 1 point = Rs 1 off, up to half your bag.`,
+    },
+    {
+      step: "04",
+      title: "Enjoy the perks",
+      body: "Early access and member-only sales: we email you when each one drops.",
+    },
+  ];
+}
 
-export default function LoyaltyPage() {
+export default async function LoyaltyPage() {
+  const rules = await getLoyaltyRules();
+  const spend = unlockSpend(rules);
+  const orderPoints = pointsFor(spend, rules);
+  const total = rules.welcomeBonus + orderPoints;
+
   return (
     <div className="bg-cream">
       {/* Hero */}
@@ -109,7 +122,7 @@ export default function LoyaltyPage() {
             </h2>
           </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {PERKS.map((p) => (
+            {perks(rules).map((p) => (
               <div
                 key={p.title}
                 className="group rounded-2xl border border-blush-300 bg-white p-7 transition-shadow hover:shadow-[0_4px_16px_rgba(229,96,74,0.10)]"
@@ -129,6 +142,33 @@ export default function LoyaltyPage() {
         </div>
       </section>
 
+      {/* Worked example */}
+      {spend > 0 && (
+        <section className="px-6 pb-14 md:px-10 md:pb-20">
+          <div className="mx-auto max-w-[900px] rounded-2xl border border-blush-300 bg-white p-6 md:p-8">
+            <p className="mb-4 text-center font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-coral-500">
+              ✦ What it looks like
+            </p>
+            <div className="grid items-center gap-3 text-center md:grid-cols-[1fr_auto_1fr_auto_1fr]">
+              <div>
+                <p className="font-display text-[28px] leading-none text-ink">{formatInt(rules.welcomeBonus)} pts</p>
+                <p className="mt-1 font-sans text-[12px] text-ink-soft">for signing up</p>
+              </div>
+              <p className="font-display text-[24px] text-coral-500" aria-hidden>+</p>
+              <div>
+                <p className="font-display text-[28px] leading-none text-ink">{formatInt(orderPoints)} pts</p>
+                <p className="mt-1 font-sans text-[12px] text-ink-soft">on a Rs {formatInt(spend)} order</p>
+              </div>
+              <p className="font-display text-[24px] text-coral-500" aria-hidden>=</p>
+              <div className="rounded-xl bg-coral-500 px-4 py-3 text-white">
+                <p className="font-display text-[28px] leading-none">Rs {formatInt(total)} off</p>
+                <p className="mt-1 font-sans text-[12px] text-white/85">your next order</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* How it works */}
       <section id="how" className="bg-ink px-6 py-14 text-white md:px-10 md:py-20">
         <div className="mx-auto max-w-[1100px]">
@@ -141,7 +181,7 @@ export default function LoyaltyPage() {
             </h2>
           </div>
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-            {HOW_IT_WORKS.map((s) => (
+            {howItWorks(rules).map((s) => (
               <div key={s.step} className="rounded-2xl bg-white/5 p-6">
                 <p className="mb-3 font-display text-[28px] text-coral-300">{s.step}</p>
                 <h3 className="mb-1 font-display text-[20px] leading-tight">{s.title}</h3>
@@ -157,7 +197,7 @@ export default function LoyaltyPage() {
         <div className="mx-auto grid max-w-[1100px] gap-10 md:grid-cols-[1.1fr_1fr] md:items-center">
           <div>
             <p className="mb-2 font-sans text-[10px] font-bold uppercase tracking-[0.18em] text-coral-500">
-              ✦ Join the list
+              ✦ Join Doll Rewards
             </p>
             <h2 className="font-display text-[28px] leading-[1.05] text-ink md:text-[42px]">
               Free to join.{" "}
@@ -166,16 +206,10 @@ export default function LoyaltyPage() {
               </em>
             </h2>
             <p className="mt-4 font-sans text-[14px] leading-[1.6] text-ink-soft md:text-[15px]">
-              Leave your email and birthday month below to join the members list.
-            </p>
-            <div className="mt-5 rounded-xl border border-blush-300 bg-white/60 p-4 font-sans text-[13px] leading-[1.55] text-ink-soft">
-              <strong className="text-ink">Already have an account?</strong> You&apos;re automatically enrolled in Doll Rewards, no separate signup needed. <Link href="/register" className="text-coral-500 hover:underline">Create an account →</Link> or <Link href="/login" className="text-coral-500 hover:underline">sign in</Link>.
-            </div>
-            <p className="mt-3 font-sans text-[12px] text-ink-muted">
-              No spam: one email a week at most. Unsubscribe anytime.
+              Create an account and you&apos;re in. No separate signup.
             </p>
           </div>
-          <LoyaltySignup />
+          <LoyaltyJoinCard welcomeBonus={rules.welcomeBonus} minRedeem={rules.minRedeem} />
         </div>
       </section>
 

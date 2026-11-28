@@ -1,10 +1,14 @@
 import { LoyaltyTeaserStatus } from "@/components/home/LoyaltyTeaserStatus";
+import { formatInt, getLoyaltyRules, type LoyaltyRules } from "@/lib/loyalty-rules";
 
-const PERKS = [
-  { icon: "*", body: "Earn **2 points** per Rs 100 - redeem from **150 pts**." },
-  { icon: "H", body: "**Birthday surprise** every year on us." },
-  { icon: "+", body: "**Priority support** - your DMs jump the queue." },
-];
+// Numbers come from the shop's live rules (see loyalty-rules.ts).
+function perks(r: LoyaltyRules) {
+  return [
+    { icon: "*", body: `Earn **${r.earnPer100} points** per Rs 100 - redeem from **${formatInt(r.minRedeem)} pts**.` },
+    { icon: "+", body: `**${formatInt(r.welcomeBonus)} points** welcome gift when you sign up.` },
+    { icon: "H", body: "**Early access** to new drops." },
+  ];
+}
 
 function renderPerk(body: string) {
   const parts = body.split(/(\*\*[^*]+\*\*)/g);
@@ -19,7 +23,8 @@ function renderPerk(body: string) {
   );
 }
 
-export function LoyaltyTeaser() {
+export async function LoyaltyTeaser() {
+  const rules = await getLoyaltyRules();
   return (
     <section className="relative overflow-hidden bg-gradient-to-b from-[#FCE9E4] to-cream py-10 md:py-14">
       <div
@@ -30,7 +35,7 @@ export function LoyaltyTeaser() {
         <div className="grid items-center gap-10 md:grid-cols-[1fr_1.4fr]">
           <LoyaltyTeaserStatus />
           <div className="grid gap-3">
-            {PERKS.map((perk) => (
+            {perks(rules).map((perk) => (
               <div
                 key={perk.icon}
                 className="flex items-center gap-3.5 rounded-2xl bg-white p-3.5 shadow-[0_2px_6px_rgba(229,96,74,0.06)]"
